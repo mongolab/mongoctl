@@ -1232,51 +1232,62 @@ def best_executable_match(executable_name,
     version = version_obj(version_str)
     match_func = exact_exe_version_match
 
-    if (version is None or
-        version_check_pref == VERSION_PREF_LATEST_STABLE):
+    exe_version_tuples = get_exe_version_tuples(executables)
+
+    if version is None:
+        match_func = default_match
+    elif version_check_pref == VERSION_PREF_LATEST_STABLE:
         match_func = latest_stable_exe
     elif version_check_pref == VERSION_PREF_MAJOR_GE:
         match_func = major_ge_exe_version_match
 
-    return match_func(executables, version)
+    return match_func(exe_version_tuples, version)
 
 ###############################################################################
-def exact_exe_version_match(executables, version):
+def default_match(exe_version_tuples, version):
+    default_exe = latest_stable_exe(exe_version_tuples)
+    if default_exe is None:
+        default_exe = latest_exe(exe_version_tuples)
+    return default_exe
 
-    for mongo_exe in executables:
-        if mongo_exe_version(mongo_exe) == version:
+###############################################################################
+def exact_exe_version_match(exe_version_tuples, version):
+
+    for mongo_exe,exe_version in exe_version_tuples:
+        if exe_version == version:
             return mongo_exe
 
     return None
 
 ###############################################################################
-def latest_stable_exe(executables, version=None):
+def latest_stable_exe(exe_version_tuples, version=None):
     # find greatest stable exe
     # hold values in a list of (exe,version) tuples
-    all_exes = []
-    for mongo_exe in executables:
-        exe_version = mongo_exe_version(mongo_exe)
+    stable_exes = []
+    for mongo_exe,exe_version in exe_version_tuples:
         # get the release number (e.g. A.B.C, release number is B here)
         release_num = exe_version.parts[0][1]
         # stable releases are the even ones
         if (release_num % 2) == 0:
-            all_exes.append((mongo_exe, exe_version))
+            stable_exes.append((mongo_exe, exe_version))
+
+    return latest_exe(stable_exes)
+###############################################################################
+def latest_exe(exe_version_tuples, version=None):
 
     # Return nothing if nothing compatible
-    if len(all_exes) == 0:
+    if len(exe_version_tuples) == 0:
         return None
-    # sort desc by version
-    all_exes.sort(key=lambda t: t[1], reverse=True)
+        # sort desc by version
+    exe_version_tuples.sort(key=lambda t: t[1], reverse=True)
 
-    return all_exes[0][0]
-
+    return exe_version_tuples[0][0]
 ###############################################################################
-def major_ge_exe_version_match(executables, version):
+def major_ge_exe_version_match(exe_version_tuples):
     # find all compatible exes then return closet match (min version)
     # hold values in a list of (exe,version) tuples
     compatible_exes = []
-    for mongo_exe in executables:
-        exe_version = mongo_exe_version(mongo_exe)
+    for mongo_exe,exe_version in exe_version_tuples:
         if exe_version.parts[0][0] >= version.parts[0][0]:
             compatible_exes.append((mongo_exe, exe_version))
 
@@ -1286,6 +1297,14 @@ def major_ge_exe_version_match(executables, version):
     # find the best fit
     compatible_exes.sort(key=lambda t: t[1])
     return compatible_exes[0][0]
+
+###############################################################################
+def get_exe_version_tuples(executables):
+    exe_ver_tuples = []
+    for mongo_exe in executables:
+        exe_version = mongo_exe_version(mongo_exe)
+        exe_ver_tuples.append((mongo_exe, exe_version))
+    return exe_ver_tuples
 
 ###############################################################################
 def is_valid_mongo_exe(path):
