@@ -95,7 +95,7 @@ MAX_DESIRED_FILE_HANDLES = 65536
 VERSION_PREF_EXACT = 0
 VERSION_PREF_GREATER = 1
 VERSION_PREF_MAJOR_GE = 2
-VERSION_PREF_ANY = 3
+VERSION_PREF_LATEST_STABLE = 3
 
 # Version support stuff
 MIN_SUPPORTED_VERSION = "1.8"
@@ -1229,14 +1229,13 @@ def best_executable_match(executable_name,
                           executables,
                           version_str,
                           version_check_pref=VERSION_PREF_EXACT):
-
-    if version_str is None:
-        return executables[0]
-
     version = version_obj(version_str)
     match_func = exact_exe_version_match
 
-    if version_check_pref == VERSION_PREF_MAJOR_GE:
+    if (version is None or
+        version_check_pref == VERSION_PREF_LATEST_STABLE):
+        match_func = latest_stable_exe
+    elif version_check_pref == VERSION_PREF_MAJOR_GE:
         match_func = major_ge_exe_version_match
 
     return match_func(executables, version)
@@ -1249,6 +1248,27 @@ def exact_exe_version_match(executables, version):
             return mongo_exe
 
     return None
+
+###############################################################################
+def latest_stable_exe(executables, version=None):
+    # find greatest stable exe
+    # hold values in a list of (exe,version) tuples
+    all_exes = []
+    for mongo_exe in executables:
+        exe_version = mongo_exe_version(mongo_exe)
+        # get the release number (e.g. A.B.C, release number is B here)
+        release_num = exe_version.parts[0][1]
+        # stable releases are the even ones
+        if (release_num % 2) == 0:
+            all_exes.append((mongo_exe, exe_version))
+
+    # Return nothing if nothing compatible
+    if len(all_exes) == 0:
+        return None
+    # sort desc by version
+    all_exes.sort(key=lambda t: t[1], reverse=True)
+
+    return all_exes[0][0]
 
 ###############################################################################
 def major_ge_exe_version_match(executables, version):
@@ -1308,6 +1328,9 @@ def is_supported_mongo_version(version_str):
 
 ###############################################################################
 def version_obj(version_str):
+    if version_str is None:
+        return None
+
     #clean version string
     try:
         version_str = version_str.replace("-pre-" , "-pre")
