@@ -1544,11 +1544,10 @@ def get_activity_collection():
 
     mongoctl_db = get_mongoctl_database()
 
-    activity_collection_name =\
-    get_mongoctl_config_val('activityCollectionName',
-        DEFAULT_ACTIVITY_COLLECTION)
+    activity_coll_name = get_mongoctl_config_val('activityCollectionName',
+                                                 DEFAULT_ACTIVITY_COLLECTION)
 
-    return mongoctl_db[activity_collection_name]
+    return mongoctl_db[activity_coll_name]
 
 
 ###############################################################################
