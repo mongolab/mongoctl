@@ -1233,25 +1233,34 @@ def best_executable_match(executable_name,
     match_func = exact_exe_version_match
 
     exe_version_tuples = get_exe_version_tuples(executables)
+    exe_versions_str = exe_version_tuples_to_strs(exe_version_tuples)
+
+    log_verbose("Found the following %s's. Selecting best match "
+                "for version %s\n%s" %(executable_name, version_str,
+                                       exe_versions_str))
 
     if version is None:
+        log_verbose("mongoVersion is null. "
+                    "Selecting default %s" % executable_name)
         match_func = default_match
     elif version_check_pref == VERSION_PREF_LATEST_STABLE:
         match_func = latest_stable_exe
     elif version_check_pref == VERSION_PREF_MAJOR_GE:
         match_func = major_ge_exe_version_match
 
-    return match_func(exe_version_tuples, version)
+    return match_func(executable_name, exe_version_tuples, version)
 
 ###############################################################################
-def default_match(exe_version_tuples, version):
-    default_exe = latest_stable_exe(exe_version_tuples)
+def default_match(executable_name, exe_version_tuples, version):
+    default_exe = latest_stable_exe(executable_name, exe_version_tuples)
     if default_exe is None:
-        default_exe = latest_exe(exe_version_tuples)
+        log_verbose("No stable %s found. Looking for any latest available %s "
+                    "..." % (executable_name, executable_name))
+        default_exe = latest_exe(executable_name, exe_version_tuples)
     return default_exe
 
 ###############################################################################
-def exact_exe_version_match(exe_version_tuples, version):
+def exact_exe_version_match(executable_name, exe_version_tuples, version):
 
     for mongo_exe,exe_version in exe_version_tuples:
         if exe_version == version:
@@ -1260,7 +1269,8 @@ def exact_exe_version_match(exe_version_tuples, version):
     return None
 
 ###############################################################################
-def latest_stable_exe(exe_version_tuples, version=None):
+def latest_stable_exe(executable_name, exe_version_tuples, version=None):
+    log_verbose("Find the latest stable %s" % executable_name)
     # find greatest stable exe
     # hold values in a list of (exe,version) tuples
     stable_exes = []
@@ -1271,9 +1281,9 @@ def latest_stable_exe(exe_version_tuples, version=None):
         if (release_num % 2) == 0:
             stable_exes.append((mongo_exe, exe_version))
 
-    return latest_exe(stable_exes)
+    return latest_exe(executable_name, stable_exes)
 ###############################################################################
-def latest_exe(exe_version_tuples, version=None):
+def latest_exe(executable_name, exe_version_tuples, version=None):
 
     # Return nothing if nothing compatible
     if len(exe_version_tuples) == 0:
@@ -1283,7 +1293,7 @@ def latest_exe(exe_version_tuples, version=None):
 
     return exe_version_tuples[0][0]
 ###############################################################################
-def major_ge_exe_version_match(exe_version_tuples):
+def major_ge_exe_version_match(executable_name, exe_version_tuples):
     # find all compatible exes then return closet match (min version)
     # hold values in a list of (exe,version) tuples
     compatible_exes = []
@@ -1305,6 +1315,13 @@ def get_exe_version_tuples(executables):
         exe_version = mongo_exe_version(mongo_exe)
         exe_ver_tuples.append((mongo_exe, exe_version))
     return exe_ver_tuples
+
+###############################################################################
+def exe_version_tuples_to_strs(exe_ver_tuples):
+    strs = []
+    for mongo_exe,exe_version in exe_ver_tuples:
+        strs.append("%s = %s" % (mongo_exe, exe_version))
+    return "\n".join(strs)
 
 ###############################################################################
 def is_valid_mongo_exe(path):
