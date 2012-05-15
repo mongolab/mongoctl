@@ -1,0 +1,2 @@
+https://github.com/dampier/mongo-python-driver/tarball/master#egg=dampier-pymongo-2.1.1
+https://github.com/objectlabs/dargparse/tarball/master#egg=dargparse-0.1.0

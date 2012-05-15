@@ -1,0 +1,1 @@
+include mongoctl/tests/testing_conf/*.config
