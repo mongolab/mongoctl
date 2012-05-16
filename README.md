@@ -127,7 +127,7 @@ Installing
 --------------------
 
 ```
-% sudo pip install "git+ssh://git@github.com/objectlabs/mongoctl.git#egg=mongoctl-0.1.0"
+% sudo pip install "git+git://github.com/objectlabs/mongoctl.git#egg=mongoctl-0.1.0"
 ```
 
 This will download and install all packages required by mongoctl, as
@@ -139,7 +139,7 @@ directory is used to hold configuration files used to configure
 To update:
 
 ```
-% sudo pip install --upgrade "git+ssh://git@github.com/objectlabs/mongoctl.git#egg=mongoctl-0.1.0"
+% sudo pip install --upgrade "git+git://github.com/objectlabs/mongoctl.git#egg=mongoctl-0.1.0"
 ```
 
 To uninstall:
