@@ -2820,7 +2820,7 @@ class ReplicaSetCluster(DocumentWrapper):
             log_info("Executing the following command on the current primary:"
                      "\n%s" % document_pretty_string(rs_reconfig_cmd))
 
-            primary_server.db_command(rs_reconfig_cmd, "admin")
+            primary_server.disconnecting_db_command(rs_reconfig_cmd, "admin")
             log_info("Replica set cluster '%s' re-configuration ran"
                      " successfully!" % self.get_id())
             return True
