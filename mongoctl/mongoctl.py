@@ -90,6 +90,8 @@ CONN_TIMEOUT = 10000
 
 # when requesting OS resource caps governing # of mongod connections,
 MAX_DESIRED_FILE_HANDLES = 65536
+# and for limiting impact on "unmapped virtual" RAM from each connection thread,
+MAX_DESIRED_STACK_SIZE = 1024
 
 # VERSION CHECK PREFERENCE CONSTS
 VERSION_PREF_EXACT = 0
@@ -417,18 +419,23 @@ def start_server_process(server,options_override=None):
 
 ###############################################################################
 def _set_process_limits():
-    (soft, hard) = resource.getrlimit(resource.RLIMIT_NOFILE)
-    log_info("Maximizing OS file descriptor limits for mongod process...\n"
+    _set_a_process_limit(resource.RLIMIT_NOFILE, MAX_DESIRED_FILE_HANDLES,
+                         "number of file descriptors")
+
+def _set_a_process_limit(which_resource, desired_limit, description=None):
+    description = "resource" if description is None else description
+    (soft, hard) = resource.getrlimit(which_resource)
+    log_info("Setting OS %s limit for mongod process (desire up to %d)...\n"
              "\t Current limit values:   soft = %d   hard = %d" %
-             (soft, hard))
+             (description, desired_limit, soft, hard))
     new_soft_floor = soft
-    new_soft_ceiling = min(hard, MAX_DESIRED_FILE_HANDLES)
+    new_soft_ceiling = min(hard, desired_limit)
     new_soft = new_soft_ceiling # be optimistic for initial attempt
     while new_soft_ceiling - new_soft_floor > 1:
         try:
-            log_verbose("Trying setrlimit(resource.RLIMIT_NOFILE, (%d, %d))" %
+            log_verbose("Trying setrlimit(resource.THAT, (%d, %d))" %
                         (new_soft, hard))
-            resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft, hard))
+            resource.setrlimit(which_resource, (new_soft, hard))
             log_verbose("  That worked!  Should I ask for more?")
             new_soft_floor = new_soft
         except:
@@ -436,9 +443,8 @@ def _set_process_limits():
             new_soft_ceiling = new_soft - 1
         new_soft = (new_soft_ceiling + new_soft_floor) / 2
 
-    log_info("Resulting OS file descriptor limits for mongod process:  "
-             "soft = %d   hard = %d" % 
-             resource.getrlimit(resource.RLIMIT_NOFILE))
+    log_info("Resulting OS %s limit for mongod process:  " % description +
+             "soft = %d   hard = %d" % resource.getrlimit(which_resource))
             
     
 ###############################################################################
