@@ -326,8 +326,8 @@ def do_start_server(server, options_override=None):
     if is_my_repo:
         log_server_activity(server, "start")
 
-    # if the server belongs to a replicaset cluster,
-    # then prompt the user to init the replicaset IF not already initialized
+    # if the server belongs to a replica set cluster,
+    # then prompt the user to init the replica set IF not already initialized
     # AND server is NOT an Arbiter
 
     cluster = lookup_cluster_by_server(server)
@@ -600,7 +600,7 @@ def kill_stop_server(server):
 
     kill_process(pid, force=False)
 
-    log_info("Will now wait for server '%s' pid '%s' to die" %
+    log_info("Will now wait for server '%s' pid '%s' to die." %
              (server.get_id(), pid))
     wait_for(pid_dead_predicate(pid), timeout=3)
 
@@ -610,7 +610,7 @@ def kill_stop_server(server):
                  "'%s'... (pid=%s)" % (server.get_id(), pid))
         kill_process(pid, force=True)
 
-        log_info("Will now wait for server '%s' pid '%s' to die" %
+        log_info("Will now wait for server '%s' pid '%s' to die." %
                  (server.get_id(), pid))
         wait_for(pid_dead_predicate(pid), timeout=3)
 
@@ -2758,7 +2758,7 @@ class ReplicaSetCluster(DocumentWrapper):
             def is_init():
                 return self.is_replicaset_initialized()
 
-            log_info("Will now wait for the replicaset to initialize")
+            log_info("Will now wait for the replica set to initialize")
             wait_for(is_init,timeout=60, sleep_duration=1)
 
             if self.is_replicaset_initialized():
