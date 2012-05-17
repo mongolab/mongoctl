@@ -420,18 +420,19 @@ def start_server_process(server,options_override=None):
 
 ###############################################################################
 def _set_process_limits():
-    _set_a_process_limit(resource.RLIMIT_STACK, MAX_DESIRED_STACK_SIZE,
+    _set_a_process_limit('RLIMIT_STACK', MAX_DESIRED_STACK_SIZE,
                          "stack size")
-    _set_a_process_limit(resource.RLIMIT_NOFILE, MAX_DESIRED_FILE_HANDLES,
+    _set_a_process_limit('RLIMIT_NOFILE', MAX_DESIRED_FILE_HANDLES,
                          "number of file descriptors")
 
-def _set_a_process_limit(which_resource, desired_limit, description):
+def _set_a_process_limit(resource_name, desired_limit, description):
+    which_resource = getattr(resource, resource_name)
     (soft, hard) = resource.getrlimit(which_resource)
-    log_info("Setting OS %s limit for mongod process (desire up to %d)...\n"
-             "\t Current limit values:   soft = %d   hard = %d" %
+    log_info("Setting OS limit on %s for mongod process (desire up to %d)..."
+             "\n\t Current limit values:   soft = %d   hard = %d" %
              (description, desired_limit, soft, hard))
     _negotiate_proc_limit(which_resource, desired_limit, soft, hard)
-    log_info("Resulting OS %s limit for mongod process:  " % description +
+    log_info("Resulting OS limit on %s for mongod process:  " % description +
              "soft = %d   hard = %d" % resource.getrlimit(which_resource))
 
 
