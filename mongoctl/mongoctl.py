@@ -425,48 +425,39 @@ def _set_process_limits():
     _set_a_process_limit(resource.RLIMIT_NOFILE, MAX_DESIRED_FILE_HANDLES,
                          "number of file descriptors")
 
-def _set_a_process_limit(which_resource, desired_limit, description=None):
-    description = "resource" if description is None else description
+def _set_a_process_limit(which_resource, desired_limit, description):
     (soft, hard) = resource.getrlimit(which_resource)
     log_info("Setting OS %s limit for mongod process (desire up to %d)...\n"
              "\t Current limit values:   soft = %d   hard = %d" %
              (description, desired_limit, soft, hard))
-    f_it = _lower_proc_limit if desired_limit < soft else _raise_proc_limit
-    f_it(which_resource, desired_limit, soft, hard)
+    _negotiate_proc_limit(which_resource, desired_limit, soft, hard)
     log_info("Resulting OS %s limit for mongod process:  " % description +
              "soft = %d   hard = %d" % resource.getrlimit(which_resource))
 
-def _lower_proc_limit(which_resource, desired_limit, soft, hard):
-    new_soft_floor = desired_limit
-    new_soft_ceiling = soft
-    new_soft = desired_limit    # be optimistic for initial attempt
-    while new_soft_ceiling - new_soft_floor > 1:
-        try:
-            log_verbose("Trying setrlimit(resource.THAT, (%d, %d))" %
-                        (new_soft, hard))
-            resource.setrlimit(which_resource, (new_soft, hard))
-            log_verbose("  That worked!  Should I ask for less?")
-            new_soft_ceiling = new_soft
-        except:
-            log_verbose("  Phooey.  That didn't work.")
-            new_soft_floor = new_soft + 1
-        new_soft = (new_soft_ceiling + new_soft_floor) / 2
 
-def _raise_proc_limit(which_resource, desired_limit, soft, hard):
-    new_soft_floor = soft
-    new_soft_ceiling = min(hard, desired_limit)
-    new_soft = new_soft_ceiling # be optimistic for initial attempt
-    while new_soft_ceiling - new_soft_floor > 1:
+def _negotiate_proc_limit(which_resource, desired_limit, soft, hard):
+
+    if desired_limit < soft :         # i.e., are we decreasing the limit?
+        best_possible = desired_limit
+        worst_possible = soft
+    else:                             # or increasing the limit?
+        best_possible = min(hard, desired_limit)
+        worst_possible = soft
+    attempt = best_possible           # be optimistic for initial attempt
+
+    while abs(best_possible - worst_possible) > 1 :
         try:
             log_verbose("Trying setrlimit(resource.THAT, (%d, %d))" %
-                        (new_soft, hard))
-            resource.setrlimit(which_resource, (new_soft, hard))
-            log_verbose("  That worked!  Should I ask for more?")
-            new_soft_floor = new_soft
+                        (attempt, hard))
+            resource.setrlimit(which_resource, (attempt, hard))
+            log_verbose("  That worked!  Should I negotiate further?")
+            worst_possible = attempt
+
         except:
             log_verbose("  Phooey.  That didn't work.")
-            new_soft_ceiling = new_soft - 1
-        new_soft = (new_soft_ceiling + new_soft_floor) / 2
+            best_possible = attempt + (1 if best_possible < attempt else -1)
+
+        attempt = (best_possible + worst_possible) / 2
             
     
 ###############################################################################
