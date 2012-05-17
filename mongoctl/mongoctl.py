@@ -444,21 +444,15 @@ def _set_a_process_limit(resource_name, desired_limit, description):
 
 def _negotiate_proc_limit(set_resource, desired_limit, soft, hard):
 
-    if desired_limit < soft :         # i.e., are we decreasing the limit?
-        best_possible = desired_limit
-        worst_possible = soft
-    else:                             # or increasing the limit?
-        best_possible = min(hard, desired_limit)
-        worst_possible = soft
+    best_possible = min(hard, desired_limit)
+    worst_possible = soft
     attempt = best_possible           # be optimistic for initial attempt
 
     while abs(best_possible - worst_possible) > 1 :
         try:
             set_resource(attempt)
-
             log_verbose("  That worked!  Should I negotiate further?")
             worst_possible = attempt
-
         except:
             log_verbose("  Phooey.  That didn't work.")
             best_possible = attempt + (1 if best_possible < attempt else -1)
