@@ -428,15 +428,21 @@ def _set_process_limits():
 def _set_a_process_limit(resource_name, desired_limit, description):
     which_resource = getattr(resource, resource_name)
     (soft, hard) = resource.getrlimit(which_resource)
+    def set_resource(attempted_value):
+        log_verbose("Trying setrlimit(resource.%s, (%d, %d))" %
+                    (resource_name, attempted_value, hard))
+        resource.setrlimit(which_resource, (attempted_value, hard))
+
     log_info("Setting OS limit on %s for mongod process (desire up to %d)..."
              "\n\t Current limit values:   soft = %d   hard = %d" %
              (description, desired_limit, soft, hard))
-    _negotiate_proc_limit(which_resource, desired_limit, soft, hard)
+        
+    _negotiate_proc_limit(set_resource, desired_limit, soft, hard)
     log_info("Resulting OS limit on %s for mongod process:  " % description +
              "soft = %d   hard = %d" % resource.getrlimit(which_resource))
 
 
-def _negotiate_proc_limit(which_resource, desired_limit, soft, hard):
+def _negotiate_proc_limit(set_resource, desired_limit, soft, hard):
 
     if desired_limit < soft :         # i.e., are we decreasing the limit?
         best_possible = desired_limit
@@ -448,9 +454,8 @@ def _negotiate_proc_limit(which_resource, desired_limit, soft, hard):
 
     while abs(best_possible - worst_possible) > 1 :
         try:
-            log_verbose("Trying setrlimit(resource.THAT, (%d, %d))" %
-                        (attempt, hard))
-            resource.setrlimit(which_resource, (attempt, hard))
+            set_resource(attempt)
+
             log_verbose("  That worked!  Should I negotiate further?")
             worst_possible = attempt
 
