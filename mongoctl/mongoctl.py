@@ -90,8 +90,9 @@ CONN_TIMEOUT = 10000
 
 # when requesting OS resource caps governing # of mongod connections,
 MAX_DESIRED_FILE_HANDLES = 65536
-# and for limiting impact on "unmapped virtual" RAM from each connection thread,
-MAX_DESIRED_STACK_SIZE = 1024
+# and for limiting impact on "unmapped virtual" RAM from many connections,
+# ask OS to limit each thread to a stack of this many bytes:
+MAX_DESIRED_STACK_SIZE = 1024 * 1024
 
 # VERSION CHECK PREFERENCE CONSTS
 VERSION_PREF_EXACT = 0
@@ -419,6 +420,8 @@ def start_server_process(server,options_override=None):
 
 ###############################################################################
 def _set_process_limits():
+    _set_a_process_limit(resource.RLIMIT_STACK, MAX_DESIRED_STACK_SIZE,
+                         "stack size")
     _set_a_process_limit(resource.RLIMIT_NOFILE, MAX_DESIRED_FILE_HANDLES,
                          "number of file descriptors")
 
@@ -428,6 +431,28 @@ def _set_a_process_limit(which_resource, desired_limit, description=None):
     log_info("Setting OS %s limit for mongod process (desire up to %d)...\n"
              "\t Current limit values:   soft = %d   hard = %d" %
              (description, desired_limit, soft, hard))
+    f_it = _lower_proc_limit if desired_limit < soft else _raise_proc_limit
+    f_it(which_resource, desired_limit, soft, hard)
+    log_info("Resulting OS %s limit for mongod process:  " % description +
+             "soft = %d   hard = %d" % resource.getrlimit(which_resource))
+
+def _lower_proc_limit(which_resource, desired_limit, soft, hard):
+    new_soft_floor = desired_limit
+    new_soft_ceiling = soft
+    new_soft = desired_limit    # be optimistic for initial attempt
+    while new_soft_ceiling - new_soft_floor > 1:
+        try:
+            log_verbose("Trying setrlimit(resource.THAT, (%d, %d))" %
+                        (new_soft, hard))
+            resource.setrlimit(which_resource, (new_soft, hard))
+            log_verbose("  That worked!  Should I ask for less?")
+            new_soft_ceiling = new_soft
+        except:
+            log_verbose("  Phooey.  That didn't work.")
+            new_soft_floor = new_soft + 1
+        new_soft = (new_soft_ceiling + new_soft_floor) / 2
+
+def _raise_proc_limit(which_resource, desired_limit, soft, hard):
     new_soft_floor = soft
     new_soft_ceiling = min(hard, desired_limit)
     new_soft = new_soft_ceiling # be optimistic for initial attempt
@@ -442,9 +467,6 @@ def _set_a_process_limit(which_resource, desired_limit, description=None):
             log_verbose("  Phooey.  That didn't work.")
             new_soft_ceiling = new_soft - 1
         new_soft = (new_soft_ceiling + new_soft_floor) / 2
-
-    log_info("Resulting OS %s limit for mongod process:  " % description +
-             "soft = %d   hard = %d" % resource.getrlimit(which_resource))
             
     
 ###############################################################################
