@@ -88,11 +88,14 @@ DEFAULT_PORT = 27017
 # db connection timeout, 10 seconds
 CONN_TIMEOUT = 10000
 
-# when requesting OS resource caps governing # of mongod connections,
-MAX_DESIRED_FILE_HANDLES = 65536
-# and for limiting impact on "unmapped virtual" RAM from many connections,
-# ask OS to limit each thread to a stack of this many bytes:
-MAX_DESIRED_STACK_SIZE = 1024 * 1024
+# OS resource limits to impose on the 'mongod' process (see setrlimit(2))
+PROCESS_LIMITS = [
+    # Many TCP/IP connections to mongod ==> many threads to handle them ==>
+    # RAM footprint of many stacks.  Ergo, limit the stack size per thread:
+    ('RLIMIT_STACK', "stack size (in bytes)", 1024 * 1024),
+    # Speaking of connections, we'd like to be able to have a lot of them:
+    ('RLIMIT_NOFILE', "number of file descriptors", 65536)
+    ]
 
 # VERSION CHECK PREFERENCE CONSTS
 VERSION_PREF_EXACT = 0
@@ -420,10 +423,8 @@ def start_server_process(server,options_override=None):
 
 ###############################################################################
 def _set_process_limits():
-    _set_a_process_limit('RLIMIT_STACK', MAX_DESIRED_STACK_SIZE,
-                         "stack size")
-    _set_a_process_limit('RLIMIT_NOFILE', MAX_DESIRED_FILE_HANDLES,
-                         "number of file descriptors")
+    for (res_name, description, desired_limit) in PROCESS_LIMITS :
+        _set_a_process_limit(res_name, desired_limit, description)
 
 def _set_a_process_limit(resource_name, desired_limit, description):
     which_resource = getattr(resource, resource_name)
@@ -437,12 +438,12 @@ def _set_a_process_limit(resource_name, desired_limit, description):
              "\n\t Current limit values:   soft = %d   hard = %d" %
              (description, desired_limit, soft, hard))
         
-    _negotiate_proc_limit(set_resource, desired_limit, soft, hard)
+    _negotiate_process_limit(set_resource, desired_limit, soft, hard)
     log_info("Resulting OS limit on %s for mongod process:  " % description +
              "soft = %d   hard = %d" % resource.getrlimit(which_resource))
 
 
-def _negotiate_proc_limit(set_resource, desired_limit, soft, hard):
+def _negotiate_process_limit(set_resource, desired_limit, soft, hard):
 
     best_possible = min(hard, desired_limit)
     worst_possible = soft
