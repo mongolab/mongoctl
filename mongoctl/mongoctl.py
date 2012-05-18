@@ -2356,11 +2356,14 @@ class Server(DocumentWrapper):
         # but there are no admin users yet
         if not self.needs_to_auth(dbname):
             return db
-        # If the db has credentials then use them, otherwise use an
-        # authenticated admin db to grab required db
+        # If the db has credentials then use them
         if self.has_db_credentials(dbname):
             auth_success = self.authenticate_db(db, dbname)
-        elif self.has_db_credentials("admin") and dbname != "admin":
+            if auth_success:
+                return db
+        # Otherwise, or if that didn't work, try to auth against
+        # admin db in order to then grab requested db
+        if self.has_db_credentials("admin") and dbname != "admin":
             # if this passes then we are authed!
             admin_db = self.get_admin_db()
             auth_success = True
