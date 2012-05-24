@@ -787,7 +787,7 @@ def do_connect_to_server(server):
 def prompt_execute_task(message, task_function):
 
     if not is_interactive_mode():
-        return False
+        return (False,None)
 
     valid_choices = {"yes":True,
                      "y":True,
