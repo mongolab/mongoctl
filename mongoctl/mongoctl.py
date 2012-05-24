@@ -442,10 +442,18 @@ def _set_a_process_limit(resource_name, desired_limit, description):
     log_info("Resulting OS limit on %s for mongod process:  " % description +
              "soft = %d   hard = %d" % resource.getrlimit(which_resource))
 
+def _rlimit_min(one_val, nother_val):
+    """Returns the more stringent rlimit value.  -1 means no limit."""
+    if one_val < 0 and nother_val < 0 :
+        return -1
+    elif nother_val < 0 :
+        return one_val
+    else:
+        return min(one_val, nother_val)
 
 def _negotiate_process_limit(set_resource, desired_limit, soft, hard):
 
-    best_possible = min(hard, desired_limit)
+    best_possible = _rlimit_min(hard, desired_limit)
     worst_possible = soft
     attempt = best_possible           # be optimistic for initial attempt
 
@@ -456,6 +464,9 @@ def _negotiate_process_limit(set_resource, desired_limit, soft, hard):
             worst_possible = attempt
         except:
             log_verbose("  Phooey.  That didn't work.")
+            if attempt < 0 :
+                log_info("\tCannot remove soft limit on resource.")
+                return
             best_possible = attempt + (1 if best_possible < attempt else -1)
 
         attempt = (best_possible + worst_possible) / 2
