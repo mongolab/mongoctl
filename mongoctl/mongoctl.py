@@ -444,10 +444,8 @@ def _set_a_process_limit(resource_name, desired_limit, description):
 
 def _rlimit_min(one_val, nother_val):
     """Returns the more stringent rlimit value.  -1 means no limit."""
-    if one_val < 0 and nother_val < 0 :
-        return -1
-    elif nother_val < 0 :
-        return one_val
+    if one_val < 0 or nother_val < 0 :
+        return max(one_val, nother_val)
     else:
         return min(one_val, nother_val)
 
