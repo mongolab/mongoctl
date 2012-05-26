@@ -324,12 +324,18 @@ def do_start_server(server, options_override=None):
                                 (server.get_id(), server.get_port()))
 
     is_my_repo = is_mongoctl_repo_db(server)
-    if not is_my_repo:
+    if is_my_repo:
+        # Prevent consulting db repo until it's started AND prepared.
+        am_bootstrapping(sez_i=True)
+    else:
         log_server_activity(server, "start")
 
     start_server_process(server,options_override)
 
     if is_my_repo:
+        # The db repo is now open for business.
+        # If seeded, we can now start ignoring the seeds in the file repo.
+        am_bootstrapping(sez_i=False)
         log_server_activity(server, "start")
 
     # if the server belongs to a replica set cluster,
@@ -686,6 +692,7 @@ def prompt_step_server_down(server, force):
                                "Step it down before proceeding to shutdown?" %
                                server.get_id(),
         step_down_func)
+
 ###############################################################################
 # restart server
 ###############################################################################
@@ -903,7 +910,7 @@ def lookup_server(server_id):
 
     server = None
     # lookup server from the config first
-    if has_file_repository():
+    if consulting_file_repository():
         server = config_lookup_server(server_id)
 
     # if server is not found then try from db
@@ -954,7 +961,7 @@ def lookup_all_servers():
     validate_repositories()
 
     all_servers = []
-    if has_file_repository():
+    if consulting_file_repository():
         all_servers = list(get_configured_servers().values())
     if has_db_repository():
         all_servers.extend(db_lookup_all_servers())
@@ -983,7 +990,7 @@ def lookup_cluster(cluster_id, quiet=False):
     validate_repositories()
     cluster = None
     # lookup cluster from the config first
-    if has_file_repository():
+    if consulting_file_repository():
         cluster = config_lookup_cluster(cluster_id)
 
     # if cluster is not found then try from db
@@ -1017,7 +1024,7 @@ def lookup_all_clusters():
     validate_repositories()
     all_clusters = []
 
-    if has_file_repository():
+    if consulting_file_repository():
         all_clusters = list(get_configured_clusters().values())
     if has_db_repository():
         all_clusters.extend(db_lookup_all_clusters())
@@ -1084,7 +1091,7 @@ def lookup_cluster_by_server(server):
     cluster = None
 
     ## look for the cluster in config
-    if has_file_repository():
+    if consulting_file_repository():
         cluster = config_lookup_cluster_by_server(server)
 
     ## If nothing found then look in db
@@ -1536,6 +1543,71 @@ def has_db_repository():
 ###############################################################################
 def has_file_repository():
     return get_file_repository_conf() is not None
+
+###############################################################################
+# Bootstrapping the DB Repository off of the File Repository
+#
+# If configured with "seedDatabaseRepository" : true , then the file repository
+# is only consulted long enough to start the database repository.
+# We assume (for now) that the only place to be seeding the db repository from
+# is the file repository, and so once seeded we only consult the latter.
+#
+# This seems a little overcomplicated, but then ... bootstrapping is tricky.
+
+def consulting_file_repository():
+    return has_file_repository() and not has_seeded_repository()
+
+def is_seeding_repository():
+    """returns True iff config indicates file repo intended to seed db repo"""
+    return (has_db_repository() and
+            get_mongoctl_config_val("seedDatabaseRepository", default=False))
+
+def has_seeded_repository():
+    """returns True iff we believe that seeding is complete & available"""
+    if not is_seeding_repository() or am_bootstrapping():
+        return False
+
+    global __db_repo_seeded__
+    if not __db_repo_seeded__ :
+        log_verbose("Hmmm ... I wonder if db repo is up & seeded?")
+        __db_repo_seeded__ = _does_db_repo_appear_seeded()
+        if not __db_repo_seeded__ :
+            log_verbose("Cannot confirm this here db repo is up & seeded.")
+    return __db_repo_seeded__
+
+def _does_db_repo_appear_seeded():
+    """returns True iff we see seeded db repo is online & ready for action."""
+    global __db_repo_checking_seeded_
+    if __db_repo_checking_seeded_ :
+        # if we're asking a second time, let's not blow out the stack, eh?
+        return False
+    try:
+        __db_repo_checking_seeded_ = True # that's what we're doing, yo.
+        return (is_seeding_repository() and
+                get_mongoctl_database() is not None)
+    except:
+        return False
+    finally:
+        __db_repo_checking_seeded_ = False
+
+def am_bootstrapping(sez_i=None):
+    """This is basically a flag set during startup of the repo db server."""
+    global __db_repo_starting__
+    if sez_i is None:
+        return __db_repo_starting__
+    else:
+        __db_repo_starting__ = sez_i
+
+###############################################################################
+# Global variables used to govern the mechanics of db repo startup & seeding
+#
+# Global variable: True ==> file repo contents presumed represented in db repo
+__db_repo_seeded__ = False
+# Global variable: True ==> checking on seeded repo (prevent inf. recursion)
+__db_repo_checking_seeded_ = False
+# Global variable: True ==> bootstrapping the db repo
+__db_repo_starting__ = False
+
 
 ###############################################################################
 def validate_repositories():
@@ -2476,6 +2548,7 @@ class Server(DocumentWrapper):
                 has_auth = self.has_auth_to(default_dbname)
                 if not has_auth:
                     status['error'] = "Cannot authenticate"
+                    self.sever_db_connection()   # better luck next time!
 
             # TODO: discuss with Angela
             status["serverStatusSummary"] = {
@@ -2524,6 +2597,12 @@ class Server(DocumentWrapper):
         if self.__db_connection__ is None:
             self.__db_connection__  = self.new_db_connection()
         return self.__db_connection__
+
+    ###########################################################################
+    def sever_db_connection(self):
+        if self.__db_connection__ is not None:
+            self.__db_connection__.close()
+        self.__db_connection__ = None
 
     ###########################################################################
     def new_db_connection(self):
