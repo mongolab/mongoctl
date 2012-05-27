@@ -555,10 +555,9 @@ def do_stop_server(server, force=False):
     status = server.get_status()
     if not status['connection']:
         if "timedOut" in status:
-            log_info("Unable to stop server: Server '%s' is not responding "
-                     "(connection time out); "
-                     "there might some server running on the"
-                     " same port %s" %
+            log_info("Unable to issue 'shutdown' command to server: "
+                     "Server '%s' is not responding (connection timed out); "
+                     "though port %s is open, possibly for mongod." %
                      (server.get_id(), server.get_port()))
             can_stop_mongoly = False
         else:
@@ -573,9 +572,11 @@ def do_stop_server(server, force=False):
     # step_down_if_needed(server, force)
 
     if can_stop_mongoly:
+        log_verbose("  ... issuing db 'shutdown' command ... ")
         shutdown_success = mongo_stop_server(server, force=False)
 
     if not can_stop_mongoly or not shutdown_success:
+        log_verbose("  ... taking more forceful measures ... ")
         shutdown_success = \
             prompt_or_force_stop_server(server,
                                         force,
@@ -635,12 +636,12 @@ def force_stop_server(server, try_mongo_force=True):
 def kill_stop_server(server):
     pid = get_server_pid(server)
     if pid is None:
-        log_error("Cannot forcefully stop the server because the server's"
-                  " pid cannot be determined; pid file %s does not exist. " %
+        log_error("Cannot forcibly stop the server because the server's process"
+                  " ID cannot be determined; pid file '%s' does not exist." %
                   get_pid_file_path(server))
         return False
 
-    log_info("Force stopping server '%s'...\n" % server.get_id())
+    log_info("Forcibly stopping server '%s'...\n" % server.get_id())
     log_info("Sending kill -1 (HUP) signal to server '%s'... (pid=%s)" %
              (server.get_id(), pid))
 
