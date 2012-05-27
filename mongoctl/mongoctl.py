@@ -392,10 +392,14 @@ def start_server_process(server,options_override=None):
     mongod_process = _start_server_process_4real(server, options_override)
 
     log_info("Will now wait for server '%s' to start up."
-             " Enjoy mongod's log for now!\n" %
+             " Enjoy mongod's log for now!" %
              server.get_id())
-    log_info("************ Tailing server '%s' log file '%s' *************\n" %
-             (server.get_id(), get_log_file_path(server)))
+    log_info("\n****************************************************************"
+             "***************")
+    log_info("* START: tail of log file at '%s'..." % get_log_file_path(server))
+    log_info("******************************************************************"
+             "*************\n")
+
     log_tailer = tail_server_log(server)
     # wait until the server starts
     is_online = wait_for(
@@ -405,12 +409,18 @@ def start_server_process(server,options_override=None):
     # stop tailing
     stop_tailing(log_tailer)
 
+    log_info("\n****************************************************************"
+             "***************")
+    log_info("* END: tail of log file at '%s'..." % get_log_file_path(server))
+    log_info("******************************************************************"
+             "*************\n")
+
     if not is_online:
         raise MongoctlException("Unable to start server '%s'" %
                                 server.get_id())
 
-    log_info("************ Server '%s' is up!! ***************" %
-             server.get_id())
+    log_info("Server '%s' started successfully! (pid=%s)\n" %
+             (server.get_id(),get_server_pid(server)))
 
     try:
         prepare_server(server)
@@ -420,9 +430,6 @@ def start_server_process(server,options_override=None):
                   (server.get_id(), e))
         if shall_we_terminate(mongod_process):
             return
-
-    log_info("Server '%s' started successfully! (pid=%s)" %
-             (server.get_id(),get_server_pid(server)))
 
     if not is_forking(server, options_override):
         mongod_process.communicate()
@@ -515,12 +522,16 @@ def dry_run_start_server_cmd(server_id, options_override=None):
     # ensure that the start was issued locally. Fail otherwise
     validate_local_op(server, "start")
 
-    log_info("************** Dry Run *****************")
+    log_info("************ Dry Run ************\n")
 
     start_cmd = generate_start_command(server, options_override)
     start_cmd_str = " ".join(start_cmd)
 
-    log_info("Command : \n")
+    log_info("\nPlease note:")
+    log_info("The following command will run mongod in the foreground. To run "
+             "it in the background as mongoctl does, please append --fork.")
+
+    log_info("\nCommand:")
     log_info("%s\n" % start_cmd_str)
 
 ###############################################################################
@@ -734,7 +745,7 @@ def configure_replica_cluster(replica_cluster):
 ###############################################################################
 def dry_run_configure_cluster(cluster_id):
     cluster = lookup_and_validate_cluster(cluster_id)
-    log_info("************** Dry Run *****************")
+    log_info("************ Dry Run ************")
     db_command = None
 
     if cluster.is_replicaset_initialized():
@@ -773,7 +784,7 @@ def connect_to_server(server_id):
 def do_connect_to_server(server):
 
     if not server.is_online():
-        log_info("Server '%s' is not running." % server.get_id())
+        log_info("Cannot connect to server '%s'." % server.get_id())
         return
 
     log_info("Connecting to server '%s'..." % server.get_id())
@@ -1235,7 +1246,7 @@ def get_mongo_executable(server,
                                              version_check_pref=
                                              version_check_pref)
         if selected_exe is not None:
-            log_info("Using %s '%s'" % (executable_name, selected_exe))
+            log_info("Using %s at '%s'..." % (executable_name, selected_exe))
             return selected_exe
 
     ## ok nothing found at all. wtf case
