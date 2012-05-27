@@ -402,12 +402,12 @@ def start_server_process(server,options_override=None):
 
     log_tailer = tail_server_log(server)
     # wait until the server starts
-    is_online = wait_for(
-        server_started_predicate(server,mongod_process),
-        timeout=300)
-
-    # stop tailing
-    stop_tailing(log_tailer)
+    try:
+        is_online = wait_for(server_started_predicate(server,mongod_process),
+                             timeout=300)
+    finally:
+        # stop tailing
+        stop_tailing(log_tailer)
 
     log_info("\n****************************************************************"
              "***************")
@@ -847,7 +847,7 @@ def server_stopped_predicate(server, server_pid):
 def server_started_predicate(server, mongod_process):
     def server_started():
         # check if the command failed
-        if(mongod_process.poll() is not None):
+        if mongod_process.poll() is not None:
             raise MongoctlException("Could not start the server. Please check"
                                     " the log file.")
 
