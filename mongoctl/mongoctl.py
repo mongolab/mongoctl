@@ -824,11 +824,12 @@ def prompt_execute_task(message, task_function):
                      "n":False}
 
     while True:
-        print message + " [y/n] "
+        print >> sys.stderr, message + " [y/n] "
+        sys.stderr.flush()
         choice = raw_input().lower()
         if not valid_choices.has_key(choice):
-            print("Please respond with 'yes' or 'no' "
-                  "(or 'y' or 'n').\n")
+            print >> sys.stderr, ("Please respond with 'yes' or 'no' "
+                                  "(or 'y' or 'n').\n")
         elif valid_choices[choice]:
             return (True,task_function())
         else:
