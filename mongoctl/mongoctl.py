@@ -396,7 +396,7 @@ def start_server_process(server,options_override=None):
              server.get_id())
     log_info("\n****************************************************************"
              "***************")
-    log_info("* START: tail of log file at '%s'..." % get_log_file_path(server))
+    log_info("* START: tail of log file at '%s'" % get_log_file_path(server))
     log_info("******************************************************************"
              "*************\n")
 
@@ -411,7 +411,7 @@ def start_server_process(server,options_override=None):
 
     log_info("\n****************************************************************"
              "***************")
-    log_info("* END: tail of log file at '%s'..." % get_log_file_path(server))
+    log_info("* END: tail of log file at '%s'" % get_log_file_path(server))
     log_info("******************************************************************"
              "*************\n")
 
