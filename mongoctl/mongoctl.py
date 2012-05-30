@@ -1816,7 +1816,6 @@ def get_mongoctl_config():
         __mongo_config__ = read_config_json("mongoctl",
             conf_file_path)
 
-
     return __mongo_config__
 
 ###############################################################################
@@ -1889,7 +1888,7 @@ def get_configured_clusters():
 def read_config_json(name, path):
 
     # check if the file exists
-    if not os.path.exists(path):
+    if not os.path.isfile(path):
         raise MongoctlException("Config file %s does not exist" % path)
 
     try:
@@ -1928,7 +1927,10 @@ def _set_config_root(root_path):
 ###############################################################################
 def get_config_file_path(file_name):
     global __config_root__
-    return os.path.join(__config_root__, file_name)
+    if os.path.isabs(file_name):
+        return file_name
+    else:
+        return os.path.join(__config_root__, file_name)
 
 ###############################################################################
 # OS Functions
