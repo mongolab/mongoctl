@@ -1427,6 +1427,8 @@ def version_obj(version_str):
 def prepare_server(server):
     log_info("Preparing server '%s' for use as configured..." % server.get_id())
     setup_server_credentials(server)
+    if am_bootstrapping():
+        ensure_minimal_bootstrap(server)
 
 ###############################################################################
 def mk_server_dir(server):
@@ -1610,6 +1612,21 @@ def am_bootstrapping(sez_i=None):
         return __db_repo_starting__
     else:
         __db_repo_starting__ = sez_i
+
+def ensure_minimal_bootstrap(server):
+    """
+    Make sure db repo has a document representing the mongoctl db server
+    that is to serve the db repo after handoff.  
+    If necessary, insert the one we've been using from the file repo.
+    """
+    if db_lookup_server(server.get_id()) is None:
+        try:
+            log_verbose("Bootstrapping db repo server record from file...")
+            get_mongoctl_server_db_collection().insert(server.get_document(),
+                                                       safe=True)
+        except Exception, e:
+            log_error("Unable to ensure bootstrap of db repository!  %s" % e)
+            
 
 ###############################################################################
 # Global variables used to govern the mechanics of db repo startup & seeding
