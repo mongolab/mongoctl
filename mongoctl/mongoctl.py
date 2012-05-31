@@ -227,14 +227,13 @@ def list_servers_command(parsed_options):
     print "="*len(title)
 
     for server in servers:
-        desc = ("" if server.get_description() is None
-                else server.get_description())
-        pbe = ("" if server.get_address() is None
-               else server.get_address())
-
-        print formatter % (server.get_id(), desc, pbe )
+        print formatter % (server.get_id(), 
+                           _lista(server.get_description()),
+                           _lista(server.get_address()))
     print "\n"
 
+def _lista(thing):
+    return "" if thing is None else str(thing)
 
 ###############################################################################
 # show server command
@@ -330,7 +329,18 @@ def do_start_server(server, options_override=None):
     else:
         log_server_activity(server, "start")
 
-    start_server_process(server,options_override)
+    mongod_process = start_server_process(server,options_override)
+
+    maybe_init_server_repl_set(server)
+
+    try:
+        prepare_server(server)
+    except Exception,e:
+        log_error("Unable to fully prepare server '%s'. Cause: %s \n"
+                  "Stop server now if more preparation is desired..." %
+                  (server.get_id(), e))
+        if shall_we_terminate(mongod_process):
+            return
 
     if is_my_repo:
         # The db repo is now open for business.
@@ -338,6 +348,8 @@ def do_start_server(server, options_override=None):
         am_bootstrapping(sez_i=False)
         log_server_activity(server, "start")
 
+
+def maybe_init_server_repl_set(server):
     # if the server belongs to a replica set cluster,
     # then prompt the user to init the replica set IF not already initialized
     # AND server is NOT an Arbiter
@@ -422,17 +434,10 @@ def start_server_process(server,options_override=None):
     log_info("Server '%s' started successfully! (pid=%s)\n" %
              (server.get_id(),get_server_pid(server)))
 
-    try:
-        prepare_server(server)
-    except Exception,e:
-        log_error("Unable to fully prepare server '%s'. Cause: %s \n" 
-                  "Stop server now if more preparation is desired..." %
-                  (server.get_id(), e))
-        if shall_we_terminate(mongod_process):
-            return
-
     if not is_forking(server, options_override):
         mongod_process.communicate()
+
+    return mongod_process
 
 ###############################################################################
 def _set_process_limits():
@@ -1079,12 +1084,12 @@ def validate_cluster(cluster):
     if (cluster.has_any_server_that(needs_repl_key) and
         cluster.get_repl_key() is None):
         errors.append(
-            "** no replKey configured. replKey is required because some "
-            "members has 'auth' turned on.")
+            "** no replKey configured. replKey is required because at least "
+            "one member has 'auth' enabled.")
 
     if len(errors) > 0:
         raise MongoctlException("Cluster %s configuration is not valid. "
-                                "Please fix above below and try again.\n%s" %
+                                "Please fix errors below and try again.\n%s" %
                                 (cluster.get_id() , "\n".join(errors)))
 
     return cluster

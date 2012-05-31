@@ -42,7 +42,8 @@ setup(
     install_requires=[
         'dargparse==0.1.0',
         'dampier-pymongo==2.1.1',
-        'verlib==0.1'],
+        'verlib==0.1',
+        'prettytable==0.6'],
     dependency_links=[
         "https://github.com/dampier/mongo-python-driver/tarball/master#egg=dampier-pymongo-2.1.1",
         "https://github.com/objectlabs/dargparse/tarball/master#egg=dargparse-0.1.0"
