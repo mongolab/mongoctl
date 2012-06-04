@@ -262,7 +262,7 @@ All server definitions have the following schema:
         . // TODO
     }
     
-    "credentials": {
+    "users": {
         "<dbname>": [
             {
                 "username": <string>,

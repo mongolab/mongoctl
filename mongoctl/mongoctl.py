@@ -151,11 +151,11 @@ def do_main(args):
     # get the function to call from the parser framework
     command_function = parsed_args.func
 
-    # parse credentials
+    # parse users
     server_id = namespace_get_property(parsed_args,SERVER_ID_PARAM)
 
     if server_id is not None:
-        parse_global_credentials(server_id, args)
+        parse_global_users(server_id, args)
         # check if assertLocal was specified
         assert_local = namespace_get_property(parsed_args,"assertLocal")
         if assert_local:
@@ -802,11 +802,11 @@ def do_connect_to_server(server):
                               dbname)]
 
     if server.is_auth() and server.needs_to_auth(dbname):
-        db_cred = server.get_db_default_credential(dbname)
+        db_user = server.get_db_default_user(dbname)
         connect_cmd.extend(["-u",
-                            db_cred['username'],
+                            db_user['username'],
                             "-p",
-                            db_cred['password']])
+                            db_user['password']])
 
     connect_process = subprocess.Popen(connect_cmd)
 
@@ -1431,7 +1431,7 @@ def version_obj(version_str):
 ###############################################################################
 def prepare_server(server):
     log_info("Preparing server '%s' for use as configured..." % server.get_id())
-    setup_server_credentials(server)
+    setup_server_users(server)
     if am_bootstrapping():
         ensure_minimal_bootstrap(server)
 
@@ -1448,75 +1448,75 @@ def mk_server_dir(server):
         return False
 
 ###############################################################################
-def setup_server_credentials(server):
+def setup_server_users(server):
     """
     FOR NOW: tries to make sure all the specified users exist.
     TODO: see comments
     """
     # TODO: update passwords
     # TODO: remove unwanted users?
-    log_info("Setting up credentials for server '%s'..." % server.get_id())
-    credentials = server.get_credentials()
+    log_info("Setting up users for server '%s'..." % server.get_id())
+    users = server.get_users()
 
-    for dbname, db_credentials in credentials.items():
+    for dbname, db_users in users.items():
         # create the admin ones last so we won't have an auth issue
         if (dbname == "admin"):
             continue
-        setup_server_db_credentials(server, dbname, db_credentials)
+        setup_server_db_users(server, dbname, db_users)
 
     # Note: If server member of a replica then don't setup admin
-    # credentials because primary server will do that at replinit
+    # users because primary server will do that at replinit
 
     # Now create admin ones
     if (not server.is_slave() and
         not is_cluster_member(server)):
-        setup_server_admin_credentials(server)
+        setup_server_admin_users(server)
 
 ###############################################################################
-def setup_db_credentials(db, db_credentials):
+def setup_db_users(db, db_users):
     existing_users = [d['user'] for d in db['system.users'].find()]
-    for credential in db_credentials :
-        username = credential['username']
+    for user in db_users :
+        username = user['username']
         if username not in existing_users :
             log_verbose("adding user '%s' to db '%s'" % (username, db.name))
-            db.add_user(username, credential['password'])
+            db.add_user(username, user['password'])
         else:
             log_verbose("user '%s' already present in db '%s'" % (username, db.name))
             #TODO: check password?
 
 
-def setup_server_db_credentials(server, dbname, db_credentials):
-    log_info("Adding credentials for the '%s' database..." % dbname)
+def setup_server_db_users(server, dbname, db_users):
+    log_info("Adding users for the '%s' database..." % dbname)
 
     db = server.get_authenticate_db(dbname)
 
     try:
-        setup_db_credentials(db, db_credentials)
-        log_info("Credentials for the '%s' database on server '%s' "
+        setup_db_users(db, db_users)
+        log_info("users for the '%s' database on server '%s' "
                  "have been setup successfully." %
                  (dbname, server.get_id()))
     except Exception,e:
         raise MongoctlException(
-            "Error while setting up credentials for '%s'"\
+            "Error while setting up users for '%s'"\
             " database on server '%s'."
             "\n Cause: %s" % (dbname, server.get_id(), e))
 
 ###############################################################################
-def setup_server_admin_credentials(server):
+def setup_server_admin_users(server):
 
-    admin_credentials = server.get_admin_credentials()
-    if(admin_credentials is None or
-       len(admin_credentials) < 1):
-        log_info("No credentials configured for admin DB...")
+    admin_users = server.get_admin_users()
+    if(admin_users is None or
+       len(admin_users) < 1):
+        log_info("No users configured for admin DB...")
         return
 
-    log_info("Setting up admin credentials...")
+    log_info("Setting up admin users...")
 
     try:
         admin_db = server.get_admin_db()
 
         # potentially create the 1st admin user
-        setup_db_credentials(admin_db, admin_credentials[0:1])
+        setup_db_users(admin_db, admin_users[0:1])
 
         # the 1st-time init case:
         # BEFORE adding 1st admin user, auth. is not possible --
@@ -1525,14 +1525,14 @@ def setup_server_admin_credentials(server):
         #      so, to be sure we now have authenticated cxn, re-pull admin db:
         admin_db = server.get_admin_db()
 
-        # create the rest of the credentials
-        setup_db_credentials(admin_db, admin_credentials[1:])
+        # create the rest of the users
+        setup_db_users(admin_db, admin_users[1:])
 
-        log_info("Successfully set up admin credentials on server '%s'." % 
+        log_info("Successfully set up admin users on server '%s'." % 
                  server.get_id())
     except Exception,e:
         raise MongoctlException(
-            "Error while setting up admin credentials on server '%s'."
+            "Error while setting up admin users on server '%s'."
             "\n Cause: %s" % (server.get_id(), e))
 
 ###############################################################################
@@ -2131,75 +2131,75 @@ def is_asserted_local_server(server_id):
 
 ###############################################################################
 
-def get_default_credentials():
-    return get_mongoctl_config_val('defaultCredentials', {})
+def get_default_users():
+    return get_mongoctl_config_val('defaultUsers', {})
 
 ###############################################################################
-__global_credentials__ = {}
+__global_users__ = {}
 
-def get_server_global_credentials(server_id):
-    global __global_credentials__
-    return get_document_property(__global_credentials__,server_id)
+def get_server_global_users(server_id):
+    global __global_users__
+    return get_document_property(__global_users__,server_id)
 
-def parse_global_credentials(server_id, args):
-    server_glolbal_credentials = {}
+def parse_global_users(server_id, args):
+    server_glolbal_users = {}
     index = 0
     for arg in args:
-        if arg == "--credential":
-            parsed_crd = parse_credential(args[index+1])
-            dbname = parsed_crd["dbname"]
-            db_crd = get_document_property(server_glolbal_credentials, dbname)
-            if db_crd is None:
-                db_crd = []
-                server_glolbal_credentials[dbname] = db_crd
+        if arg == "--user":
+            parsed_user = parse_user(args[index+1])
+            dbname = parsed_user["dbname"]
+            db_users = get_document_property(server_glolbal_users, dbname)
+            if db_users is None:
+                db_users = []
+                server_glolbal_users[dbname] = db_user
 
-            db_crd.append({"username": parsed_crd["username"],
-                           "password": parsed_crd["password"]})
+            db_users.append({"username": db_users["username"],
+                           "password": db_users["password"]})
 
 
         index += 1
 
-    if len(server_glolbal_credentials) > 0:
-        __global_credentials__[server_id] = server_glolbal_credentials
+    if len(server_glolbal_users) > 0:
+        __global_users__[server_id] = server_glolbal_users
 
-def parse_credential(credential_arg):
+def parse_user(user_arg):
 
-    if not is_valid_credential_arg(credential_arg):
-        raise MongoctlException("Invalid credential argument '%s'."
-                                " credential must be in "
-                                "dbname:user:pass format" % credential_arg)
-    crd_arr = credential_arg.split(":")
+    if not is_valid_user_arg(user_arg):
+        raise MongoctlException("Invalid user argument '%s'."
+                                " user must be in "
+                                "dbname:user:pass format" % user_arg)
+    user_arr = user_arg.split(":")
 
-    return {"dbname": crd_arr[0],
-            "username": crd_arr[1],
-            "password": crd_arr[2]}
+    return {"dbname": user_arr[0],
+            "username": user_arr[1],
+            "password": user_arr[2]}
 
-def is_valid_credential_arg(credential_arg):
-    return credential_arg.count(":") == 2
+def is_valid_user_arg(user_arg):
+    return user_arg.count(":") == 2
 
-def validate_credentials(credentials):
+def validate_users(users):
     """
-    Checks credentials document for proper form, and returns filtered version.
+    Checks users document for proper form, and returns filtered version.
     """
     result = {}
 
-    if not isinstance(credentials, dict):
-        log_error("Credentials should be a document with db names for keys, "
-                  "precisely like this is not: " + str(credentials))
+    if not isinstance(users, dict):
+        log_error("users should be a document with db names for keys, "
+                  "precisely like this is not: " + str(users))
         return result
 
-    for dbname, dbcreds in credentials.items() :
+    for dbname, db_users in users.items() :
         result[dbname] = []
-        for usr_pass in listify(dbcreds) : # be lenient on the singleton.
+        for usr_pass in listify(db_users) : # be lenient on the singleton.
             if ("username" not in usr_pass or "password" not in usr_pass):
-                beef = "credential must have 'username' and 'password' fields"
+                beef = "user must have 'username' and 'password' fields"
             elif not (isinstance(usr_pass["username"], basestring) and
                       isinstance(usr_pass["password"], basestring)):
                 beef = "'username' and 'password' fields must be strings"
             else:
                 result[dbname].append(usr_pass)
                 continue
-            log_error("Rejecting credential %s for db %s : %s" %
+            log_error("Rejecting user %s for db %s : %s" %
                       (usr_pass, dbname, beef))
         if len(result[dbname]) < 1:
             del result[dbname]
@@ -2264,7 +2264,7 @@ class Server(DocumentWrapper):
     def __init__(self, server_doc):
         DocumentWrapper.__init__(self, server_doc)
         self.__db_connection__ = None
-        self.__credentials__ = None
+        self.__users__ = None
 
     ###########################################################################
     # Properties
@@ -2376,55 +2376,55 @@ class Server(DocumentWrapper):
         return self.set_property('cmdOptions' , cmd_options)
 
     ###########################################################################
-    def get_credentials(self):
+    def get_users(self):
 
-        if self.__credentials__ is None:
-            credentials = self.get_property('credentials')
+        if self.__users__ is None:
+            users = self.get_property('users')
 
             ## TODO: this should be removed later
-            if credentials is None or len(credentials) < 1:
-                credentials = get_default_credentials()
+            if users is None or len(users) < 1:
+                users = get_default_users()
 
-            server_gloabl_cred = get_server_global_credentials(self.get_id())
+            server_global_users = get_server_global_users(self.get_id())
 
-            # merge global credentials with configured ones
-            if server_gloabl_cred is not None:
-                for dbname,glbl_db_crd in server_gloabl_cred.items():
-                    db_crd = get_document_property(credentials, dbname)
-                    if db_crd is None:
-                        db_crd = []
-                        credentials[dbname] = db_crd
+            # merge global users with configured ones
+            if server_global_users is not None:
+                for dbname,glbl_db_user in server_global_users.items():
+                    db_user = get_document_property(users, dbname)
+                    if db_user is None:
+                        db_user = []
+                        users[dbname] = db_user
 
-                    db_crd.extend(glbl_db_crd)
+                    db_user.extend(glbl_db_user)
 
-            self.__credentials__ = validate_credentials(credentials)
+            self.__users__ = validate_users(users)
 
-        return self.__credentials__
-
-    ###########################################################################
-    def has_credentials(self):
-        credentials = self.get_credentials()
-        return credentials is not None and len(credentials) > 0
+        return self.__users__
 
     ###########################################################################
-    def get_admin_credentials(self):
-        return self.get_db_credentials("admin")
+    def has_users(self):
+        users = self.get_users()
+        return users is not None and len(users) > 0
 
     ###########################################################################
-    def get_db_credentials(self, dbname):
-        return get_document_property(self.get_credentials(), dbname)
+    def get_admin_users(self):
+        return self.get_db_users("admin")
 
     ###########################################################################
-    def has_db_credentials(self, dbname):
-        db_cred = get_document_property(self.get_credentials(), dbname)
-        return db_cred is not None and db_cred
+    def get_db_users(self, dbname):
+        return get_document_property(self.get_users(), dbname)
 
     ###########################################################################
-    def get_db_default_credential(self, dbname):
-        if not self.has_db_credentials(dbname):
-            raise MongoctlException("No DB credentials for db %s" % dbname)
+    def has_db_users(self, dbname):
+        db_users = get_document_property(self.get_users(), dbname)
+        return db_users is not None and db_users
 
-        return self.get_db_credentials(dbname)[0]
+    ###########################################################################
+    def get_db_default_user(self, dbname):
+        if not self.has_db_users(dbname):
+            raise MongoctlException("No DB users for db %s" % dbname)
+
+        return self.get_db_users(dbname)[0]
 
 
 
@@ -2474,21 +2474,21 @@ class Server(DocumentWrapper):
         # but there are no admin users yet
         if not self.needs_to_auth(dbname):
             return db
-        # If the db has credentials then use them
-        if self.has_db_credentials(dbname):
+        # If the db has users then use them
+        if self.has_db_users(dbname):
             auth_success = self.authenticate_db(db, dbname)
             if auth_success:
                 return db
         # Otherwise, or if that didn't work, try to auth against
         # admin db in order to then grab requested db
-        if self.has_db_credentials("admin") and dbname != "admin":
+        if self.has_db_users("admin") and dbname != "admin":
             # if this passes then we are authed!
             admin_db = self.get_admin_db()
             auth_success = True
             db =  admin_db.connection[dbname]
         else:
-            raise MongoctlException("No credentials found for db %s."
-                                    " Need to have credentials for %s or"
+            raise MongoctlException("No users found for db %s."
+                                    " Need to have users for %s or"
                                     " admin db" % (dbname,dbname))
         if not auth_success:
             raise MongoctlException("Failed to authenticate"
@@ -2614,10 +2614,10 @@ class Server(DocumentWrapper):
     def get_default_dbname(self):
         if self.is_arbiter_server():
             return "local"
-        elif self.has_db_credentials("admin"):
+        elif self.has_db_users("admin"):
             return "admin"
-        elif self.has_credentials():
-            return self.get_credentials().keys()[0]
+        elif self.has_users():
+            return self.get_users().keys()[0]
         else:
             return "test"
 
@@ -2675,11 +2675,11 @@ class Server(DocumentWrapper):
         """
         Returns True if we manage to auth to the given db, else False.
         """
-        db_cred = self.get_db_credentials(dbname)
-        if db_cred is not None:
-            for a_cred in db_cred:
-                if db.authenticate(a_cred['username'],
-                                   a_cred['password']):
+        db_users = self.get_db_users(dbname)
+        if db_users is not None:
+            for a_user in db_users:
+                if db.authenticate(a_user['username'],
+                                   a_user['password']):
                     return True
         return False
 
@@ -2936,7 +2936,7 @@ class ReplicaSetCluster(DocumentWrapper):
 
             log_info("Server '%s' is primary now!" % primary_server.get_id())
             log_info("Attempting to add user to the admin database...")
-            setup_server_admin_credentials(primary_server)
+            setup_server_admin_users(primary_server)
             return True
         except Exception,e:
             raise MongoctlException("Unable to initialize "
