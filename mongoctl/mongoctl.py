@@ -1360,7 +1360,7 @@ def major_ge_exe_version_match(executable_name, exe_version_tuples, version):
         return None
     # find the best fit
     compatible_exes.sort(key=lambda t: t[1])
-    return compatible_exes[0][0]
+    return compatible_exes[-1][0]
 
 ###############################################################################
 def get_exe_version_tuples(executables):
