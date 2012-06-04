@@ -576,7 +576,10 @@ def do_stop_server(server, force=False):
                      server.get_id())
             return
 
-    log_info("Stopping server '%s'..." % server.get_id())
+    server_pid = get_server_pid(server)
+    pid_disp = server_pid if server_pid else "[Cannot be determined]"
+    log_info("Stopping server '%s' (PID=%s) ..." %
+             (server.get_id(), pid_disp))
     # log server activity stop
     log_server_activity(server, "stop")
     # TODO: Enable this again when stabilized
@@ -620,9 +623,10 @@ def mongo_stop_server(server, force=False):
 
         log_info("Will now wait for server '%s' to stop." % server.get_id())
         # Check that the server has stopped
-        wait_for(server_stopped_predicate(server,server_pid),timeout=3)
+        stop_pred = server_stopped_predicate(server,server_pid)
+        wait_for(stop_pred,timeout=3)
 
-        if server.is_online():
+        if not stop_pred():
             log_error("Shutdown command failed...")
             return False
         else:
@@ -1763,6 +1767,14 @@ def get_server_pid(server):
         pid = pid_file.readline().strip('\n')
         if pid and pid.isdigit():
             return int(pid)
+        else:
+            log_warning("Unable to determine pid for server '%s'. "
+                        "Not a valid number in '%s"'' %
+                        (server.get_id(), pid_file_path))
+    else:
+        log_warning("Unable to determine pid for server '%s'. "
+                    "pid file '%s' does not exist" %
+                    (server.get_id(), pid_file_path))
 
     return None
 
