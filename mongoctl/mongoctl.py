@@ -1466,7 +1466,7 @@ def setup_server_users(server):
     # TODO: update passwords
     # TODO: remove unwanted users?
 
-    log_info("Checking if there are any users that needs to be added for "
+    log_info("Checking if there are any users that need to be added for "
                 "server '%s'..." % server.get_id())
     users = server.get_users()
     count_new_users = 0
@@ -1488,9 +1488,9 @@ def setup_server_users(server):
         count_new_users += setup_server_admin_users(server)
 
     if count_new_users > 0:
-        log_info("Added %s new users" % count_new_users)
+        log_info("Added %s new users." % count_new_users)
     else:
-        log_info("No new users added")
+        log_info("Did not add any new users.")
 
 ###############################################################################
 def setup_db_users(db, db_users):
