@@ -148,6 +148,18 @@ def do_main(args):
     if not is_interactive_mode():
         log_verbose("Running with non-interactive mode")
 
+    # set global prompt value
+    yes_all = parsed_args.yesToEverything
+    no_all = parsed_args.noToEverything
+
+    if yes_all and no_all:
+        raise MongoctlException("Cannot have --yes and --no at the same time. "
+                                "Please choose either --yes or --no")
+    elif yes_all:
+        say_yes_to_everything()
+    elif no_all:
+        say_no_to_everything()
+
     # set conf root if specified
     if parsed_args.configRoot is not None:
         _set_config_root(parsed_args.configRoot)
@@ -829,8 +841,12 @@ def do_connect_to_server(server):
 ###############################################################################
 def prompt_execute_task(message, task_function):
 
-    if not is_interactive_mode():
+    if (not is_interactive_mode() or
+        is_say_no_to_everything()):
         return (False,None)
+
+    if is_say_yes_to_everything():
+        return (True,task_function())
 
     valid_choices = {"yes":True,
                      "y":True,
@@ -2142,6 +2158,35 @@ __interactive_mode__ = True
 def set_interactive_mode(value):
     global __interactive_mode__
     __interactive_mode__ = value
+
+###############################################################################
+def is_interactive_mode():
+    global __interactive_mode__
+    return __interactive_mode__
+
+###############################################################################
+__say_yes_to_everything__ = False
+__say_no_to_everything__ = False
+
+###############################################################################
+def say_yes_to_everything():
+    global __say_yes_to_everything__
+    __say_yes_to_everything__ = True
+
+###############################################################################
+def is_say_yes_to_everything():
+    global __say_yes_to_everything__
+    return __say_yes_to_everything__
+
+###############################################################################
+def say_no_to_everything():
+    global __say_no_to_everything__
+    __say_no_to_everything__ = True
+
+###############################################################################
+def is_say_no_to_everything():
+    global __say_no_to_everything__
+    return __say_no_to_everything__
 
 ###############################################################################
 def is_interactive_mode():

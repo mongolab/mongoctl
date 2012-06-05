@@ -53,6 +53,30 @@ MONGOCTL_PARSER_DEF ={
             "action": "store_true",
             "default": False
         },
+
+            {
+            "name": "yesToEverything",
+            "type" : "optional",
+            "help": "auto yes to all yes/no prompts",
+            "cmd_arg": [
+                "--yes"
+            ],
+            "nargs": 0,
+            "action": "store_true",
+            "default": False
+        },
+
+            {
+            "name": "noToEverything",
+            "type" : "optional",
+            "help": "auto no to all yes/no prompts",
+            "cmd_arg": [
+                "--no"
+            ],
+            "nargs": 0,
+            "action": "store_true",
+            "default": False
+        },
             {
             "name": "configRoot",
             "type" : "optional",
