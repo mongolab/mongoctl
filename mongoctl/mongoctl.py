@@ -1465,14 +1465,19 @@ def setup_server_users(server):
     """
     # TODO: update passwords
     # TODO: remove unwanted users?
-    log_info("Setting up users for server '%s'..." % server.get_id())
+
+    log_info("Checking if there are any users that needs to be added for "
+                "server '%s'..." % server.get_id())
     users = server.get_users()
+    count_new_users = 0
 
     for dbname, db_users in users.items():
         # create the admin ones last so we won't have an auth issue
         if (dbname == "admin"):
             continue
-        setup_server_db_users(server, dbname, db_users)
+        count_new_users += setup_server_db_users(server, dbname, db_users)
+
+
 
     # Note: If server member of a replica then don't setup admin
     # users because primary server will do that at replinit
@@ -1480,31 +1485,42 @@ def setup_server_users(server):
     # Now create admin ones
     if (not server.is_slave() and
         not is_cluster_member(server)):
-        setup_server_admin_users(server)
+        count_new_users += setup_server_admin_users(server)
+
+    if count_new_users > 0:
+        log_info("Added %s new users" % count_new_users)
+    else:
+        log_info("No new users added")
 
 ###############################################################################
 def setup_db_users(db, db_users):
+    count_new_users = 0
     existing_users = [d['user'] for d in db['system.users'].find()]
     for user in db_users :
         username = user['username']
         if username not in existing_users :
             log_verbose("adding user '%s' to db '%s'" % (username, db.name))
             db.add_user(username, user['password'])
+            count_new_users += 1
         else:
-            log_verbose("user '%s' already present in db '%s'" % (username, db.name))
+            log_verbose("user '%s' already present in db '%s'" %
+                        (username, db.name))
             #TODO: check password?
+
+    return count_new_users
 
 
 def setup_server_db_users(server, dbname, db_users):
-    log_info("Adding users for the '%s' database..." % dbname)
+    log_verbose("Checking if there are any users that needs to be added for "
+                "database '%s'..." % dbname)
 
     db = server.get_authenticate_db(dbname)
 
     try:
-        setup_db_users(db, db_users)
-        log_info("users for the '%s' database on server '%s' "
-                 "have been setup successfully." %
-                 (dbname, server.get_id()))
+        any_new_user_added = setup_db_users(db, db_users)
+        if not any_new_user_added:
+            log_verbose("No new users added for database '%s'" % dbname)
+        return any_new_user_added
     except Exception,e:
         raise MongoctlException(
             "Error while setting up users for '%s'"\
@@ -1520,13 +1536,13 @@ def setup_server_admin_users(server):
         log_info("No users configured for admin DB...")
         return
 
-    log_info("Setting up admin users...")
-
+    log_verbose("Checking setup for admin users...")
+    count_new_users = 0
     try:
         admin_db = server.get_admin_db()
 
         # potentially create the 1st admin user
-        setup_db_users(admin_db, admin_users[0:1])
+        count_new_users += setup_db_users(admin_db, admin_users[0:1])
 
         # the 1st-time init case:
         # BEFORE adding 1st admin user, auth. is not possible --
@@ -1536,10 +1552,8 @@ def setup_server_admin_users(server):
         admin_db = server.get_admin_db()
 
         # create the rest of the users
-        setup_db_users(admin_db, admin_users[1:])
-
-        log_info("Successfully set up admin users on server '%s'." % 
-                 server.get_id())
+        count_new_users += setup_db_users(admin_db, admin_users[1:])
+        return count_new_users
     except Exception,e:
         raise MongoctlException(
             "Error while setting up admin users on server '%s'."
