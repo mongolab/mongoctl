@@ -25,6 +25,9 @@
 # Imports
 ###############################################################################
 import os
+import shutil
+import stat
+import pwd
 
 from setuptools import setup
 
@@ -33,6 +36,38 @@ from setuptools import setup
 ###############################################################################
 DOT_MONGOCTL_DIR = os.path.join(os.path.expanduser( "~"), ".mongoctl")
 
+SAMPLE_CONF_FILE_NAMES = ["mongoctl.config",
+                          "servers.config",
+                          "clusters.config"]
+
+###############################################################################
+# Calculating sample_conf_files
+###############################################################################
+
+def copy_sample_configs():
+    # create the DOT_MONGOCTL_DIR if it does not exist
+    # mode of folder is user RW and R for group and others
+    owner = pwd.getpwnam(os.getlogin())
+    owner_uid = owner[2]
+    owner_gid = owner[3]
+    if not os.path.exists(DOT_MONGOCTL_DIR):
+        os.makedirs(DOT_MONGOCTL_DIR)
+        os.chown(DOT_MONGOCTL_DIR, owner_uid, owner_gid)
+        os.chmod(DOT_MONGOCTL_DIR, 00755)
+
+    for fname in SAMPLE_CONF_FILE_NAMES:
+        data_file_path = os.path.join(DOT_MONGOCTL_DIR, fname)
+        if not os.path.exists(data_file_path):
+            src_file = os.path.join("sample_conf", fname)
+            # copy file
+            shutil.copyfile(src_file, data_file_path)
+            # make file writable
+            os.chown(data_file_path, owner_uid, owner_gid)
+            os.chmod(data_file_path, 00644)
+
+###############################################################################
+# NOW CALL IT !
+copy_sample_configs()
 
 ###############################################################################
 # Setup
@@ -55,11 +90,6 @@ setup(
     test_suite="mongoctl.tests.test_suite",
     include_package_data=True,
     scripts=['bin/mongoctl'],
-    data_files=[
-        (DOT_MONGOCTL_DIR, ['conf/sample_mongoctl.config']),
-        (DOT_MONGOCTL_DIR, ['conf/sample_servers.config']),
-        (DOT_MONGOCTL_DIR, ['conf/sample_clusters.config'])
-    ],
     url='http://objectlabs.org',
     ##license='LICENSE.txt',
     install_requires=[
