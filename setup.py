@@ -47,6 +47,8 @@ SAMPLE_CONF_FILE_NAMES = ["mongoctl.config",
 def copy_sample_configs():
     # create the DOT_MONGOCTL_DIR if it does not exist
     # mode of folder is user RW and R for group and others
+    print "OS Login: %s" % os.getlogin()
+
     owner = pwd.getpwnam(os.getlogin())
     owner_uid = owner[2]
     owner_gid = owner[3]
