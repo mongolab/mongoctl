@@ -47,15 +47,26 @@ SAMPLE_CONF_FILE_NAMES = ["mongoctl.config",
 def copy_sample_configs():
     # create the DOT_MONGOCTL_DIR if it does not exist
     # mode of folder is user RW and R for group and others
-    print "OS Login: %s" % os.getlogin()
+    login = None
+    owner = None
+    owner_uid = None
+    owner_gid = None
+    try:
+        login = os.getlogin()
+        owner = pwd.getpwnam(login)
+        owner_uid = owner[2]
+        owner_gid = owner[3]
+    except Exception, e:
+        print ("Error while copying sample config files. "
+               "This is not harmful. The error happened while trying to "
+               "determine owner/mode of sample config files: %s" % e)
 
-    owner = pwd.getpwnam(os.getlogin())
-    owner_uid = owner[2]
-    owner_gid = owner[3]
     if not os.path.exists(DOT_MONGOCTL_DIR):
         os.makedirs(DOT_MONGOCTL_DIR)
-        os.chown(DOT_MONGOCTL_DIR, owner_uid, owner_gid)
-        os.chmod(DOT_MONGOCTL_DIR, 00755)
+
+        if owner:
+            os.chown(DOT_MONGOCTL_DIR, owner_uid, owner_gid)
+            os.chmod(DOT_MONGOCTL_DIR, 00755)
 
     for fname in SAMPLE_CONF_FILE_NAMES:
         data_file_path = os.path.join(DOT_MONGOCTL_DIR, fname)
@@ -64,8 +75,9 @@ def copy_sample_configs():
             # copy file
             shutil.copyfile(src_file, data_file_path)
             # make file writable
-            os.chown(data_file_path, owner_uid, owner_gid)
-            os.chmod(data_file_path, 00644)
+            if owner:
+                os.chown(data_file_path, owner_uid, owner_gid)
+                os.chmod(data_file_path, 00644)
 
 ###############################################################################
 # NOW CALL IT !
