@@ -73,6 +73,8 @@ def copy_sample_configs():
         if not os.path.exists(data_file_path):
             src_file = os.path.join("sample_conf", fname)
             # copy file
+            print ("Creating sample configuration file '%s' in '%s' " %
+                   (fname,DOT_MONGOCTL_DIR))
             shutil.copyfile(src_file, data_file_path)
             # make file writable
             if owner:
