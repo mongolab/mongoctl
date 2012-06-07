@@ -45,6 +45,7 @@ import dargparse
 import socket
 import shutil
 import platform
+import urllib
 
 from dargparse import dargparse
 from pymongo import Connection
@@ -871,16 +872,26 @@ def do_install_mongodb(os_name, bits, version):
              (os_name, bits, mongo_versions_dir))
 
 
-    ensure_dir(mongo_versions_dir)
 
-    log_info("Installing mongodb %s if it's not already installed..." % version)
+    archive_name = "mongodb-%s-%s.tgz" % (platform_spec, version)
+    url = "http://fastdl.mongodb.org/%s/%s" % (os_name, archive_name)
+
+    # Validate if the version exists
+    response = urllib.urlopen(url)
+
+    if response.getcode() != 200:
+        msg = ("Unable to download from url '%s'. It could be that version '%s'"
+              " you specified does not exist."
+              " Please double check the version you provide" % (url, version))
+        raise MongoctlException(msg)
 
     mongo_dir_name = "mongodb-%s-%s" % (platform_spec, version)
     install_dir = os.path.join(mongo_versions_dir, mongo_dir_name)
-    archive_name = "mongodb-%s-%s.tgz" % (platform_spec, version)
+
+    ensure_dir(mongo_versions_dir)
 
     if not dir_exists(install_dir):
-        url = "http://fastdl.mongodb.org/%s/%s" % (os_name, archive_name)
+
         log_info("Downloading %s ..." % url)
 
         curl_cmd = ['curl', '-O', url]
