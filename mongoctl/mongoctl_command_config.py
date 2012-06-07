@@ -135,11 +135,11 @@ MONGOCTL_PARSER_DEF ={
                     "default": False
                 },
                     {
-                    "name": "assertLocal",
+                    "name": "assumeLocal",
                     "type" : "optional",
-                    "cmd_arg": "--assert-local",
+                    "cmd_arg": "--assume-local",
                     "nargs": 0,
-                    "help": "Asserts that the server will be started on local"
+                    "help": "Assumes that the server will be started on local"
                             " host. This will skip local address/dns check",
                     "default": False
                 },
@@ -615,14 +615,14 @@ MONGOCTL_PARSER_DEF ={
                         "default": False
                 },
                     {
-                    "name": "assertLocal",
+                    "name": "assumeLocal",
                     "type" : "optional",
-                    "cmd_arg": "--assert-local",
+                    "cmd_arg": "--assume-local",
                     "nargs": 0,
-                    "help": "Asserts that the server will be stopped on local"
+                    "help": "Assumes that the server will be stopped on local"
                             " host. This will skip local address/dns check",
                     "default": False
-                },
+                }
             ]
         },
         #### restart ####
@@ -638,6 +638,15 @@ MONGOCTL_PARSER_DEF ={
                         "nargs": 1,
                         "displayName": "SERVER_ID",
                         "help": "A valid server id"
+                },
+                    {
+                    "name": "assumeLocal",
+                    "type" : "optional",
+                    "cmd_arg": "--assume-local",
+                    "nargs": 0,
+                    "help": "Assumes that the server will be stopped on local"
+                            " host. This will skip local address/dns check",
+                    "default": False
                 }
             ]
         },

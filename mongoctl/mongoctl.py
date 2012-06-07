@@ -175,10 +175,10 @@ def do_main(args):
 
     if server_id is not None:
         parse_global_users(server_id, args)
-        # check if assertLocal was specified
-        assert_local = namespace_get_property(parsed_args,"assertLocal")
-        if assert_local:
-            assert_local_server(server_id)
+        # check if assumeLocal was specified
+        assume_local = namespace_get_property(parsed_args,"assumeLocal")
+        if assume_local:
+            assume_local_server(server_id)
     # execute command
     log_info("")
     return command_function(parsed_args)
@@ -977,7 +977,7 @@ def validate_server(server):
 def validate_local_op(server, op):
 
     # If the server has been asserted to be local then skip validation
-    if is_asserted_local_server(server.get_id()):
+    if is_assumed_local_server(server.get_id()):
         log_verbose("Skipping validation of server's '%s' address '%s' to be"
                     " local because --assert-local is on" %
                     (server.get_id(), server.get_host_address()))
@@ -2246,17 +2246,17 @@ def is_interactive_mode():
     return __interactive_mode__
 
 ###############################################################################
-__asserted_local_servers__ = []
+__assumed_local_servers__ = []
 
-def assert_local_server(server_id):
-    global __asserted_local_servers__
-    if server_id not in __asserted_local_servers__:
-        __asserted_local_servers__.append(server_id)
+def assume_local_server(server_id):
+    global __assumed_local_servers__
+    if server_id not in __assumed_local_servers__:
+        __assumed_local_servers__.append(server_id)
 
 ###############################################################################
-def is_asserted_local_server(server_id):
-    global __asserted_local_servers__
-    return server_id in __asserted_local_servers__
+def is_assumed_local_server(server_id):
+    global __assumed_local_servers__
+    return server_id in __assumed_local_servers__
 
 ###############################################################################
 
@@ -2649,7 +2649,7 @@ class Server(DocumentWrapper):
     ###########################################################################
     def is_use_local(self):
         return (self.get_address() is None or
-               is_asserted_local_server(self.get_id())
+               is_assumed_local_server(self.get_id())
                 or self.is_local())
 
     ###########################################################################
