@@ -34,7 +34,6 @@ from setuptools import setup
 ###############################################################################
 # CONSTANTS
 ###############################################################################
-DOT_MONGOCTL_DIR = os.path.join(os.path.expanduser( "~"), ".mongoctl")
 
 SAMPLE_CONF_FILE_NAMES = ["mongoctl.config",
                           "servers.config",
@@ -45,41 +44,41 @@ SAMPLE_CONF_FILE_NAMES = ["mongoctl.config",
 ###############################################################################
 
 def copy_sample_configs():
-    # create the DOT_MONGOCTL_DIR if it does not exist
+    
+
+    # create the dot_mongoctl_dir if it does not exist
     # mode of folder is user RW and R for group and others
-    login = None
-    owner = None
-    owner_uid = None
-    owner_gid = None
     try:
         login = os.getlogin()
+        home_dir = os.path.expanduser( "~%s" % login)
+        dot_mongoctl_dir = os.path.join(home_dir, ".mongoctl")
         owner = pwd.getpwnam(login)
         owner_uid = owner[2]
         owner_gid = owner[3]
+
+        if not os.path.exists(dot_mongoctl_dir):
+            os.makedirs(dot_mongoctl_dir)
+
+        os.chown(dot_mongoctl_dir, owner_uid, owner_gid)
+        os.chmod(dot_mongoctl_dir, 00755)
+
+        for fname in SAMPLE_CONF_FILE_NAMES:
+            data_file_path = os.path.join(dot_mongoctl_dir, fname)
+            if not os.path.exists(data_file_path):
+                src_file = os.path.join("sample_conf", fname)
+                # copy file
+                print ("Creating sample configuration file '%s' in '%s' " %
+                       (fname,dot_mongoctl_dir))
+                shutil.copyfile(src_file, data_file_path)
+                # make file writable
+                os.chown(data_file_path, owner_uid, owner_gid)
+                os.chmod(data_file_path, 00644)
     except Exception, e:
         print ("Error while copying sample config files. "
                "This is not harmful. The error happened while trying to "
                "determine owner/mode of sample config files: %s" % e)
 
-    if not os.path.exists(DOT_MONGOCTL_DIR):
-        os.makedirs(DOT_MONGOCTL_DIR)
 
-        if owner:
-            os.chown(DOT_MONGOCTL_DIR, owner_uid, owner_gid)
-            os.chmod(DOT_MONGOCTL_DIR, 00755)
-
-    for fname in SAMPLE_CONF_FILE_NAMES:
-        data_file_path = os.path.join(DOT_MONGOCTL_DIR, fname)
-        if not os.path.exists(data_file_path):
-            src_file = os.path.join("sample_conf", fname)
-            # copy file
-            print ("Creating sample configuration file '%s' in '%s' " %
-                   (fname,DOT_MONGOCTL_DIR))
-            shutil.copyfile(src_file, data_file_path)
-            # make file writable
-            if owner:
-                os.chown(data_file_path, owner_uid, owner_gid)
-                os.chmod(data_file_path, 00644)
 
 ###############################################################################
 # NOW CALL IT !
