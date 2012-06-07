@@ -849,9 +849,9 @@ def do_connect_to_server(server):
 def install_mongodb(version):
 
     bits = platform.architecture()[0].replace("bit", "")
-    os_name = platform.system()
+    os_name = platform.system().lower()
 
-    if os_name == 'Darwin' and platform.mac_ver():
+    if os_name == 'darwin' and platform.mac_ver():
         os_name = "osx"
 
     do_install_mongodb(os_name, bits, version)
