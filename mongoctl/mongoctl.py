@@ -1482,8 +1482,12 @@ def major_ge_exe_version_match(executable_name, exe_version_tuples, version):
 def get_exe_version_tuples(executables):
     exe_ver_tuples = []
     for mongo_exe in executables:
-        exe_version = mongo_exe_version(mongo_exe)
-        exe_ver_tuples.append((mongo_exe, exe_version))
+        try:
+            exe_version = mongo_exe_version(mongo_exe)
+            exe_ver_tuples.append((mongo_exe, exe_version))
+        except Exception, e:
+            log_verbose("Skipping executable '%s': %s" % (mongo_exe, e))
+
     return exe_ver_tuples
 
 ###############################################################################
@@ -1519,7 +1523,7 @@ def mongo_exe_version(mongo_exe):
         full_version = vers_grep.groups()[0]
         return version_obj(full_version)
     except Exception, e:
-        log_error("Unable to get mongo version of '%s'."
+        raise MongoctlException("Unable to get mongo version of '%s'."
                   " Cause: %s" % (mongo_exe, e))
 
 ###############################################################################
