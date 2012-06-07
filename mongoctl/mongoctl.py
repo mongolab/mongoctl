@@ -43,6 +43,7 @@ import resource
 import datetime
 import dargparse
 import socket
+import shutil
 
 from dargparse import dargparse
 from pymongo import Connection
@@ -304,6 +305,12 @@ def list_clusters_command(parsed_options):
 ###############################################################################
 def show_cluster_command(parsed_options):
     print lookup_cluster(parsed_options.cluster)
+
+###############################################################################
+# install command
+###############################################################################
+def install_command(parsed_options):
+    install_mongodb(version=parsed_options.version)
 
 ###############################################################################
 ########################                   ####################################
@@ -833,6 +840,51 @@ def do_connect_to_server(server):
     connect_process = subprocess.Popen(connect_cmd)
 
     connect_process.communicate()
+
+###############################################################################
+# install_mongodb
+###############################################################################
+def install_mongodb(version=None, bits="64"):
+    if version is None:
+        version = "2.0.6"
+
+    mongo_versions_dir = os.getenv(MONGO_VERSIONS_ENV_VAR)
+
+    if not mongo_versions_dir:
+        raise MongoctlException("$MONGO_VERSIONS is not set")
+
+    ensure_dir(mongo_versions_dir)
+
+    log_info("Installing mongodb %s if it's not already installed..." % version)
+
+    if bits == "64":
+        platform = "linux-x86_64"
+    else:
+        platform = "linux-i686"
+
+    mongo_dir_name = "mongodb-%s-%s" % (platform, version)
+    install_dir = os.path.join(mongo_versions_dir, mongo_dir_name)
+    archive_name = "mongodb-%s-%s.tgz" % (platform, version)
+
+    if not dir_exists(install_dir):
+        url = "http://fastdl.mongodb.org/linux/%s" % archive_name
+        log_info("Downloading %s ..." % url)
+
+        curl_cmd = ['curl', '-O', url]
+        log_info(execute_command(curl_cmd))
+
+        log_info("Extracting %s ..." % archive_name)
+
+        tar_cmd = ['tar', 'xvf', archive_name]
+        log_info(execute_command(tar_cmd))
+
+        log_info("Moving extracted folder to MONGO_VERSIONS")
+        shutil.move(mongo_dir_name, mongo_versions_dir)
+
+        os.remove(archive_name)
+        log_info("Deleting archive %s" % archive_name)
+
+
 
 ###############################################################################
 # HELPER functions

@@ -99,6 +99,10 @@ MONGOCTL_PARSER_DEF ={
             "name" :"clusterCommands",
             "display": "Cluster Commands"
         },
+            {
+            "name" :"otherCommands",
+            "display": "Other Commands"
+        }
     ],
 
     "children":[
@@ -759,6 +763,25 @@ MONGOCTL_PARSER_DEF ={
                 }
             ]
         },
+
+        #### install ####
+            {
+            "prog": "install",
+            "group": "otherCommands",
+            "shortDescription" : "Installs MongoDB",
+            "description" : "Installs MongoDB",
+            "function": "mongoctl.mongoctl.install_command",
+            "args": [
+                    {
+                    "name": "version",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "displayName": "VERSION",
+                    "help": "MongoDB version to install"
+                }
+            ]
+        }
+
 
         ]
 
