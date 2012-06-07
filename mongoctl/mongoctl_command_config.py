@@ -117,7 +117,7 @@ MONGOCTL_PARSER_DEF ={
                     "name": "server",
                     "type" : "positional",
                     "nargs": 1,
-                    "metavar": "SERVER_ID",
+                    "displayName": "SERVER_ID",
                     "help": "a valid server id"
                 },
 
@@ -600,7 +600,7 @@ MONGOCTL_PARSER_DEF ={
                     {   "name": "server",
                         "type" : "positional",
                         "nargs": 1,
-                        "metavar": "SERVER_ID",
+                        "displayName": "SERVER_ID",
                         "help": "A valid server id"
                 },
                     {   "name": "forceStop",
@@ -632,7 +632,7 @@ MONGOCTL_PARSER_DEF ={
                     {   "name": "server",
                         "type" : "positional",
                         "nargs": 1,
-                        "metavar": "SERVER_ID",
+                        "displayName": "SERVER_ID",
                         "help": "A valid server id"
                 }
             ]
@@ -648,7 +648,7 @@ MONGOCTL_PARSER_DEF ={
                     {   "name": "server",
                         "type" : "positional",
                         "nargs": 1,
-                        "metavar": "SERVER_ID",
+                        "displayName": "SERVER_ID",
                         "help": "A valid server id"
                 },
                     {   "name": "statusVerbose",
@@ -678,7 +678,7 @@ MONGOCTL_PARSER_DEF ={
                     {   "name": "server",
                         "type" : "positional",
                         "nargs": 1,
-                        "metavar": "SERVER_ID",
+                        "displayName": "SERVER_ID",
                         "help": "A valid server id"
                 }
             ]
@@ -698,7 +698,7 @@ MONGOCTL_PARSER_DEF ={
                     "name": "server",
                     "type" : "positional",
                     "nargs": 1,
-                    "metavar": "SERVER_ID",
+                    "displayName": "SERVER_ID",
                     "help": "A valid server id"
                 }
             ]
@@ -718,7 +718,7 @@ MONGOCTL_PARSER_DEF ={
                     "name": "cluster",
                     "type" : "positional",
                     "nargs": 1,
-                    "metavar": "CLUSTER_ID",
+                    "displayName": "CLUSTER_ID",
                     "help": "A valid cluster id"
                 },
 
@@ -754,7 +754,7 @@ MONGOCTL_PARSER_DEF ={
                     "name": "cluster",
                     "type" : "positional",
                     "nargs": 1,
-                    "metavar": "CLUSTER_ID",
+                    "displayName": "CLUSTER_ID",
                     "help": "A valid cluster id"
                 }
             ]
