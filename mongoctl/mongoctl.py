@@ -976,10 +976,10 @@ def validate_server(server):
 
 def validate_local_op(server, op):
 
-    # If the server has been asserted to be local then skip validation
+    # If the server has been assumed to be local then skip validation
     if is_assumed_local_server(server.get_id()):
         log_verbose("Skipping validation of server's '%s' address '%s' to be"
-                    " local because --assert-local is on" %
+                    " local because --assume-local is on" %
                     (server.get_id(), server.get_host_address()))
         return
 
