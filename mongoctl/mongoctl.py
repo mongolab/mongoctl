@@ -856,6 +856,7 @@ def install_mongodb(version):
 
     do_install_mongodb(os_name, bits, version)
 
+###############################################################################
 def do_install_mongodb(os_name, bits, version):
 
     # validate version string
@@ -872,6 +873,12 @@ def do_install_mongodb(os_name, bits, version):
              (os_name, bits, mongo_versions_dir))
 
 
+    mongo_installation = get_mongo_installation(version)
+
+    if mongo_installation is not None: # no-op
+        log_info("You already have MongoDB %s installed ('%s'). "
+                 "Nothing to do..." % (version, mongo_installation))
+        return
 
     archive_name = "mongodb-%s-%s.tgz" % (platform_spec, version)
     url = "http://fastdl.mongodb.org/%s/%s" % (os_name, archive_name)
@@ -908,7 +915,19 @@ def do_install_mongodb(os_name, bits, version):
         os.remove(archive_name)
         log_info("Deleting archive %s" % archive_name)
 
+###############################################################################
+def get_mongo_installation(version_str):
+    # get all mongod executables and return the parent dir for the one
+    # whose version == specified version. If any...
+    version = version_obj(version_str)
+    all_mongod_exes = find_all_executables('mongod')
+    for exe_path, exe_version in all_mongod_exes:
+        if exe_version == version:
+            return os.path.dirname(exe_path)
 
+    return None
+
+###############################################################################
 def get_validate_platform_spec(os_name, bits):
 
     if os_name not in ["linux", "osx", "win32", "sunos5"]:
@@ -1332,39 +1351,11 @@ def get_mongo_executable(server,
     log_verbose("Looking for a compatible %s for server '%s' with "
                 "mongoVersion=%s." %
                 (executable_name, server.get_id(), ver_disp))
-    # create a list of all available executables found and then return the best
-    # match if applicable
-    executables_found = []
+    exe_version_tuples = find_all_executables(executable_name)
 
-    ####### Look in $PATH
-    path_executable = which(executable_name)
-    if path_executable is not None:
-        add_to_executables_found(executables_found, path_executable)
-
-    #### Look in $MONGO_HOME if set
-    mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
-
-    if mongo_home is not None:
-        mongo_home_exe = get_mongo_home_exe(mongo_home, executable_name)
-        add_to_executables_found(executables_found, mongo_home_exe)
-    # Look in $MONGO_VERSIONS if set
-    mongo_versions = os.getenv(MONGO_VERSIONS_ENV_VAR)
-
-    if mongo_versions is not None:
-        if os.path.exists(mongo_versions):
-            for mongo_installation in os.listdir(mongo_versions):
-                child_mongo_home = os.path.join(mongo_versions,
-                                                mongo_installation)
-
-                child_mongo_exe = get_mongo_home_exe(child_mongo_home,
-                                                     executable_name)
-
-                add_to_executables_found(executables_found, child_mongo_exe)
-
-
-    if len(executables_found) > 0:
+    if len(exe_version_tuples) > 0:
         selected_exe = best_executable_match(executable_name,
-                                             executables_found,
+                                             exe_version_tuples,
                                              server_version,
                                              version_check_pref=
                                              version_check_pref)
@@ -1387,6 +1378,40 @@ def get_mongo_executable(server,
     raise MongoctlException(msg)
 
 ###############################################################################
+
+def find_all_executables(executable_name):
+    # create a list of all available executables found and then return the best
+    # match if applicable
+    executables_found = []
+
+    ####### Look in $PATH
+    path_executable = which(executable_name)
+    if path_executable is not None:
+        add_to_executables_found(executables_found, path_executable)
+
+    #### Look in $MONGO_HOME if set
+    mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
+
+    if mongo_home is not None:
+        mongo_home_exe = get_mongo_home_exe(mongo_home, executable_name)
+        add_to_executables_found(executables_found, mongo_home_exe)
+        # Look in $MONGO_VERSIONS if set
+    mongo_versions = os.getenv(MONGO_VERSIONS_ENV_VAR)
+
+    if mongo_versions is not None:
+        if os.path.exists(mongo_versions):
+            for mongo_installation in os.listdir(mongo_versions):
+                child_mongo_home = os.path.join(mongo_versions,
+                    mongo_installation)
+
+                child_mongo_exe = get_mongo_home_exe(child_mongo_home,
+                    executable_name)
+
+                add_to_executables_found(executables_found, child_mongo_exe)
+
+    return get_exe_version_tuples(executables_found)
+
+###############################################################################
 def add_to_executables_found(executables_found, executable):
     if is_valid_mongo_exe(executable):
         if executable not in executables_found:
@@ -1396,13 +1421,12 @@ def add_to_executables_found(executables_found, executable):
 
 ###############################################################################
 def best_executable_match(executable_name,
-                          executables,
+                          exe_version_tuples,
                           version_str,
                           version_check_pref=VERSION_PREF_EXACT):
     version = version_obj(version_str)
     match_func = exact_exe_version_match
 
-    exe_version_tuples = get_exe_version_tuples(executables)
     exe_versions_str = exe_version_tuples_to_strs(exe_version_tuples)
 
     log_verbose("Found the following %s's. Selecting best match "
