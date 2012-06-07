@@ -923,7 +923,8 @@ def get_mongo_installation(version_str):
     all_mongod_exes = find_all_executables('mongod')
     for exe_path, exe_version in all_mongod_exes:
         if exe_version == version:
-            return os.path.dirname(exe_path)
+            # exe parent dir is 'bin' so return 'bin''s parent
+            return os.path.dirname(os.path.dirname(exe_path))
 
     return None
 
