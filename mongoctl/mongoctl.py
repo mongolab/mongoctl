@@ -44,6 +44,7 @@ import datetime
 import dargparse
 import socket
 import shutil
+import platform
 
 from dargparse import dargparse
 from pymongo import Connection
@@ -844,30 +845,42 @@ def do_connect_to_server(server):
 ###############################################################################
 # install_mongodb
 ###############################################################################
-def install_mongodb(version=None, bits="64"):
-    if version is None:
-        version = "2.0.6"
+def install_mongodb(version):
 
+    bits = platform.architecture()[0].replace("bit", "")
+    os_name = platform.system()
+
+    if os_name == 'Darwin' and platform.mac_ver():
+        os_name = "osx"
+
+    do_install_mongodb(os_name, bits, version)
+
+def do_install_mongodb(os_name, bits, version):
+
+    # validate version string
+    if not is_valid_version(version):
+        raise MongoctlException("Invalid version '%s'. Please provide a"
+                                " valid MongoDB version." % version)
     mongo_versions_dir = os.getenv(MONGO_VERSIONS_ENV_VAR)
-
     if not mongo_versions_dir:
         raise MongoctlException("$MONGO_VERSIONS is not set")
+
+    platform_spec = get_validate_platform_spec(os_name, bits)
+
+    log_info("Running install for %s %sbit to $MONGO_VERSIONS=%s" %
+             (os_name, bits, mongo_versions_dir))
+
 
     ensure_dir(mongo_versions_dir)
 
     log_info("Installing mongodb %s if it's not already installed..." % version)
 
-    if bits == "64":
-        platform = "linux-x86_64"
-    else:
-        platform = "linux-i686"
-
-    mongo_dir_name = "mongodb-%s-%s" % (platform, version)
+    mongo_dir_name = "mongodb-%s-%s" % (platform_spec, version)
     install_dir = os.path.join(mongo_versions_dir, mongo_dir_name)
-    archive_name = "mongodb-%s-%s.tgz" % (platform, version)
+    archive_name = "mongodb-%s-%s.tgz" % (platform_spec, version)
 
     if not dir_exists(install_dir):
-        url = "http://fastdl.mongodb.org/linux/%s" % archive_name
+        url = "http://fastdl.mongodb.org/%s/%s" % (os_name, archive_name)
         log_info("Downloading %s ..." % url)
 
         curl_cmd = ['curl', '-O', url]
@@ -885,6 +898,20 @@ def install_mongodb(version=None, bits="64"):
         log_info("Deleting archive %s" % archive_name)
 
 
+def get_validate_platform_spec(os_name, bits):
+
+    if os_name not in ["linux", "osx", "win32", "sunos5"]:
+        raise MongoctlException("Unsupported OS %s" % os_name)
+
+    if bits == "64":
+        return "%s-x86_64" % os_name
+    else:
+        if os_name == "linux":
+            return "linux-i686"
+        elif os_name in ["osx" , "win32"]:
+            return "%s-i386" % os_name
+        elif os_name == "sunos5":
+            return "i86pc"
 
 ###############################################################################
 # HELPER functions
