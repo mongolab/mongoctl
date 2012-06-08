@@ -48,13 +48,22 @@ class InstallTest(MongoctlTestBase):
 
     def test_install(self):
 
-        # list servers
+        # install and list
+        self.mongoctl_assert_cmd("list-versions")
         self.mongoctl_assert_cmd("install 2.0.3")
-        # list clusters
+        self.mongoctl_assert_cmd("list-versions")
         self.mongoctl_assert_cmd("install 2.0.4")
-        # show server
-        self.mongoctl_assert_cmd("install 2.0.4")
+        self.mongoctl_assert_cmd("list-versions")
+        self.mongoctl_assert_cmd("install 2.0.5")
+        self.mongoctl_assert_cmd("list-versions")
 
+        # uninstall and list
+        self.mongoctl_assert_cmd("uinstall 2.0.3")
+        self.mongoctl_assert_cmd("list-versions")
+        self.mongoctl_assert_cmd("uinstall 2.0.4")
+        self.mongoctl_assert_cmd("list-versions")
+        self.mongoctl_assert_cmd("uninstall 2.0.5")
+        self.mongoctl_assert_cmd("list-versions")
 # booty
 if __name__ == '__main__':
     unittest.main()
