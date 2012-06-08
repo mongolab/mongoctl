@@ -21,30 +21,41 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 import unittest
+import time
+import os
+import shutil
 
-from version_functions_test import VersionFunctionsTest
-from basic_test import BasicMongoctlTest
-from master_slave_test import MasterSlaveTest
-from replicaset_test import ReplicasetTest
-from misc_test import MiscTest
-from auth_replicaset_test import AuthReplicasetTest
-from install_test import InstallTest
-###############################################################################
-all_suites = [
-    unittest.TestLoader().loadTestsFromTestCase(VersionFunctionsTest),
-    unittest.TestLoader().loadTestsFromTestCase(BasicMongoctlTest),
-    unittest.TestLoader().loadTestsFromTestCase(MasterSlaveTest),
-    unittest.TestLoader().loadTestsFromTestCase(ReplicasetTest),
-    unittest.TestLoader().loadTestsFromTestCase(AuthReplicasetTest),
-    unittest.TestLoader().loadTestsFromTestCase(MiscTest),
-    unittest.TestLoader().loadTestsFromTestCase(InstallTest)
-]
-###############################################################################
+from mongoctl.tests.test_base import MongoctlTestBase
+
+TEMP_MONGO_VERS = "temp_mongo_versions"
+class InstallTest(MongoctlTestBase):
+
+###########################################################################
+    def setUp(self):
+        print ("setUp(): Temporarily setting $MONGO_VERSIONS=%s" %
+               TEMP_MONGO_VERS)
+        os.environ['MONGO_VERSIONS'] = TEMP_MONGO_VERS
+        super(InstallTest, self).setUp()
+
+    ###########################################################################
+    def tearDown(self):
+        super(InstallTest, self).tearDown()
+        if os.path.exists(TEMP_MONGO_VERS):
+            print ("tearDown(): Deleting temp $MONGO_VERSIONS=%s" %
+                   TEMP_MONGO_VERS)
+            shutil.rmtree(TEMP_MONGO_VERS)
+
+    def test_install(self):
+
+        # list servers
+        self.mongoctl_assert_cmd("install 2.0.3")
+        # list clusters
+        self.mongoctl_assert_cmd("install 2.0.4")
+        # show server
+        self.mongoctl_assert_cmd("install 2.0.4")
+
 # booty
-###############################################################################
 if __name__ == '__main__':
-    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(all_suites))
-
+    unittest.main()
 
