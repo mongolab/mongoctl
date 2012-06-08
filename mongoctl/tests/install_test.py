@@ -58,9 +58,9 @@ class InstallTest(MongoctlTestBase):
         self.mongoctl_assert_cmd("list-versions")
 
         # uninstall and list
-        self.mongoctl_assert_cmd("uinstall 2.0.3")
+        self.mongoctl_assert_cmd("uninstall 2.0.3")
         self.mongoctl_assert_cmd("list-versions")
-        self.mongoctl_assert_cmd("uinstall 2.0.4")
+        self.mongoctl_assert_cmd("uninstall 2.0.4")
         self.mongoctl_assert_cmd("list-versions")
         self.mongoctl_assert_cmd("uninstall 2.0.5")
         self.mongoctl_assert_cmd("list-versions")
