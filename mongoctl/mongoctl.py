@@ -315,6 +315,28 @@ def install_command(parsed_options):
     install_mongodb(version=parsed_options.version)
 
 ###############################################################################
+# uninstall command
+###############################################################################
+def uninstall_command(parsed_options):
+    uninstall_mongodb(version=parsed_options.version)
+
+###############################################################################
+# list-versions command
+###############################################################################
+def list_versions_command(parsed_options):
+    mongo_installations = find__all_mongo_installations()
+
+
+
+    formatter = "%-15s %-35s"
+    title = formatter % ("VERSION", "LOCATION")
+    print title
+    print "="*len(title)
+
+    for install_dir,version in mongo_installations:
+        print formatter % (version, install_dir)
+    print "\n"
+###############################################################################
 ########################                   ####################################
 ########################    Mongoctl API   ####################################
 ########################                   ####################################
@@ -863,6 +885,7 @@ def do_install_mongodb(os_name, bits, version):
     if not is_valid_version(version):
         raise MongoctlException("Invalid version '%s'. Please provide a"
                                 " valid MongoDB version." % version)
+
     mongo_versions_dir = os.getenv(MONGO_VERSIONS_ENV_VAR)
     if not mongo_versions_dir:
         raise MongoctlException("$MONGO_VERSIONS is not set")
@@ -915,18 +938,56 @@ def do_install_mongodb(os_name, bits, version):
         os.remove(archive_name)
         log_info("Deleting archive %s" % archive_name)
 
+        log_info("MongoDB %s installed successfully!" % version)
+
+###############################################################################
+# uninstall_mongodb
+###############################################################################
+def uninstall_mongodb(version):
+
+    # validate version string
+    if not is_valid_version(version):
+        raise MongoctlException("Invalid version '%s'. Please provide a"
+                                " valid MongoDB version." % version)
+
+    mongo_installation = get_mongo_installation(version)
+
+    if mongo_installation is None: # no-op
+        msg = ("Cannot find a MongoDB installation for version '%s'. Please"
+               " use list-versions to see all possible versions " % version)
+        log_info(msg)
+        return
+
+    log_info("Found MongoDB '%s' in '%s'" % (version, mongo_installation))
+
+    def rm_mongodb():
+        log_info("Deleting '%s'" % mongo_installation)
+        shutil.rmtree(mongo_installation)
+        log_info("MongoDB '%s' Uninstalled successfully!" % version);
+
+    prompt_execute_task("Proceed uninstall?" , rm_mongodb)
 ###############################################################################
 def get_mongo_installation(version_str):
-    # get all mongod executables and return the parent dir for the one
+    # get all mongod installation dirs and return the one
     # whose version == specified version. If any...
     version = version_obj(version_str)
-    all_mongod_exes = find_all_executables('mongod')
-    for exe_path, exe_version in all_mongod_exes:
-        if exe_version == version:
-            # exe parent dir is 'bin' so return 'bin''s parent
-            return os.path.dirname(os.path.dirname(exe_path))
+    for install_dir, install_version in find__all_mongo_installations():
+        if install_version == version:
+            return install_dir
 
     return None
+
+###############################################################################
+def find__all_mongo_installations():
+    all_installs = []
+    all_mongod_exes = find_all_executables('mongod')
+    for exe_path, exe_version in all_mongod_exes:
+        # install dir is exe parent's (bin) parent
+        install_dir = os.path.dirname(os.path.dirname(exe_path))
+        all_installs.append((install_dir,exe_version))
+
+
+    return all_installs
 
 ###############################################################################
 def get_validate_platform_spec(os_name, bits):

@@ -789,6 +789,33 @@ MONGOCTL_PARSER_DEF ={
                     "help": "MongoDB version to install"
                 }
             ]
+        },
+        #### uninstall ####
+            {
+            "prog": "uninstall",
+            "group": "otherCommands",
+            "shortDescription" : "Uninstalls MongoDB",
+            "description" : "Uninstalls MongoDB",
+            "function": "mongoctl.mongoctl.uninstall_command",
+            "args": [
+                    {
+                    "name": "version",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "displayName": "VERSION",
+                    "help": "MongoDB version to uninstall"
+                }
+            ]
+        },
+        #### list-versions ####
+            {
+            "prog": "list-versions",
+            "group": "otherCommands",
+            "shortDescription" : "Lists all available MongoDB installations on"
+                                 " this machine",
+            "description" : "Lists all available MongoDB installations on"
+                            " this machine",
+            "function": "mongoctl.mongoctl.list_versions_command",
         }
 
 
