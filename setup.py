@@ -90,8 +90,8 @@ copy_sample_configs()
 setup(
     name='mongoctl',
     version='0.1.0',
-    author='ObjectLabs staff',
-    author_email='staff@objectlabs.com',
+    author='The Mongolab team',
+    author_email='team@mongolab.com',
     description='Mongo Control',
     long_description="Controls the Mongo",
     packages=['mongoctl',
@@ -108,12 +108,11 @@ setup(
     url='http://objectlabs.org',
     ##license='LICENSE.txt',
     install_requires=[
-        'dargparse==0.1.0',
+        'dargparse',
         'dampier-pymongo==2.1.1',
         'verlib==0.1'],
     dependency_links=[
-        "https://github.com/dampier/mongo-python-driver/tarball/master#egg=dampier-pymongo-2.1.1",
-        "https://github.com/objectlabs/dargparse/tarball/master#egg=dargparse-0.1.0"
+        "https://github.com/dampier/mongo-python-driver/tarball/master#egg=dampier-pymongo-2.1.1"
     ]
 
 )
