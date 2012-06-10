@@ -91,6 +91,10 @@ MONGOCTL_PARSER_DEF ={
 
     "child_groups": [
             {
+            "name" :"adminCommands",
+            "display": "Admin Commands"
+        },
+            {
             "name" :"serverCommands",
             "display": "Server Commands"
         },
@@ -98,10 +102,6 @@ MONGOCTL_PARSER_DEF ={
             {
             "name" :"clusterCommands",
             "display": "Cluster Commands"
-        },
-            {
-            "name" :"adminCommands",
-            "display": "Admin Commands"
         }
     ],
 
