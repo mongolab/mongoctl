@@ -137,12 +137,11 @@ def do_main(args):
 -------------------------------------------------------------------------------------------
    """
 
-    print(header)
-
     # Parse options
     parser = get_mongoctl_cmd_parser()
 
     if len(args) < 1:
+        print(header)
         parser.print_help()
         return
 
