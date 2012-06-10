@@ -100,8 +100,8 @@ MONGOCTL_PARSER_DEF ={
             "display": "Cluster Commands"
         },
             {
-            "name" :"otherCommands",
-            "display": "Other Commands"
+            "name" :"adminCommands",
+            "display": "Admin Commands"
         }
     ],
 
@@ -776,9 +776,9 @@ MONGOCTL_PARSER_DEF ={
         #### install ####
             {
             "prog": "install",
-            "group": "otherCommands",
-            "shortDescription" : "Installs MongoDB",
-            "description" : "Installs MongoDB",
+            "group": "adminCommands",
+            "shortDescription" : "install MongoDB",
+            "description" : "install MongoDB",
             "function": "mongoctl.mongoctl.install_command",
             "args": [
                     {
@@ -793,9 +793,9 @@ MONGOCTL_PARSER_DEF ={
         #### uninstall ####
             {
             "prog": "uninstall",
-            "group": "otherCommands",
-            "shortDescription" : "Uninstalls MongoDB",
-            "description" : "Uninstalls MongoDB",
+            "group": "adminCommands",
+            "shortDescription" : "uninstall MongoDB",
+            "description" : "uninstall MongoDB",
             "function": "mongoctl.mongoctl.uninstall_command",
             "args": [
                     {
@@ -810,10 +810,10 @@ MONGOCTL_PARSER_DEF ={
         #### list-versions ####
             {
             "prog": "list-versions",
-            "group": "otherCommands",
-            "shortDescription" : "Lists all available MongoDB installations on"
+            "group": "adminCommands",
+            "shortDescription" : "lists all available MongoDB installations on"
                                  " this machine",
-            "description" : "Lists all available MongoDB installations on"
+            "description" : "lists all available MongoDB installations on"
                             " this machine",
             "function": "mongoctl.mongoctl.list_versions_command",
         }
