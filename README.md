@@ -11,29 +11,38 @@ lots of configurations to manage.
 ```
 Usage: mongoctl [<options>] <command> [<command-args>]
 
-Utility that controls MongoDB servers
+A utility that simplifies the management of MongoDB servers and replica set clusters.
 
 Options:
   -h, --help            show this help message and exit
-  -v, --verbose         make mongoctl be more verbose
+  -v, --verbose         make mongoctl more verbose
   -n, --noninteractive  bypass prompting for user interaction
+  --yes                 auto yes to all yes/no prompts
+  --no                  auto no to all yes/no prompts
+  --config-root CONFIGROOT
+                        path to mongoctl config root; defaults to ~/.mongoctl
 
 Commands:
+  Admin Commands:
+    install                   - install MongoDB
+    uninstall                 - uninstall MongoDB
+    list-versions             - lists all available MongoDB installations on this machine
+
   Server Commands:
-    start                - start a server
-    stop                 - stop a server
-    restart              - restart a server
-    status               - retrieve status of a server
-    list-servers         - show list of server configurations
-    show-server          - show specified server configuration
-    connect              - open a mongo shell to a server
+    start                     - start a server
+    stop                      - stop a server
+    restart                   - restart a server
+    status                    - retrieve status of server
+    list-servers              - show list of configured servers
+    show-server               - show server's configuration
+    connect                   - open a mongo shell connection to a server
 
   Cluster Commands:
-    list-clusters        - show list of cluster configurations
-    show-cluster         - show specified cluster configuration
-    configure-cluster    - configure specified mongodb cluster
+    configure-cluster         - initiate or reconfigure a cluster
+    list-clusters             - show list of configured clusters
+    show-cluster              - show cluster's configuration
 
-See 'mongoctl <command> --help' for more help on a specific command
+See 'mongoctl <command> --help' for more help on a specific command.
 ```
 
 The core philosophy behind ```mongoctl``` is that all server and
