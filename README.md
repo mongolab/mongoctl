@@ -1,4 +1,4 @@
-mongoctl (edit 1) (edit 2) (edit 3)
+mongoctl (edit 1) (edit 2) (edit 3) (edit 4)
 --------
 
 ```mongoctl``` is a lightweight command line utility that simplifies the
