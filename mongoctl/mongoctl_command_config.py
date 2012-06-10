@@ -24,7 +24,7 @@
 
 __author__ = 'abdul'
 
-MONGOCTL_PARSER_DEF ={
+MONGOCTL_PARSER_DEF = {
     "prog": "mongoctl",
     "usage": "Usage: mongoctl [<options>] <command> [<command-args>]",
     "description" : "A utility that simplifies the management of MongoDB servers and replica set clusters.",
