@@ -2165,14 +2165,16 @@ def read_config_json(name, path_or_url):
                                 "config file: %s: %s" % (name, path_or_url, e))
 
 def read_json_string(path_or_url, validate_exists=True):
-    parse_result =  urlparse.urlparse(path_or_url)
+    path_or_url = to_full_config_path(path_or_url)
+    # if the path is just filename then append config root
+
     # check if its a file
-    if not parse_result.scheme:
-        path = to_config_file_path(path_or_url)
-        if os.path.isfile(path):
-            return open(path).read()
+    if not is_url(path_or_url):
+        if os.path.isfile(path_or_url):
+            return open(path_or_url).read()
         elif validate_exists:
-            raise MongoctlException("Config file %s does not exist." % path)
+            raise MongoctlException("Config file %s does not exist." %
+                                    path_or_url)
         else:
             return None
 
@@ -2197,20 +2199,27 @@ def read_json_string(path_or_url, validate_exists=True):
 __config_root__ = DEFAULT_CONF_ROOT
 
 def _set_config_root(root_path):
-    if not dir_exists(root_path):
+    if not is_url(root_path) and not dir_exists(root_path):
         raise MongoctlException("Invalid config-root value: %s does not"
                                 " exist or is not a directory" % root_path)
     global __config_root__
     __config_root__ = root_path
 
 ###############################################################################
-def to_config_file_path(file_path):
+def to_full_config_path(path_or_url):
     global __config_root__
-    if os.path.isabs(file_path):
-        return file_path
-    else:
-        return os.path.join(__config_root__, file_path)
 
+    # handle abs paths and abs URLS
+    if os.path.isabs(path_or_url) or is_url(path_or_url):
+        return path_or_url
+
+    else:
+        return os.path.join(__config_root__, path_or_url)
+
+###############################################################################
+def is_url(value):
+    scheme = urlparse.urlparse(value).scheme
+    return  scheme is not None and scheme != ''
 ###############################################################################
 # OS Functions
 ###############################################################################
