@@ -1897,6 +1897,15 @@ def validate_repositories():
                                 " or databaseRepository configured. At least"
                                 " one repository has to be configured.")
 
+    # ensure that if db repo is a server then must have file repo
+    if (has_db_repository() and
+        is_db_repository_via_server_id() and
+        not has_file_repository()):
+        msg = ("Invalid 'mongoctl.config': You must have a fileRepository"
+               " configured because databaseRepository is configured via a "
+               "server id.")
+        raise MongoctlException(msg)
+
 ###############################################################################
 # Global variable: mongoctl's mongodb object
 __mongoctl_db__ = None
