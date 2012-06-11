@@ -46,6 +46,7 @@ import socket
 import shutil
 import platform
 import urllib
+import urlparse
 
 from dargparse import dargparse
 from pymongo import Connection
@@ -920,9 +921,10 @@ def do_install_mongodb(os_name, bits, version):
     response = urllib.urlopen(url)
 
     if response.getcode() != 200:
-        msg = ("Unable to download from url '%s'. It could be that version '%s'"
-              " you specified does not exist."
-              " Please double check the version you provide" % (url, version))
+        msg = ("Unable to download from url '%s' (response code '%s'). "
+               "It could be that version '%s' you specified does not exist."
+              " Please double check the version you provide" %
+               (url, response.getcode(), version))
         raise MongoctlException(msg)
 
     mongo_dir_name = "mongodb-%s-%s" % (platform_spec, version)
@@ -2079,9 +2081,8 @@ def get_mongoctl_config():
     global __mongo_config__
 
     if __mongo_config__ is None:
-        conf_file_path = get_config_file_path(MONGOCTL_CONF_FILE_NAME)
         __mongo_config__ = read_config_json("mongoctl",
-            conf_file_path)
+                                            MONGOCTL_CONF_FILE_NAME)
 
     return __mongo_config__
 
@@ -2098,26 +2099,17 @@ def get_configured_servers():
         __configured_servers__ = {}
 
         file_repo_conf = get_file_repository_conf()
-        servers_file_name =  get_document_property(file_repo_conf,
-            "servers" , DEFAULT_SERVERS_FILE)
+        servers_path_or_url = get_document_property(file_repo_conf,
+                                                    "servers" ,
+                                                    DEFAULT_SERVERS_FILE)
 
-        servers_conf_path = get_config_file_path(servers_file_name)
-
-        if os.path.exists(servers_conf_path):
-            server_documents = read_config_json("servers",
-                servers_conf_path)
-            if not isinstance(server_documents, list):
-                raise MongoctlException("Server list in '%s'"
-                                        " must be an array" %
-                                        (servers_conf_path))
-            for document in server_documents:
-                server = Server(document)
-                __configured_servers__[server.get_id()] = server
-
-        else:
-            raise MongoctlException("Error while reading servers from "
-                                    "file repository:"
-                                    "No such file %s" % servers_conf_path)
+        server_documents = read_config_json("servers", servers_path_or_url)
+        if not isinstance(server_documents, list):
+            raise MongoctlException("Server list in '%s' must be an array" %
+                                    servers_path_or_url)
+        for document in server_documents:
+            server = Server(document)
+            __configured_servers__[server.get_id()] = server
 
     return __configured_servers__
 
@@ -2133,36 +2125,29 @@ def get_configured_clusters():
         __configured_clusters__ = {}
 
         file_repo_conf = get_file_repository_conf()
-        clusters_file_name =  get_document_property(file_repo_conf,
+        clusters_path_or_url =  get_document_property(file_repo_conf,
             "clusters" , DEFAULT_CLUSTERS_FILE)
 
-        clusters_conf_path = get_config_file_path(clusters_file_name)
 
-        if os.path.exists(clusters_conf_path):
-            cluster_documents = read_config_json("clusters",
-                clusters_conf_path)
-            if not isinstance(cluster_documents, list):
-                raise MongoctlException("Cluster list in '%s' "
-                                        "must be an array" %
-                                        (clusters_conf_path))
-            for document in cluster_documents:
-                cluster = new_cluster(document)
-                __configured_clusters__[cluster.get_id()] = cluster
+
+        cluster_documents = read_config_json("clusters", clusters_path_or_url)
+        if not isinstance(cluster_documents, list):
+            raise MongoctlException("Cluster list in '%s' must be an array" %
+                                    clusters_path_or_url)
+        for document in cluster_documents:
+            cluster = new_cluster(document)
+            __configured_clusters__[cluster.get_id()] = cluster
 
     return __configured_clusters__
 
 ###############################################################################
-def read_config_json(name, path):
-
-    # check if the file exists
-    if not os.path.isfile(path):
-        raise MongoctlException("Config file %s does not exist" % path)
+def read_config_json(name, path_or_url):
 
     try:
         log_verbose("Reading %s configuration"
-                    " from '%s'..." % (name, path))
+                    " from '%s'..." % (name, path_or_url))
 
-        json_str = open(path).read()
+        json_str = read_json_string(path_or_url)
         # minify the json/remove comments and sh*t
         json_str = minify_json.json_minify(json_str)
         json_val =json.loads(json_str,
@@ -2170,14 +2155,41 @@ def read_config_json(name, path):
 
         if not json_val and not isinstance(json_val,list): # b/c [] is not True
             raise MongoctlException("Unable to load %s "
-                                    "config file: %s" % (name,path))
+                                    "config file: %s" % (name, path_or_url))
         else:
             return json_val
     except MongoctlException,e:
         raise e
     except Exception, e:
         raise MongoctlException("Unable to load %s "
-                                "config file: %s: %s" % (name, path, e))
+                                "config file: %s: %s" % (name, path_or_url, e))
+
+def read_json_string(path_or_url, validate_exists=True):
+    parse_result =  urlparse.urlparse(path_or_url)
+    # check if its a file
+    if not parse_result.scheme:
+        path = to_config_file_path(path_or_url)
+        if os.path.isfile(path):
+            return open(path).read()
+        elif validate_exists:
+            raise MongoctlException("Config file %s does not exist." % path)
+        else:
+            return None
+
+    # Then its url
+    response = urllib.urlopen(path_or_url)
+
+    if response.getcode() != 200:
+        msg = ("Unable to open url '%s' (response code '%s')."
+               % (path_or_url, response.getcode()))
+
+        if validate_exists:
+            raise MongoctlException(msg)
+        else:
+            log_verbose(msg)
+            return None
+    else:
+        return response.read()
 
 ###############################################################################
 # Config root / files stuff
@@ -2192,12 +2204,12 @@ def _set_config_root(root_path):
     __config_root__ = root_path
 
 ###############################################################################
-def get_config_file_path(file_name):
+def to_config_file_path(file_path):
     global __config_root__
-    if os.path.isabs(file_name):
-        return file_name
+    if os.path.isabs(file_path):
+        return file_path
     else:
-        return os.path.join(__config_root__, file_name)
+        return os.path.join(__config_root__, file_path)
 
 ###############################################################################
 # OS Functions
