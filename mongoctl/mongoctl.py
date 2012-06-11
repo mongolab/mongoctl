@@ -1101,6 +1101,21 @@ def validate_server(server):
             errors.append("** mongoVersion '%s' is not supported. Please refer"
                           " to mongoctl documentation for supported"
                           " versions." % version)
+
+    # ensure has needed users when auth is on
+    if server.is_auth():
+        if server.is_arbiter_server():
+            if not server.has_db_users("local"):
+                msg = ("** Server '%s' is an arbiter and has auth on but there"
+                       " are no local users configured. Please configure at "
+                       "lease one local user to proceed." % server.get_id())
+                errors.append(msg)
+        elif not server.has_db_users("admin"):
+            msg = ("** Server '%s' has auth on but there"
+                   " are no admin users configured. Please configure at least"
+                   " one admin user to proceed." % server.get_id())
+            errors.append(msg)
+
     return errors
 
 def validate_local_op(server, op):
@@ -2589,7 +2604,8 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def is_auth(self):
-        return self.get_cmd_option("auth")
+        return (self.get_cmd_option("auth") or
+                self.get_cmd_option("keyFile") is not None)
 
     ###########################################################################
     def set_auth(self,auth):
