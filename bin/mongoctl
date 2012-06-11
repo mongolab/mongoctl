@@ -26,6 +26,23 @@
 __author__ = 'abdul'
 import traceback
 import sys
+
+###############################################################################
+# Validate Python version
+###############################################################################
+def validate_python_version():
+    import sys
+    vinfo = sys.version_info
+    vstr = "%s.%s.%s" % (vinfo[0],vinfo[1],vinfo[2])
+    # ensure that python version >= 2.6
+    if vinfo[0] < 2 or vinfo[0] == 2 and vinfo[1] < 6:
+        msg = ("Cannot run with Python '%s'. Need Python 2.6 or later" % vstr)
+        print msg
+        exit(1)
+
+validate_python_version()
+
+# python version ok...
 import mongoctl
 
 from mongoctl import mongoctl
