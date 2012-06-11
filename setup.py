@@ -90,7 +90,7 @@ copy_sample_configs()
 setup(
     name='mongoctl',
     version='0.1.0',
-    author='The Mongolab team',
+    author='The MongoLab team',
     author_email='team@mongolab.com',
     description='Mongo Control',
     long_description="Controls the Mongo",
@@ -105,8 +105,8 @@ setup(
     test_suite="mongoctl.tests.test_suite",
     include_package_data=True,
     scripts=['bin/mongoctl'],
-    url='http://objectlabs.org',
-    ##license='LICENSE.txt',
+    url='https://github.com/mongolab/mongoctl',
+    license='LICENSE.txt',
     install_requires=[
         'dargparse',
         'dampier-pymongo==2.1.1',
