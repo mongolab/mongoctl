@@ -254,11 +254,12 @@ def list_servers_command(parsed_options):
         return
 
     servers = sorted(servers, key=lambda s: s.get_id())
+    bar = "-"*80
+    print bar
+    formatter = "%-14s %-40s %s"
+    print formatter % ("_ID", "DESCRIPTION", "ADDRESS")
+    print bar
 
-    formatter = "%-15s %-35s %-30s"
-    title = formatter % ("_ID", "DESCRIPTION", "ADDRESS")
-    print title
-    print "="*len(title)
 
     for server in servers:
         print formatter % (server.get_id(), 
@@ -304,15 +305,18 @@ def list_clusters_command(parsed_options):
         log_info("No clusters configured");
         return
 
-    print "_id            description                     members"
-    print "-----------------------------------------------------"
-    DUH = '???'
-    for cluster in clusters:
-        desc = (DUH if cluster.get_description() is None
-                else cluster.get_description())
+    bar = "-"*80
+    print bar
+    formatter = "%-14s %-40s %s"
+    print formatter % ("_ID", "DESCRIPTION", "MEMBERS")
+    print bar
 
-        members_info = ", ".join(cluster.get_members_info())
-        print "%-14s %-24s [ %s ]" % (cluster.get_id(), desc, members_info)
+    for cluster in clusters:
+        desc = _lista(cluster.get_description())
+
+        members_info = "[ %s ]" % ", ".join(cluster.get_members_info())
+
+        print formatter % (cluster.get_id(), desc, members_info)
     print "\n"
 
 ###############################################################################
@@ -341,10 +345,11 @@ def list_versions_command(parsed_options):
 
 
 
-    formatter = "%-15s %-35s"
-    title = formatter % ("VERSION", "LOCATION")
-    print title
-    print "="*len(title)
+    bar = "-"*80
+    print bar
+    formatter = "%-20s %s"
+    print formatter % ("VERSION", "LOCATION")
+    print bar
 
     for install_dir,version in mongo_installations:
         print formatter % (version, install_dir)
