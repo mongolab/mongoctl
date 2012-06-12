@@ -118,7 +118,7 @@ MIN_SUPPORTED_VERSION = "1.8"
 REPL_KEY_SUPPORTED_VERSION = '2.0.0'
 
 LATEST_VERSION_FILE_URL = "https://raw.github.com/mongolab/mongoctl/master/" \
-                          "latest_mongo_stable_version.txt"
+                          "mongo_latest_stable_version.txt"
 ###############################################################################
 # MAIN
 ###############################################################################
