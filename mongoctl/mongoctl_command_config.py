@@ -811,9 +811,9 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "list-versions",
             "group": "adminCommands",
-            "shortDescription" : "lists all available MongoDB installations on"
+            "shortDescription" : "list all available MongoDB installations on"
                                  " this machine",
-            "description" : "lists all available MongoDB installations on"
+            "description" : "list all available MongoDB installations on"
                             " this machine",
             "function": "mongoctl.mongoctl.list_versions_command",
         }
