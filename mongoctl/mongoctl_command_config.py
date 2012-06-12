@@ -95,6 +95,10 @@ MONGOCTL_PARSER_DEF = {
             "display": "Admin Commands"
         },
             {
+            "name" :"clientCommands",
+            "display": "Client Commands"
+        },
+            {
             "name" :"serverCommands",
             "display": "Server Commands"
         },
@@ -699,7 +703,7 @@ MONGOCTL_PARSER_DEF = {
         #### connect ####
             {
             "prog": "connect",
-            "group": "serverCommands",
+            "group": "clientCommands",
             "shortDescription" : "open a mongo shell connection to a server",
             "description" : "Opens a mongo shell connection to a specific server. "
                             "Uses the 'address' \nfield of the specified server "
