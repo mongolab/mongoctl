@@ -359,10 +359,10 @@ Command reference
 
 ##### start
 
-The ```start``` command calls ```mongod``` with arguments and options
+The `start` command calls `mongod` with arguments and options
 based on the configuration of the specified server document and its
-configured ```cmdOptions```.  You can see the generated ```mongod```
-command-line string by adding the dry run option (```-n``` or ```--dry-run```).
+configured `cmdOptions`.  You can see the generated `mongod`
+command-line string by adding the dry run option (`-n` or `--dry-run`).
 
 ```
 % mongoctl start --dry-run abdul-dev
@@ -373,10 +373,10 @@ Fork Command :
 /Users/abdul/Library/mongodb/mongodb-osx-x86_64-2.0.3-rc1/bin/mongod --dbpath /Users/abdul/dbs/abdul-dev --journal --logappend --logpath /Users/abdul/dbs/abdul-dev/mongodb.log --maxConns 10000 --pidfilepath /Users/abdul/dbs/abdul-dev/pid.txt --port 27017 --quota --quotaFiles 4
 ```
 
-```start``` also allows for the overriding of the options defined the
+`start` also allows for the overriding of the options defined the
 server configuration via flags specified at the
-command-line. ```start``` passes these options as-is to ```mongod```.
-This is useful for one-off situations (i.e. running a ```--repair```).
+command-line. `start` passes these options as-is to `mongod`.
+This is useful for one-off situations (e.g., running a `--repair`).
 
 ```
 Usage: start [<options>] SERVER_ID
@@ -481,8 +481,14 @@ Options:
   -f, --force  force stop if needed via kill
 ```
 
-mongoctl stop server by sending a {"shutdown": 1} db command to the server. If the server
- is a primary of a cluster, mongoctl steps it down first then sends shutdown command.
+The `mongoctl stop` command will attempt to stop the indicated server by sending it a ```{"shutdown": 1}``` db command.
+
+If it can determine the `mongod` process ID, mongod will do its best to ensure that the `mongod` process 
+has terminated before it returns.
+ 
+If the `--force` option is specified, `mongod` will automatically escalate: first to including a `"force": 1` argument
+to the `shutdown` DB command, and finally to killing the process itself via the OS.  If `--force` is not specified,
+`mongod` will prompt the user to enable this escalation, unless it is in the `--noninteractive` mode.
 
 ##### restart
 
