@@ -117,6 +117,8 @@ VERSION_PREF_LATEST_STABLE = 3
 MIN_SUPPORTED_VERSION = "1.8"
 REPL_KEY_SUPPORTED_VERSION = '2.0.0'
 
+LATEST_VERSION_FILE_URL = "https://raw.github.com/mongolab/mongoctl/master/" \
+                          "latest_mongo_stable_version.txt"
 ###############################################################################
 # MAIN
 ###############################################################################
@@ -892,8 +894,11 @@ def install_mongodb(version):
 ###############################################################################
 def do_install_mongodb(os_name, bits, version):
 
+    if version is None:
+        version = fetch_latest_stable_version()
+        log_info("Installing latest stable MongoDB version '%s'" % version)
     # validate version string
-    if not is_valid_version(version):
+    elif not is_valid_version(version):
         raise MongoctlException("Invalid version '%s'. Please provide a"
                                 " valid MongoDB version." % version)
 
@@ -978,6 +983,16 @@ def uninstall_mongodb(version):
         log_info("MongoDB '%s' Uninstalled successfully!" % version);
 
     prompt_execute_task("Proceed uninstall?" , rm_mongodb)
+
+###############################################################################
+def fetch_latest_stable_version():
+    response = urllib.urlopen(LATEST_VERSION_FILE_URL)
+    if response.getcode() == 200:
+        return response.read().strip()
+    else:
+        raise MongoctlException("Unable to fetch MongoDB latest stable version"
+                                " from '%s' (Response code %)" %
+                                (LATEST_VERSION_FILE_URL, response.getcode()))
 ###############################################################################
 def get_mongo_installation(version_str):
     # get all mongod installation dirs and return the one

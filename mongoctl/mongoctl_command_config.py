@@ -784,7 +784,7 @@ MONGOCTL_PARSER_DEF = {
                     {
                     "name": "version",
                     "type" : "positional",
-                    "nargs": 1,
+                    "nargs": "?",
                     "displayName": "VERSION",
                     "help": "MongoDB version to install"
                 }
