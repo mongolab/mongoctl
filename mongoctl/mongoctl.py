@@ -3268,6 +3268,9 @@ class ReplicaSetCluster(DocumentWrapper):
             log_info("Server '%s' is primary now!" % primary_server.get_id())
             log_info("Attempting to add user to the admin database...")
             setup_server_admin_users(primary_server)
+
+            log_info("New Replicaset configuration:\n%s" %
+                     document_pretty_string(self.read_rs_config()))
             return True
         except Exception,e:
             raise MongoctlException("Unable to initialize "
@@ -3300,6 +3303,10 @@ class ReplicaSetCluster(DocumentWrapper):
                      "\n%s" % document_pretty_string(rs_reconfig_cmd))
 
             primary_server.disconnecting_db_command(rs_reconfig_cmd, "admin")
+
+            log_info("New Replicaset config:\n %s" %
+                     document_pretty_string(self.read_rs_config()))
+
             log_info("Replica set cluster '%s' re-configuration ran"
                      " successfully!" % self.get_id())
             return True
@@ -3316,10 +3323,8 @@ class ReplicaSetCluster(DocumentWrapper):
             # update the rs config version
             new_config['version'] = current_rs_conf['version'] + 1
 
-        log_info("Current config:\n %s" %
+        log_info("Current Replicaset config:\n %s" %
                  document_pretty_string(current_rs_conf))
-
-        log_info("New config:\n %s" % document_pretty_string(new_config))
 
         return {"replSetReconfig":new_config};
 
