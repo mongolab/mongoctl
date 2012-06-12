@@ -343,9 +343,7 @@ def uninstall_command(parsed_options):
 def list_versions_command(parsed_options):
     mongo_installations = find__all_mongo_installations()
 
-
-
-    bar = "-"*80
+    bar = "-" * 80
     print bar
     formatter = "%-20s %s"
     print formatter % ("VERSION", "LOCATION")
@@ -1677,7 +1675,7 @@ def version_obj(version_str):
     #clean version string
     try:
         version_str = version_str.replace("-pre-" , "-pre")
-        return NormalizedVersion(suggest_normalized_version(version_str))
+        return MongoctlNormalizedVersion(version_str)
     except Exception, e:
         return None
 
@@ -3508,7 +3506,19 @@ def new_replicaset_cluster_member(cluster_mem_doc):
 def new_replicaset_cluster_member_list(docs_iteratable):
     return map(new_replicaset_cluster_member, docs_iteratable)
 
+###############################################################################
+# MongoctlNormalizedVersion class
+# we had to inherit and override __str__ because the suggest_normalized_version
+# method does not maintain the release candidate version properly
+###############################################################################
+class MongoctlNormalizedVersion(NormalizedVersion):
+    def __init__(self, version_str):
+        sugg_ver = suggest_normalized_version(version_str)
+        super(MongoctlNormalizedVersion,self).__init__(sugg_ver)
+        self.version_str = version_str
 
+    def __str__(self):
+        return self.version_str
 ###############################################################################
 ########################                      #################################
 ########################  Commandline parsing #################################
