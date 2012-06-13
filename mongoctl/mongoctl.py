@@ -1674,7 +1674,11 @@ def mongo_exe_version(mongo_exe):
         vers_spew = execute_command([mongo_exe, "--version"])
         vers_grep = re.search(re_expr, vers_spew)
         full_version = vers_grep.groups()[0]
-        return version_obj(full_version)
+        if full_version is not None:
+            return version_obj(full_version)
+        else:
+            raise MongoctlException("Cannot parse mongo version from the"
+                                    " output of '%s --version'" % mongo_exe)
     except Exception, e:
         raise MongoctlException("Unable to get mongo version of '%s'."
                   " Cause: %s" % (mongo_exe, e))
