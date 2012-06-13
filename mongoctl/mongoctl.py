@@ -837,14 +837,14 @@ def dry_run_configure_cluster(cluster_id):
 
     if cluster.is_replicaset_initialized():
         log_info("Replica set already initialized. "
-                 "Make replSetReconfig command...")
+                 "Making the replSetReconfig command...")
         db_command = cluster.get_configure_all_db_command()
     else:
-        log_info("Replica set not initialized."
-                 " Make replSetInitiate command...")
+        log_info("Replica set has not yet been initialized."
+                 " Making the replSetInitiate command...")
         db_command = cluster.get_replicaset_init_all_db_command()
 
-    log_info("Command : \n")
+    log_info("Executing the following command on the current primary:\n")
     log_info(document_pretty_string(db_command))
 
 ###############################################################################
@@ -3370,7 +3370,7 @@ class ReplicaSetCluster(DocumentWrapper):
             # update the rs config version
             new_config['version'] = current_rs_conf['version'] + 1
 
-        log_info("Current Replicaset config:\n %s" %
+        log_info("Current replica set configuration:\n %s" %
                  document_pretty_string(current_rs_conf))
 
         return {"replSetReconfig":new_config};
