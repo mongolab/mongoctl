@@ -1670,12 +1670,13 @@ def get_mongo_home_exe(mongo_home, executable_name):
 
 def mongo_exe_version(mongo_exe):
     try:
-        re_expr = "v?((([0-9]+).([0-9]+).([0-9]+))([^, ]*))"
+        re_expr = "v?((([0-9]+)\.([0-9]+)\.([0-9]+))([^, ]*))"
         vers_spew = execute_command([mongo_exe, "--version"])
         vers_grep = re.search(re_expr, vers_spew)
         full_version = vers_grep.groups()[0]
-        if full_version is not None:
-            return version_obj(full_version)
+        result = version_obj(full_version)
+        if result is not None:
+            return result
         else:
             raise MongoctlException("Cannot parse mongo version from the"
                                     " output of '%s --version'" % mongo_exe)
@@ -2308,10 +2309,11 @@ def execute_command(command):
 
     # Python 2.7+ : Use the new method because i think its better
     if  hasattr(subprocess, 'check_output'):
-        return subprocess.check_output(command)
+        return subprocess.check_output(command,stderr=subprocess.STDOUT)
     else: # Python 2.6 compatible, check_output is not available in 2.6
         return subprocess.Popen(command,
-                                stdout=subprocess.PIPE).communicate()[0]
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT).communicate()[0]
 
 ###############################################################################
 def get_environment():
