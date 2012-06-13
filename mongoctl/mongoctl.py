@@ -214,7 +214,8 @@ def start_command(parsed_options):
         dry_run_start_server_cmd(parsed_options.server, options_override)
     else:
         start_server(parsed_options.server,
-            options_override=options_override)
+                     options_override=options_override,
+                     rs_add=parsed_options.rsAdd)
 
 ###############################################################################
 # stop command
@@ -363,12 +364,13 @@ def list_versions_command(parsed_options):
 # start server
 ###############################################################################
 
-def start_server(server_id,options_override=None):
+def start_server(server_id, options_override=None, rs_add=False):
     do_start_server(lookup_and_validate_server(server_id),
-        options_override=options_override)
+                    options_override=options_override,
+                    rs_add=rs_add)
 
 ###############################################################################
-def do_start_server(server, options_override=None):
+def do_start_server(server, options_override=None, rs_add=False):
     # ensure that the start was issued locally. Fail otherwise
     validate_local_op(server, "start")
 
@@ -396,7 +398,7 @@ def do_start_server(server, options_override=None):
 
     mongod_process = start_server_process(server,options_override)
 
-    maybe_init_server_repl_set(server)
+    maybe_config_server_repl_set(server, rs_add=rs_add)
 
     try:
         prepare_server(server)
@@ -414,10 +416,11 @@ def do_start_server(server, options_override=None):
         log_server_activity(server, "start")
 
 
-def maybe_init_server_repl_set(server):
+def maybe_config_server_repl_set(server, rs_add=False):
     # if the server belongs to a replica set cluster,
     # then prompt the user to init the replica set IF not already initialized
     # AND server is NOT an Arbiter
+    # OTHERWISE prompt to add server to replica if server is not added yet
 
     cluster = lookup_cluster_by_server(server)
 
@@ -437,6 +440,15 @@ def maybe_init_server_repl_set(server):
         else:
             log_verbose("No need to initialize cluster '%s', as it has"
                         " already been initialized." % cluster.get_id())
+            if not cluster.is_member_configured_for(server):
+                if rs_add:
+                    cluster.add_member_to_replica(server)
+                else:
+                    prompt_add_member_to_replica(cluster, server)
+            else:
+                log_verbose("Server '%s' is already added to the replicaset"
+                            " conf of cluster '%s'." %
+                            (server.get_id(),cluster.get_id()))
 
 ###############################################################################
 def _start_server_process_4real(server, options_override=None):
@@ -815,7 +827,7 @@ def configure_cluster(cluster_id):
 
 ###############################################################################
 def configure_replica_cluster(replica_cluster):
-    replica_cluster.configure_all()
+    replica_cluster.configure_replicaset()
 
 ###############################################################################
 def dry_run_configure_cluster(cluster_id):
@@ -848,6 +860,16 @@ def prompt_init_replica_cluster(replica_cluster,
             suggested_primary_server=suggested_primary_server,
             only_for_server=suggested_primary_server)
     prompt_execute_task(prompt, init_repl_func)
+
+###############################################################################
+def prompt_add_member_to_replica(replica_cluster, server):
+
+    prompt = ("Do you want to add server '%s' to replica set cluster '%s'" %
+              (server.get_id(), replica_cluster.get_id()))
+
+    def add_member_func():
+        replica_cluster.add_member_to_replica(server)
+    prompt_execute_task(prompt, add_member_func)
 
 ###############################################################################
 # connect_to_server
@@ -3278,7 +3300,9 @@ class ReplicaSetCluster(DocumentWrapper):
                                     (self.get_id(),e) )
 
     ###########################################################################
-    def configure_all(self, suggested_primary_server=None):
+    def configure_replicaset(self,
+                             suggested_primary_server=None,
+                             add_server=None):
 
         # Check if this is an init VS an update
         if not self.is_replicaset_initialized():
@@ -3296,7 +3320,11 @@ class ReplicaSetCluster(DocumentWrapper):
         log_info("Re-configuring replica set cluster '%s'..." % self.get_id())
 
 
-        rs_reconfig_cmd = self.get_configure_all_db_command()
+        rs_reconfig_cmd = None
+        if add_server is not None:
+            rs_reconfig_cmd = self.get_add_member_db_command(add_server)
+        else:
+            rs_reconfig_cmd = self.get_configure_all_db_command()
 
         try:
             log_info("Executing the following command on the current primary:"
@@ -3314,6 +3342,24 @@ class ReplicaSetCluster(DocumentWrapper):
             raise MongoctlException("Unable to reconfigure "
                                     "replica set cluster '%s'. Cause: %s " %
                                     (self.get_id(),e) )
+
+    ###########################################################################
+    def add_member_to_replica(self, server):
+        self.configure_replicaset(add_server=server)
+
+    ###########################################################################
+    def get_add_member_db_command(self, server):
+        current_rs_conf = self.read_rs_config()
+        new_config = self.make_replset_config(add_server=server,
+                                              current_rs_conf=current_rs_conf)
+        if current_rs_conf is not None:
+            # update the rs config version
+            new_config['version'] = current_rs_conf['version'] + 1
+
+        log_info("Current Replicaset config:\n %s" %
+                 document_pretty_string(current_rs_conf))
+
+        return {"replSetReconfig":new_config};
 
     ###########################################################################
     def get_configure_all_db_command(self):
@@ -3349,6 +3395,15 @@ class ReplicaSetCluster(DocumentWrapper):
         return None
 
     ###########################################################################
+    def is_member_configured_for(self, server):
+        member = self.get_member_for(server)
+        mem_conf = member.get_repl_config()
+        rs_conf = self.read_rs_config()
+        return (rs_conf is not None and
+                self.get_member_id_if_exists(mem_conf,
+                                             rs_conf['members']) is not None)
+
+    ###########################################################################
     def has_any_server_that(self, predicate):
         def server_predicate(member):
             server = member.get_server()
@@ -3368,15 +3423,24 @@ class ReplicaSetCluster(DocumentWrapper):
         return member_configs
 
     ###########################################################################
-    def make_replset_config(self, only_for_server=None, current_rs_conf=None):
+    def make_replset_config(self,
+                            only_for_server=None,
+                            add_server=None,
+                            current_rs_conf=None):
 
         member_confs = None
-        if only_for_server is None:
-            member_confs = self.get_all_members_configs()
-        else:
+        if add_server is not None:
+            member = self.get_member_for(add_server)
+            member.validate();
+            member_confs = []
+            member_confs.extend(current_rs_conf['members'])
+            member_confs.append(member.get_repl_config())
+        elif only_for_server is not None:
             member = self.get_member_for(only_for_server)
             member.validate()
             member_confs = [member.get_repl_config()]
+        else:
+            member_confs = self.get_all_members_configs()
 
         # populate member ids when needed
         self.populate_member_conf_ids(member_confs, current_rs_conf)

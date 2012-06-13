@@ -147,6 +147,15 @@ MONGOCTL_PARSER_DEF = {
                             " host. This will skip local address/dns check",
                     "default": False
                 },
+                    {
+                    "name": "rsAdd",
+                    "type" : "optional",
+                    "cmd_arg": "--rs-add",
+                    "nargs": 0,
+                    "help": "Automatically add server to replicaset conf if "
+                            "its not added yet",
+                    "default": False
+                },
                 # confusing
                 #                {
                 #                    "name": "config",
