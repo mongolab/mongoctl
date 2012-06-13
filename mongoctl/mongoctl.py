@@ -864,7 +864,7 @@ def prompt_init_replica_cluster(replica_cluster,
 ###############################################################################
 def prompt_add_member_to_replica(replica_cluster, server):
 
-    prompt = ("Do you want to add server '%s' to replica set cluster '%s'" %
+    prompt = ("Do you want to add server '%s' to replica set cluster '%s'?" %
               (server.get_id(), replica_cluster.get_id()))
 
     def add_member_func():
@@ -3291,7 +3291,7 @@ class ReplicaSetCluster(DocumentWrapper):
             log_info("Attempting to add user to the admin database...")
             setup_server_admin_users(primary_server)
 
-            log_info("New Replicaset configuration:\n%s" %
+            log_info("New replica set configuration:\n%s" %
                      document_pretty_string(self.read_rs_config()))
             return True
         except Exception,e:
@@ -3332,11 +3332,12 @@ class ReplicaSetCluster(DocumentWrapper):
 
             primary_server.disconnecting_db_command(rs_reconfig_cmd, "admin")
 
-            log_info("New Replicaset config:\n %s" %
+            log_info("Re-configuration for replica set cluster '%s' ran"
+                     " successfully!" % self.get_id())
+                     
+            log_info("New replica set configuration:\n %s" %
                      document_pretty_string(self.read_rs_config()))
 
-            log_info("Replica set cluster '%s' re-configuration ran"
-                     " successfully!" % self.get_id())
             return True
         except Exception,e:
             raise MongoctlException("Unable to reconfigure "
@@ -3356,7 +3357,7 @@ class ReplicaSetCluster(DocumentWrapper):
             # update the rs config version
             new_config['version'] = current_rs_conf['version'] + 1
 
-        log_info("Current Replicaset config:\n %s" %
+        log_info("Current replica set configuration:\n %s" %
                  document_pretty_string(current_rs_conf))
 
         return {"replSetReconfig":new_config};
