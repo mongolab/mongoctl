@@ -832,7 +832,7 @@ def configure_replica_cluster(replica_cluster):
 ###############################################################################
 def dry_run_configure_cluster(cluster_id):
     cluster = lookup_and_validate_cluster(cluster_id)
-    log_info("************ Dry Run ************")
+    log_info("\n************ Dry Run ************\n")
     db_command = None
 
     if cluster.is_replicaset_initialized():
@@ -844,7 +844,7 @@ def dry_run_configure_cluster(cluster_id):
                  " Making the replSetInitiate command...")
         db_command = cluster.get_replicaset_init_all_db_command()
 
-    log_info("Executing the following command on the current primary:\n")
+    log_info("Executing the following command on the current primary:")
     log_info(document_pretty_string(db_command))
 
 ###############################################################################
