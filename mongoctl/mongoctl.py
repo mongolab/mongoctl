@@ -1475,6 +1475,9 @@ def get_mongo_executable(server,
                          executable_name,
                          version_check_pref=VERSION_PREF_EXACT):
 
+    mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
+    mongo_versions = os.getenv(MONGO_VERSIONS_ENV_VAR)
+
     server_version = server.get_mongo_version()
     ver_disp = "[Unspecified]" if server_version is None else server_version
     log_verbose("Looking for a compatible %s for server '%s' with "
