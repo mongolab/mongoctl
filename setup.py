@@ -106,7 +106,7 @@ setup(
     include_package_data=True,
     scripts=['bin/mongoctl'],
     url='https://github.com/mongolab/mongoctl',
-    license='LICENSE.txt',
+    license='MIT',
     install_requires=[
         'dargparse',
         'dampier-pymongo==2.1.1',
