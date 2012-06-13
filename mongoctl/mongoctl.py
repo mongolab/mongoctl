@@ -1797,7 +1797,7 @@ def setup_server_admin_users(server):
     if(admin_users is None or
        len(admin_users) < 1):
         log_info("No users configured for admin DB...")
-        return
+        return 0
 
     log_verbose("Checking setup for admin users...")
     count_new_users = 0
