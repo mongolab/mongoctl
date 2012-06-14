@@ -838,7 +838,7 @@ def dry_run_configure_cluster(cluster_id):
     if cluster.is_replicaset_initialized():
         log_info("Replica set already initialized. "
                  "Making the replSetReconfig command...")
-        db_command = cluster.get_configure_all_db_command()
+        db_command = cluster.get_replicaset_reconfig_db_command()
     else:
         log_info("Replica set has not yet been initialized."
                  " Making the replSetInitiate command...")
@@ -856,9 +856,7 @@ def prompt_init_replica_cluster(replica_cluster,
               (replica_cluster.get_id(), suggested_primary_server.get_id()))
 
     def init_repl_func():
-        replica_cluster.initialize_replicaset(
-            suggested_primary_server=suggested_primary_server,
-            only_for_server=suggested_primary_server)
+        replica_cluster.initialize_replicaset(suggested_primary_server)
     prompt_execute_task(prompt, init_repl_func)
 
 ###############################################################################
@@ -3245,16 +3243,16 @@ class ReplicaSetCluster(DocumentWrapper):
         return self.read_rs_config() is not None
 
     ###########################################################################
-    def initialize_replicaset(self,
-                              suggested_primary_server=None,
-                              only_for_server=None):
-        log_info("Initializing replica set cluster '%s'..." % self.get_id())
+    def initialize_replicaset(self, suggested_primary_server=None):
+        log_info("Initializing replica set cluster '%s' %s..." %
+                 (self.get_id(),
+                  "" if suggested_primary_server is None else
+                  "to contain only server '%s'" %
+                  suggested_primary_server.get_id()))
 
         ##### Determine primary server
         log_info("Determining which server should be primary...")
         primary_server = suggested_primary_server
-        if primary_server is None:
-            primary_server = only_for_server
         if primary_server is None:
             primary_member = self.suggest_primary_member()
             if primary_member is not None:
@@ -3266,7 +3264,7 @@ class ReplicaSetCluster(DocumentWrapper):
                                     " to be online.")
         log_info("Selected server '%s' as primary." % primary_server.get_id())
 
-        init_cmd = self.get_replicaset_init_all_db_command(only_for_server)
+        init_cmd = self.get_replicaset_init_all_db_command(suggested_primary_server)
 
         try:
 
@@ -3318,14 +3316,11 @@ class ReplicaSetCluster(DocumentWrapper):
                                     (self.get_id(),e) )
 
     ###########################################################################
-    def configure_replicaset(self,
-                             suggested_primary_server=None,
-                             add_server=None):
+    def configure_replicaset(self, add_server=None):
 
         # Check if this is an init VS an update
         if not self.is_replicaset_initialized():
-            self.initialize_replicaset(
-                suggested_primary_server=suggested_primary_server)
+            self.initialize_replicaset()
             return
 
         primary_member = self.get_primary_member()
@@ -3337,12 +3332,7 @@ class ReplicaSetCluster(DocumentWrapper):
         primary_server = primary_member.get_server()
         log_info("Re-configuring replica set cluster '%s'..." % self.get_id())
 
-
-        rs_reconfig_cmd = None
-        if add_server is not None:
-            rs_reconfig_cmd = self.get_add_member_db_command(add_server)
-        else:
-            rs_reconfig_cmd = self.get_configure_all_db_command()
+        rs_reconfig_cmd = self.get_replicaset_reconfig_db_command(add_server)
 
         try:
             log_info("Executing the following command on the current primary:"
@@ -3352,9 +3342,11 @@ class ReplicaSetCluster(DocumentWrapper):
 
             log_info("Re-configuration for replica set cluster '%s' ran"
                      " successfully!" % self.get_id())
-                     
+
+            # Probably need to reconnect.  May not be primary any more.
+            realized_config = primary_member.read_rs_config()
             log_info("New replica set configuration:\n %s" %
-                     document_pretty_string(self.read_rs_config()))
+                     document_pretty_string(realized_config))
 
             return True
         except Exception,e:
@@ -3366,24 +3358,12 @@ class ReplicaSetCluster(DocumentWrapper):
     def add_member_to_replica(self, server):
         self.configure_replicaset(add_server=server)
 
+
     ###########################################################################
-    def get_add_member_db_command(self, server):
+    def get_replicaset_reconfig_db_command(self, add_server=None):
         current_rs_conf = self.read_rs_config()
-        new_config = self.make_replset_config(add_server=server,
+        new_config = self.make_replset_config(add_server=add_server,
                                               current_rs_conf=current_rs_conf)
-        if current_rs_conf is not None:
-            # update the rs config version
-            new_config['version'] = current_rs_conf['version'] + 1
-
-        log_info("Current replica set configuration:\n %s" %
-                 document_pretty_string(current_rs_conf))
-
-        return {"replSetReconfig": new_config}
-
-    ###########################################################################
-    def get_configure_all_db_command(self):
-        current_rs_conf = self.read_rs_config()
-        new_config = self.make_replset_config(current_rs_conf=current_rs_conf)
         if current_rs_conf is not None:
             # update the rs config version
             new_config['version'] = current_rs_conf['version'] + 1
