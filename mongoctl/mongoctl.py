@@ -353,17 +353,17 @@ def list_versions_command(parsed_options):
     for install_dir,version in mongo_installations:
         print formatter % (version, install_dir)
     print "\n"
+
+
 ###############################################################################
 ########################                   ####################################
 ########################    Mongoctl API   ####################################
 ########################                   ####################################
 ###############################################################################
 
-
 ###############################################################################
 # start server
 ###############################################################################
-
 def start_server(server_id, options_override=None, rs_add=False):
     do_start_server(lookup_and_validate_server(server_id),
                     options_override=options_override,
@@ -1038,7 +1038,6 @@ def find__all_mongo_installations():
         install_dir = os.path.dirname(os.path.dirname(exe_path))
         all_installs.append((install_dir,exe_version))
 
-
     return all_installs
 
 ###############################################################################
@@ -1510,7 +1509,6 @@ def get_mongo_executable(server,
     raise MongoctlException(msg)
 
 ###############################################################################
-
 def find_all_executables(executable_name):
     # create a list of all available executables found and then return the best
     # match if applicable
@@ -3098,6 +3096,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
     ###########################################################################
     def get_priority(self):
         return self.get_property("priority")
+
     ###########################################################################
     # Interface Methods
     ###########################################################################
@@ -3369,7 +3368,7 @@ class ReplicaSetCluster(DocumentWrapper):
         log_info("Current replica set configuration:\n %s" %
                  document_pretty_string(current_rs_conf))
 
-        return {"replSetReconfig":new_config};
+        return {"replSetReconfig": new_config}
 
     ###########################################################################
     def get_configure_all_db_command(self):
@@ -3382,14 +3381,14 @@ class ReplicaSetCluster(DocumentWrapper):
         log_info("Current replica set configuration:\n %s" %
                  document_pretty_string(current_rs_conf))
 
-        return {"replSetReconfig":new_config};
+        return {"replSetReconfig": new_config}
 
     ###########################################################################
     def get_replicaset_init_all_db_command(self, only_for_server=None):
         replset_config =\
         self.make_replset_config(only_for_server=only_for_server)
 
-        return {"replSetInitiate": replset_config};
+        return {"replSetInitiate": replset_config}
 
     ###########################################################################
     def has_member_server(self, server):
@@ -3457,6 +3456,7 @@ class ReplicaSetCluster(DocumentWrapper):
 
         return {"_id" : self.get_id(),
                 "members": member_confs}
+
     ###########################################################################
     def populate_member_conf_ids(self, member_confs, current_rs_conf=None):
         new_id = 0
@@ -3509,8 +3509,6 @@ class ReplicaSetCluster(DocumentWrapper):
         return rs_conf
 
     ###########################################################################
-
-
     def match_members_to_rs_conf(self):
 
         current_rs_conf = self.read_rs_config()
@@ -3598,6 +3596,7 @@ class MongoctlNormalizedVersion(NormalizedVersion):
 
     def __str__(self):
         return self.version_str
+
 ###############################################################################
 ########################                      #################################
 ########################  Commandline parsing #################################
