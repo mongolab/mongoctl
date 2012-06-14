@@ -762,8 +762,12 @@ def prompt_or_force_stop_server(server, force=False, try_mongo_force=True):
     def stop_func():
         return force_stop_server(server, try_mongo_force=try_mongo_force)
 
-    result = prompt_execute_task("Forcefully stop the server process?",
-                                 stop_func)
+    if try_mongo_force:
+        result = prompt_execute_task("Issue the shutdown with force command?",
+                                    stop_func)
+    else:
+        result = prompt_execute_task("Forcefully stop the server process?",
+                                    stop_func)
 
     return result[1]
 
