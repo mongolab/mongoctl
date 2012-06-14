@@ -3139,6 +3139,14 @@ class ReplicaSetClusterMember(DocumentWrapper):
         return repl_config
 
     ###########################################################################
+    def read_rs_config(self):
+        if self.is_valid():
+            server = self.get_server()
+            if server.is_administrable():
+                return server.get_rs_config()
+        return None
+
+    ###########################################################################
     def is_valid(self):
         try:
             self.validate()
@@ -3501,12 +3509,9 @@ class ReplicaSetCluster(DocumentWrapper):
         rs_conf = None
         # iterate on all members until you get a non null rs-config
         for member in self.get_members():
-            if member.is_valid():
-                server = member.get_server()
-                if server.is_administrable():
-                    rs_conf = member.get_server().get_rs_config()
-                if rs_conf is not None:
-                    break
+            rs_conf = member.read_rs_config()
+            if rs_conf is not None:
+                break
 
         return rs_conf
 
