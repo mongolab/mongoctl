@@ -1079,7 +1079,7 @@ def prompt_execute_task(message, task_function):
                      "n":False}
 
     while True:
-        print >> sys.stderr, message + " [y/n] "
+        print >> sys.stderr, message + " [y/n] ",
         sys.stderr.flush()
         choice = raw_input().lower()
         if not valid_choices.has_key(choice):
