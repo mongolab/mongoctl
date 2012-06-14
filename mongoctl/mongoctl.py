@@ -2795,17 +2795,17 @@ class Server(DocumentWrapper):
     def disconnecting_db_command(self, cmd, dbname):
         try:
             result = self.db_command(cmd, dbname)
-            self.__db_connection__ = None
             return result
         except (errors.AutoReconnect),e:
             log_verbose("This is an expected exception that happens after "
                         "disconnecting db commands: %s" % e)
+        finally:
+            self.__db_connection__ = None
 
     ###########################################################################
     def timeout_maybe_db_command(self, cmd, dbname):
         try:
             result = self.db_command(cmd, dbname)
-            self.__db_connection__ = None
             return result
         except (Exception),e:
             if "timed out" in str(e):
@@ -2813,7 +2813,9 @@ class Server(DocumentWrapper):
                             "This is not necessarily bad. " %
                             document_pretty_string(cmd))
             else:
-                raise e
+                raise
+        finally:
+            self.__db_connection__ = None
 
     ###########################################################################
     def db_command(self, cmd, dbname):
