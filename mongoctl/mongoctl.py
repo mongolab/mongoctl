@@ -3450,7 +3450,7 @@ class ReplicaSetCluster(DocumentWrapper):
         member_confs = None
         if add_server is not None:
             member = self.get_member_for(add_server)
-            member.validate();
+            member.validate()
             member_confs = []
             member_confs.extend(current_rs_conf['members'])
             member_confs.append(member.get_repl_config())
@@ -3523,9 +3523,6 @@ class ReplicaSetCluster(DocumentWrapper):
             "docMembers" : [],
             "rsConfMembers" : current_rs_conf
         }
-        current_member_confs = None
-        if current_rs_conf is not None:
-            current_member_confs = current_rs_conf['members']
 
         member_confs = self.get_all_members_configs(validate_members=False)
         for mem_conf in member_confs:
@@ -3535,7 +3532,6 @@ class ReplicaSetCluster(DocumentWrapper):
             }
 
             result["docMembers"].append(doc_member)
-
 
             if current_rs_conf:
                 for rs_mem in current_rs_conf['members']:
