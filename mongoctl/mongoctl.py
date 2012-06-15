@@ -929,14 +929,15 @@ def do_install_mongodb(os_name, bits, version):
         raise MongoctlException("Invalid version '%s'. Please provide a"
                                 " valid MongoDB version." % version)
 
-    mongo_versions_dir = os.getenv(MONGO_VERSIONS_ENV_VAR)
-    if not mongo_versions_dir:
-        raise MongoctlException("$MONGO_VERSIONS is not set")
+    installs_dir = get_mongodb_installs_dir()
+    if not installs_dir:
+        raise MongoctlException("No mongoDBInstalls configured"
+                                " in mongoctl.config")
 
     platform_spec = get_validate_platform_spec(os_name, bits)
 
-    log_info("Running install for %s %sbit to $MONGO_VERSIONS=%s" %
-             (os_name, bits, mongo_versions_dir))
+    log_info("Running install for %s %sbit to mongoDBInstalls=%s" %
+             (os_name, bits, installs_dir))
 
 
     mongo_installation = get_mongo_installation(version)
@@ -960,9 +961,9 @@ def do_install_mongodb(os_name, bits, version):
         raise MongoctlException(msg)
 
     mongo_dir_name = "mongodb-%s-%s" % (platform_spec, version)
-    install_dir = os.path.join(mongo_versions_dir, mongo_dir_name)
+    install_dir = os.path.join(installs_dir, mongo_dir_name)
 
-    ensure_dir(mongo_versions_dir)
+    ensure_dir(installs_dir)
 
     if not dir_exists(install_dir):
 
@@ -976,8 +977,8 @@ def do_install_mongodb(os_name, bits, version):
         tar_cmd = ['tar', 'xvf', archive_name]
         log_info(execute_command(tar_cmd))
 
-        log_info("Moving extracted folder to MONGO_VERSIONS")
-        shutil.move(mongo_dir_name, mongo_versions_dir)
+        log_info("Moving extracted folder to %s")
+        shutil.move(mongo_dir_name, installs_dir)
 
         os.remove(archive_name)
         log_info("Deleting archive %s" % archive_name)
@@ -1477,7 +1478,7 @@ def get_mongo_executable(server,
                          version_check_pref=VERSION_PREF_EXACT):
 
     mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
-    mongo_versions = os.getenv(MONGO_VERSIONS_ENV_VAR)
+    mongo_installs_dir = get_mongodb_installs_dir()
 
     server_version = server.get_mongo_version()
     ver_disp = "[Unspecified]" if server_version is None else server_version
@@ -1503,11 +1504,11 @@ def get_mongo_executable(server,
            "Here is your enviroment:\n\n"
            "$PATH=%s\n\n"
            "$MONGO_HOME=%s\n\n"
-           "$MONGO_VERSIONS=%s" %
+           "mongoDBInstalls=%s (in mongoctl.config)" %
            (executable_name, ver_disp, server.get_id(),
             os.getenv("PATH"),
             mongo_home,
-            mongo_versions))
+            mongo_installs_dir))
     raise MongoctlException(msg)
 
 ###############################################################################
@@ -1527,13 +1528,13 @@ def find_all_executables(executable_name):
     if mongo_home is not None:
         mongo_home_exe = get_mongo_home_exe(mongo_home, executable_name)
         add_to_executables_found(executables_found, mongo_home_exe)
-        # Look in $MONGO_VERSIONS if set
-    mongo_versions = os.getenv(MONGO_VERSIONS_ENV_VAR)
+        # Look in mongod_installs_dir if set
+    mongo_installs_dir = get_mongodb_installs_dir()
 
-    if mongo_versions is not None:
-        if os.path.exists(mongo_versions):
-            for mongo_installation in os.listdir(mongo_versions):
-                child_mongo_home = os.path.join(mongo_versions,
+    if mongo_installs_dir is not None:
+        if os.path.exists(mongo_installs_dir):
+            for mongo_installation in os.listdir(mongo_installs_dir):
+                child_mongo_home = os.path.join(mongo_installs_dir,
                     mongo_installation)
 
                 child_mongo_exe = get_mongo_home_exe(child_mongo_home,
@@ -2017,6 +2018,11 @@ def get_database_repository_conf():
 def get_file_repository_conf():
     return get_mongoctl_config_val('fileRepository')
 
+def get_mongodb_installs_dir():
+    installs_dir = get_mongoctl_config_val('mongoDBInstalls')
+    if installs_dir:
+        return resolve_path(installs_dir)
+
 ###############################################################################
 def get_mongoctl_server_db_collection():
 
@@ -2306,6 +2312,13 @@ def ensure_dir(dir_path):
 ###############################################################################
 def dir_exists(path):
     return os.path.exists(path) and os.path.isdir(path)
+
+###############################################################################
+def resolve_path(path):
+    if path.startswith("~"):
+        return os.path.expanduser(path)
+    else:
+        return path
 
 ###############################################################################
 def execute_command(command):
