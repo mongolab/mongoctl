@@ -977,7 +977,7 @@ def do_install_mongodb(os_name, bits, version):
         tar_cmd = ['tar', 'xvf', archive_name]
         log_info(execute_command(tar_cmd))
 
-        log_info("Moving extracted folder to %s")
+        log_info("Moving extracted folder to %s" % installs_dir)
         shutil.move(mongo_dir_name, installs_dir)
 
         os.remove(archive_name)
