@@ -1136,8 +1136,6 @@ def is_forking(server, options_override):
 def validate_server(server):
     errors = []
 
-    if server.get_db_path() is None:
-        errors.append("** dbpath not configured" )
     version = server.get_mongo_version()
     # None versions are ok
     if version is not None:
