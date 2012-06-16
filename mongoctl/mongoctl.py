@@ -972,7 +972,7 @@ def do_install_mongodb(os_name, bits, version):
         try:
             ## download the url
             download(url)
-            extract_arhive(archive_name)
+            extract_archive(archive_name)
 
             log_info("Moving extracted folder to %s" % installs_dir)
             shutil.move(mongo_dir_name, installs_dir)
@@ -1076,7 +1076,7 @@ def download(url):
 
     execute_command(download_cmd, call=True)
 
-def extract_arhive(archive_name):
+def extract_archive(archive_name):
     log_info("Extracting %s ..." % archive_name)
     if not which("tar"):
         msg = ("Cannot extract archive.You need to have 'tar' command in your"
