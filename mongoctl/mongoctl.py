@@ -95,6 +95,9 @@ DEFAULT_ACTIVITY_COLLECTION = "logs.server-activity"
 # This is mongodb's default port
 DEFAULT_PORT = 27017
 
+# This is mongodb's default dbpath
+DEFAULT_DBPATH='/data/db'
+
 # db connection timeout, 10 seconds
 CONN_TIMEOUT = 10000
 
@@ -1132,8 +1135,7 @@ def is_forking(server, options_override):
 ###############################################################################
 def validate_server(server):
     errors = []
-    if server.get_cmd_options() is None:
-        errors.append("** cmdOptions not configured")
+
     if server.get_db_path() is None:
         errors.append("** dbpath not configured" )
     version = server.get_mongo_version()
@@ -2654,7 +2656,11 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_db_path(self):
-        return self.get_cmd_option("dbpath")
+        dbpath =  self.get_cmd_option("dbpath")
+        if dbpath is None:
+            dbpath =  DEFAULT_DBPATH
+
+        return dbpath
 
     ###########################################################################
     def get_address(self):
