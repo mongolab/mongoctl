@@ -969,24 +969,21 @@ def do_install_mongodb(os_name, bits, version):
     ensure_dir(installs_dir)
 
     if not dir_exists(install_dir):
+        try:
+            ## download the url
+            download(url)
+            extract_arhive(archive_name)
 
-        log_info("Downloading %s ..." % url)
+            log_info("Moving extracted folder to %s" % installs_dir)
+            shutil.move(mongo_dir_name, installs_dir)
 
-        curl_cmd = ['curl', '-O', url]
-        log_info(execute_command(curl_cmd))
+            os.remove(archive_name)
+            log_info("Deleting archive %s" % archive_name)
 
-        log_info("Extracting %s ..." % archive_name)
-
-        tar_cmd = ['tar', 'xvf', archive_name]
-        log_info(execute_command(tar_cmd))
-
-        log_info("Moving extracted folder to %s" % installs_dir)
-        shutil.move(mongo_dir_name, installs_dir)
-
-        os.remove(archive_name)
-        log_info("Deleting archive %s" % archive_name)
-
-        log_info("MongoDB %s installed successfully!" % version)
+            log_info("MongoDB %s installed successfully!" % version)
+        except Exception, e:
+            log_error("Failed to install MongoDB '%s'. Cause: %s" %
+                      (version, e))
 
 ###############################################################################
 # uninstall_mongodb
@@ -1062,6 +1059,32 @@ def get_validate_platform_spec(os_name, bits):
         elif os_name == "sunos5":
             return "i86pc"
 
+###############################################################################
+def download(url):
+    log_info("Downloading %s ..." % url)
+
+    download_cmd = None
+
+    if which("curl"):
+        download_cmd = ['curl', '-O', url]
+    elif which("wget"):
+        download_cmd = ['wget', url]
+    else:
+        msg = ("Cannot download file.You need to have 'curl' or 'wget"
+               "' command in your path in order to proceed.")
+        raise MongoctlException(msg)
+
+    execute_command(download_cmd, call=True)
+
+def extract_arhive(archive_name):
+    log_info("Extracting %s ..." % archive_name)
+    if not which("tar"):
+        msg = ("Cannot extract archive.You need to have 'tar' command in your"
+               " path in order to proceed.")
+        raise MongoctlException(msg)
+
+    tar_cmd = ['tar', 'xvf', archive_name]
+    execute_command(tar_cmd, call=True)
 ###############################################################################
 # HELPER functions
 ###############################################################################
@@ -2321,10 +2344,11 @@ def resolve_path(path):
         return path
 
 ###############################################################################
-def execute_command(command):
-
+def execute_command(command, call=False):
+    if call:
+        return subprocess.check_call(command)
     # Python 2.7+ : Use the new method because i think its better
-    if  hasattr(subprocess, 'check_output'):
+    elif  hasattr(subprocess, 'check_output'):
         return subprocess.check_output(command,stderr=subprocess.STDOUT)
     else: # Python 2.6 compatible, check_output is not available in 2.6
         return subprocess.Popen(command,
