@@ -76,7 +76,7 @@ PID_FILE_NAME = "pid.txt"
 
 LOG_FILE_NAME = "mongodb.log"
 
-DEFAULT_CONF_ROOT = os.path.expanduser("~/.mongoctl")
+DEFAULT_CONF_ROOT = "~/.mongoctl"
 
 MONGOCTL_CONF_FILE_NAME = "mongoctl.config"
 
@@ -488,7 +488,7 @@ def start_server_process(server,options_override=None):
              server.get_id())
     log_info("\n****************************************************************"
              "***************")
-    log_info("* START: tail of log file at '%s'" % get_log_file_path(server))
+    log_info("* START: tail of log file at '%s'" % server.get_log_file_path())
     log_info("******************************************************************"
              "*************\n")
 
@@ -503,7 +503,7 @@ def start_server_process(server,options_override=None):
 
     log_info("\n****************************************************************"
              "***************")
-    log_info("* END: tail of log file at '%s'" % get_log_file_path(server))
+    log_info("* END: tail of log file at '%s'" % server.get_log_file_path())
     log_info("******************************************************************"
              "*************\n")
 
@@ -571,7 +571,7 @@ def _negotiate_process_limit(set_resource, desired_limit, soft, hard):
 ###############################################################################
 def tail_server_log(server):
     try:
-        logpath = get_log_file_path(server)
+        logpath = server.get_log_file_path()
         # touch log file to make sure it exists
         log_verbose("Touching log file '%s'" % logpath)
         execute_command(["touch", logpath])
@@ -727,7 +727,7 @@ def kill_stop_server(server):
     if pid is None:
         log_error("Cannot forcibly stop the server because the server's process"
                   " ID cannot be determined; pid file '%s' does not exist." %
-                  get_pid_file_path(server))
+                  server.get_pid_file_path())
         return False
 
     log_info("Forcibly stopping server '%s'...\n" % server.get_id())
@@ -932,15 +932,15 @@ def do_install_mongodb(os_name, bits, version):
         raise MongoctlException("Invalid version '%s'. Please provide a"
                                 " valid MongoDB version." % version)
 
-    installs_dir = get_mongodb_installs_dir()
-    if not installs_dir:
+    mongodb_installs_dir = get_mongodb_installs_dir()
+    if not mongodb_installs_dir:
         raise MongoctlException("No mongoDBInstalls configured"
                                 " in mongoctl.config")
 
     platform_spec = get_validate_platform_spec(os_name, bits)
 
     log_info("Running install for %s %sbit to mongoDBInstalls=%s" %
-             (os_name, bits, installs_dir))
+             (os_name, bits, mongodb_installs_dir))
 
 
     mongo_installation = get_mongo_installation(version)
@@ -964,9 +964,9 @@ def do_install_mongodb(os_name, bits, version):
         raise MongoctlException(msg)
 
     mongo_dir_name = "mongodb-%s-%s" % (platform_spec, version)
-    install_dir = os.path.join(installs_dir, mongo_dir_name)
+    install_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
 
-    ensure_dir(installs_dir)
+    ensure_dir(mongodb_installs_dir)
 
     if not dir_exists(install_dir):
         try:
@@ -974,8 +974,8 @@ def do_install_mongodb(os_name, bits, version):
             download(url)
             extract_archive(archive_name)
 
-            log_info("Moving extracted folder to %s" % installs_dir)
-            shutil.move(mongo_dir_name, installs_dir)
+            log_info("Moving extracted folder to %s" % mongodb_installs_dir)
+            shutil.move(mongo_dir_name, mongodb_installs_dir)
 
             os.remove(archive_name)
             log_info("Deleting archive %s" % archive_name)
@@ -1437,7 +1437,7 @@ def generate_start_command(server, options_override=None):
 
     # add pid . if missing of-course :)
     set_document_property_if_missing(cmd_options, "pidfilepath",
-        get_pid_file_path(server))
+        server.get_pid_file_path())
 
     # set the logpath if forking..
 
@@ -1445,7 +1445,7 @@ def generate_start_command(server, options_override=None):
         set_document_property_if_missing(
             cmd_options,
             "logpath",
-            get_log_file_path(server))
+            server.get_log_file_path(server))
 
     # Add ReplicaSet args if a cluster is configured
 
@@ -1458,7 +1458,7 @@ def generate_start_command(server, options_override=None):
 
         # Specify the keyFile arg if needed
         if needs_repl_key(server):
-            key_file_path = get_key_file_path(server)
+            key_file_path = server.get_key_file_path()
             set_document_property_if_missing(cmd_options,
                                              "keyFile",
                                              key_file_path)
@@ -2084,7 +2084,7 @@ def get_activity_collection():
 
 ###############################################################################
 def get_server_pid(server):
-    pid_file_path = get_pid_file_path(server)
+    pid_file_path = server.get_pid_file_path()
     if os.path.exists(pid_file_path):
         pid_file = open(pid_file_path, 'r')
         pid = pid_file.readline().strip('\n')
@@ -2101,17 +2101,6 @@ def get_server_pid(server):
 
     return None
 
-###############################################################################
-def get_pid_file_path(server):
-    return get_server_file_path(server , PID_FILE_NAME)
-
-###############################################################################
-def get_log_file_path(server):
-    return get_server_file_path(server , LOG_FILE_NAME)
-
-###############################################################################
-def get_key_file_path(server):
-    return get_server_file_path(server , KEY_FILE_NAME)
 
 ###############################################################################
 # we need a repl key if you are auth + a cluster member +
@@ -2126,7 +2115,7 @@ def needs_repl_key(server):
 ###############################################################################
 def get_generate_key_file(server):
     cluster = lookup_cluster_by_server(server)
-    key_file_path = get_key_file_path(server)
+    key_file_path = server.get_key_file_path()
 
     # Generate the key file if it does not exist
     if not os.path.exists(key_file_path):
@@ -2137,9 +2126,6 @@ def get_generate_key_file(server):
         os.chmod(key_file_path,stat.S_IRUSR)
     return key_file_path
 
-###############################################################################
-def get_server_file_path(server , file_name):
-    return server.get_db_path() + os.path.sep + file_name
 
 ###############################################################################
 # Configuration Functions
@@ -2286,12 +2272,14 @@ def _set_config_root(root_path):
 def to_full_config_path(path_or_url):
     global __config_root__
 
+    # first resolve the path
+    path_or_url = resolve_path(path_or_url)
     # handle abs paths and abs URLS
     if os.path.isabs(path_or_url) or is_url(path_or_url):
         return path_or_url
 
     else:
-        return os.path.join(__config_root__, path_or_url)
+        return resolve_path(os.path.join(__config_root__, path_or_url))
 
 ###############################################################################
 def is_url(value):
@@ -2682,7 +2670,31 @@ class Server(DocumentWrapper):
         if dbpath is None:
             dbpath =  DEFAULT_DBPATH
 
-        return dbpath
+        return resolve_path(dbpath)
+
+    ###########################################################################
+    def get_pid_file_path(self):
+        return self.get_server_file_path("pidfilepath", PID_FILE_NAME)
+
+    ###########################################################################
+    def get_log_file_path(self):
+        return self.get_server_file_path("logpath", LOG_FILE_NAME)
+
+    ###########################################################################
+    def get_key_file_path(self):
+        return self.get_server_file_path("keyFile", KEY_FILE_NAME)
+
+    ###########################################################################
+    def get_server_file_path(self , cmd_prop, default_file_name):
+        file_path = self.get_cmd_option(cmd_prop)
+        if file_path is not None:
+            return resolve_path(file_path)
+        else:
+            return self.get_default_file_path(default_file_name)
+
+    ###########################################################################
+    def get_default_file_path(self , file_name):
+        return self.get_db_path() + os.path.sep + file_name
 
     ###########################################################################
     def get_address(self):
