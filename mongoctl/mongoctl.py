@@ -3341,7 +3341,8 @@ class ReplicaSetCluster(DocumentWrapper):
             else:
                 msg = ("Timeout error: Initializing replicaset '%s' took "
                        "longer than expected. This does not necessarily"
-                       " mean that it failed but it could have failed. ")
+                       " mean that it failed but it could have failed. " %
+                       self.get_id())
                 raise MongoctlException(msg)
             ## add the admin user after the set has been initiated
             ## Wait for the server to become primary though (at MongoDB's end)
