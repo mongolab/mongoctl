@@ -1445,7 +1445,7 @@ def generate_start_command(server, options_override=None):
         set_document_property_if_missing(
             cmd_options,
             "logpath",
-            server.get_log_file_path(server))
+            server.get_log_file_path())
 
     # Add ReplicaSet args if a cluster is configured
 
