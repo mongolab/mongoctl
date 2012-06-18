@@ -1549,6 +1549,7 @@ def find_all_executables(executable_name):
     mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
 
     if mongo_home is not None:
+        mongo_home = resolve_path(mongo_home)
         mongo_home_exe = get_mongo_home_exe(mongo_home, executable_name)
         add_to_executables_found(executables_found, mongo_home_exe)
         # Look in mongod_installs_dir if set
