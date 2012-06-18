@@ -29,32 +29,32 @@ MONGOCTL_PARSER_DEF = {
     "usage": "Usage: mongoctl [<options>] <command> [<command-args>]",
     "description" : "A utility that simplifies the management of MongoDB servers and replica set clusters.",
     "args": [
-            {
+        {
             "name": "mongoctlVerbose",
             "type" : "optional",
             "help": "make mongoctl more verbose",
             "cmd_arg": [
                 "-v",
                 "--verbose"
-            ],
+                ],
             "nargs": 0,
             "action": "store_true",
             "default": False
         },
-            {
+        {
             "name": "noninteractive",
             "type" : "optional",
             "help": "bypass prompting for user interaction",
             "cmd_arg": [
                 "-n",
                 "--noninteractive"
-            ],
+                ],
             "nargs": 0,
             "action": "store_true",
             "default": False
         },
-
-            {
+        
+        {
             "name": "yesToEverything",
             "type" : "optional",
             "help": "auto yes to all yes/no prompts",
@@ -66,7 +66,7 @@ MONGOCTL_PARSER_DEF = {
             "default": False
         },
 
-            {
+        {
             "name": "noToEverything",
             "type" : "optional",
             "help": "auto no to all yes/no prompts",
@@ -689,8 +689,8 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "list-servers",
             "group": "serverCommands",
-            "shortDescription" : "show list of configured servers",
-            "description" : "Shows a list of configured servers.",
+            "shortDescription" : "list all server configurations",
+            "description" : "List all server configurations.",
             "function": "mongoctl.mongoctl.list_servers_command"
         },
         #### show-server ####
@@ -763,8 +763,8 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "list-clusters",
             "group": "clusterCommands",
-            "shortDescription" : "show list of configured clusters",
-            "description" : "Shows a list configured clusters.",
+            "shortDescription" : "list all cluster configurations",
+            "description" : "List all cluster configurations",
             "function": "mongoctl.mongoctl.list_clusters_command"
         },
 
