@@ -3136,12 +3136,14 @@ class ReplicaSetClusterMember(DocumentWrapper):
     def get_server(self):
 
         server_doc = self.get_property("server")
+        host = self.get_property("host")
 
-        if (server_doc is not None and
-            self.__server__ is None):
-
-            if type(server_doc) is bson.DBRef:
-                self.__server__ =  lookup_server(server_doc.id)
+        if self.__server__ is None:
+            if server_doc is not None:
+                if type(server_doc) is bson.DBRef:
+                    self.__server__ =  lookup_server(server_doc.id)
+            elif host is not None:
+                self.__server__ = new_host_member_wrapper_server(host)
 
         return self.__server__
 
@@ -3219,9 +3221,25 @@ class ReplicaSetClusterMember(DocumentWrapper):
 
     ###########################################################################
     def validate(self):
+        # validate host if exists
+        host_conf = self.get_property("host")
+        server_conf = self.get_property("server")
+
+        if server_conf is None and host_conf is None:
+            msg = ("Invalid member configuration:\n%s \n"
+                   "Please set 'server' or 'host'." %
+                   document_pretty_string(self.get_document()))
+            raise MongoctlException(msg)
+
+        if host_conf and not is_valid_member_address(host_conf):
+            msg = ("Invalid 'host' value in member:\n%s \n"
+                   "Please make sure 'host' is in the 'address:port' form" %
+                   document_pretty_string(self.get_document()))
+            raise MongoctlException(msg)
+
         server = self.get_server()
         if server is None:
-            msg = ("Invalid 'server' configuration in member:\n%s \n"
+            msg = ("Invalid 'server' value in member:\n%s \n"
                    "Please make sure 'server' is set or points to a "
                    "valid server." %
                    document_pretty_string(self.get_document()))
@@ -3232,6 +3250,15 @@ class ReplicaSetClusterMember(DocumentWrapper):
                                     "'%s'. address property is not set." %
                                     (server.get_id()))
 
+def is_valid_member_address(address):
+    if address is None:
+        return False
+    host_port = address.split(":")
+
+    return (len(host_port) == 2
+            and host_port[0]
+            and host_port[1]
+            and str(host_port[1]).isdigit())
 ###############################################################################
 # ReplicaSet Cluster Class
 ###############################################################################
@@ -3609,6 +3636,19 @@ class MongoctlException(Exception):
 # Factory Functions
 ###############################################################################
 def new_server(server_doc):
+    return Server(server_doc)
+
+###############################################################################
+def new_host_member_wrapper_server(address):
+    if not is_valid_member_address(address):
+        return None
+
+    port = int(address.split(":")[1])
+    server_doc = {"id": address,
+                  "address": address,
+                  "cmdOptions":{
+                      "port": port
+                  }}
     return Server(server_doc)
 
 ###############################################################################
