@@ -268,7 +268,7 @@ def list_servers_command(parsed_options):
     for server in servers:
         print formatter % (server.get_id(), 
                            _lista(server.get_description()),
-                           _lista(server.get_address()))
+                           _lista(server.get_address_display()))
     print "\n"
 
 def _lista(thing):
@@ -2707,6 +2707,13 @@ class Server(DocumentWrapper):
                 return "%s:%s" % (address, self.get_port())
         else:
             return None
+
+    ###########################################################################
+    def get_address_display(self):
+        display =  self.get_address()
+        if display is  None:
+            display = self.get_local_address()
+        return display
 
     ###########################################################################
     def get_host_address(self):
