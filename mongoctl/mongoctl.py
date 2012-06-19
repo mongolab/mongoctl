@@ -1433,11 +1433,7 @@ def generate_start_command(server, options_override=None):
 
 
     # create the command args
-    cmd_options = server.get_cmd_options().copy()
-
-    # add pid . if missing of-course :)
-    set_document_property_if_missing(cmd_options, "pidfilepath",
-        server.get_pid_file_path())
+    cmd_options = server.export_cmd_options()
 
     # set the logpath if forking..
 
@@ -2824,8 +2820,18 @@ class Server(DocumentWrapper):
     def get_cmd_options(self):
         return self.get_property('cmdOptions')
 
+    ###########################################################################
     def set_cmd_options(self, cmd_options):
         return self.set_property('cmdOptions' , cmd_options)
+
+    ###########################################################################
+    def export_cmd_options(self):
+        cmd_options =  self.get_cmd_options().copy()
+        # reset some props to exporting vals
+        cmd_options['dbpath'] = self.get_db_path()
+        cmd_options['pidfilepath'] = self.get_pid_file_path()
+
+        return cmd_options
 
     ###########################################################################
     def get_users(self):
