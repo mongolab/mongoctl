@@ -2365,6 +2365,35 @@ def kill_process(pid, force=False):
     except OSError:
         return False
 
+
+###############################################################################
+# Network Utils Functions
+###############################################################################
+
+def is_host_local(host):
+    if (host == "localhost" or
+        host == "127.0.0.1"):
+        return True
+
+    return is_same_host(socket.gethostname(), host)
+
+###############################################################################
+def is_same_host(host1, host2):
+    ips1 = get_host_ips(host1)
+    ips2 = get_host_ips(host2)
+
+    return len(set(ips1) & set(ips2)) > 0
+
+###############################################################################
+def get_host_ips(host):
+    ips = []
+    addr_info = socket.getaddrinfo(host, None)
+    for elem in addr_info:
+        ip = elem[4]
+        if ip not in ips:
+            ips.append(ip)
+    return ips
+
 ###############################################################################
 # Utility Methods
 ###############################################################################
@@ -2951,20 +2980,13 @@ class Server(DocumentWrapper):
     ###########################################################################
     def is_local(self):
         try:
-            server_host = self.get_host_address();
-            if (server_host is None or
-                server_host == "localhost" or
-                server_host == "127.0.0.1"):
-                return True
-
-            localhost = socket.gethostname()
-            return (socket.gethostbyname(localhost) ==
-                    socket.gethostbyname(server_host))
-        except(Exception, RuntimeError), e:
+            server_host = self.get_host_address()
+            return server_host is None or is_host_local(server_host)
+        except Exception, e:
             log_error("Unable to resolve address '%s' for server '%s'."
                       " Cause: %s" %
                       (self.get_host_address(), self.get_id(), e))
-            return False
+        return False
 
     ###########################################################################
     def get_admin_db(self):
