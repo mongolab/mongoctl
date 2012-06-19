@@ -2830,6 +2830,8 @@ class Server(DocumentWrapper):
         # reset some props to exporting vals
         cmd_options['dbpath'] = self.get_db_path()
         cmd_options['pidfilepath'] = self.get_pid_file_path()
+        if 'repairpath' in cmd_options:
+            cmd_options['repairpath'] = resolve_path(cmd_options['repairpath'])
 
         return cmd_options
 
