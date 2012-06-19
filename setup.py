@@ -28,8 +28,11 @@ import os
 import shutil
 import stat
 import pwd
+import subprocess
+import sys
 
 from setuptools import setup
+from setuptools.command.install import install as _install
 
 ###############################################################################
 # CONSTANTS
@@ -58,6 +61,8 @@ def copy_sample_configs():
 
         if not os.path.exists(dot_mongoctl_dir):
             os.makedirs(dot_mongoctl_dir)
+        else:
+            return True
 
         os.chown(dot_mongoctl_dir, owner_uid, owner_gid)
         os.chmod(dot_mongoctl_dir, 00755)
@@ -79,10 +84,21 @@ def copy_sample_configs():
                "determine owner/mode of sample config files: %s" % e)
 
 
-
+def install_latest_mongodb():
+    try:
+        import mongoctl
+        from mongoctl.mongoctl import install_mongodb
+        install_mongodb(None)
+    except Exception,e:
+        print "Unable to install latest mongodb. Cause: '%s' " % e
 ###############################################################################
-# NOW CALL IT !
-copy_sample_configs()
+# Creating a custom distutils install command
+class install_mongoctl(_install):
+    def run(self):
+        _install.run(self)
+        configs_exists = copy_sample_configs()
+        if not configs_exists:
+            install_latest_mongodb()
 
 ###############################################################################
 # Setup
@@ -113,6 +129,7 @@ setup(
         'verlib==0.1'],
     dependency_links=[
         "https://github.com/dampier/mongo-python-driver/tarball/master#egg=dampier-pymongo-2.1.1"
-    ]
+    ],
+    cmdclass=dict(install=install_mongoctl)
 
 )
