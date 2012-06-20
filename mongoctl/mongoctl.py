@@ -931,13 +931,14 @@ def do_install_mongodb(os_name, bits, version):
 
     mongodb_installs_dir = get_mongodb_installs_dir()
     if not mongodb_installs_dir:
-        raise MongoctlException("No mongoDBInstalls configured"
+        raise MongoctlException("No mongoDBInstallationDirectory configured"
                                 " in mongoctl.config")
 
     platform_spec = get_validate_platform_spec(os_name, bits)
 
-    log_info("Running install for %s %sbit to mongoDBInstalls=%s" %
-             (os_name, bits, mongodb_installs_dir))
+    log_info("Running install for %s %sbit to "
+             "mongoDBInstallationDirectory=%s" % (os_name, bits,
+                                                  mongodb_installs_dir))
 
 
     mongo_installation = get_mongo_installation(version)
@@ -1520,7 +1521,7 @@ def get_mongo_executable(server,
            "Here is your enviroment:\n\n"
            "$PATH=%s\n\n"
            "$MONGO_HOME=%s\n\n"
-           "mongoDBInstalls=%s (in mongoctl.config)" %
+           "mongoDBInstallationDirectory=%s (in mongoctl.config)" %
            (executable_name, ver_disp, server.get_id(),
             os.getenv("PATH"),
             mongo_home,
