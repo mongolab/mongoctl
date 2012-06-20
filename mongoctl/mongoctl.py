@@ -2036,7 +2036,7 @@ def get_file_repository_conf():
     return get_mongoctl_config_val('fileRepository')
 
 def get_mongodb_installs_dir():
-    installs_dir = get_mongoctl_config_val('mongoDBInstalls')
+    installs_dir = get_mongoctl_config_val('mongoDBInstallationDirectory')
     if installs_dir:
         return resolve_path(installs_dir)
 
