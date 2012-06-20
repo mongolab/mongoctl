@@ -820,10 +820,7 @@ def do_restart_server(server, options_override=None):
 ###############################################################################
 def get_server_status(server_id, verbose=False):
     server  = lookup_and_validate_server(server_id)
-    if verbose:
-        return server.get_full_status()
-    else:
-        return server.get_status()
+    return server.get_status(verbose=verbose)
 
 ###############################################################################
 # Cluster Methods
@@ -3022,13 +3019,7 @@ class Server(DocumentWrapper):
             return True
 
     ###########################################################################
-    def get_full_status(self):
-        status = self.get_status()
-        status['otherDetails'] = "TBD"
-        return status
-
-    ###########################################################################
-    def get_status(self):
+    def get_status(self, verbose=False):
         status = {}
         ## check if the server is online
         try:
@@ -3042,19 +3033,32 @@ class Server(DocumentWrapper):
                     status['error'] = "Cannot authenticate"
                     self.sever_db_connection()   # better luck next time!
 
-            # TODO: discuss with Angela
-            status["serverStatusSummary"] = {
-                "host": "TBD",
-                "version": "TBD",
-                "repl" : {"ismaster": "TBD"}
+            server_status = self.db_command(SON([('serverStatus', 1)]),"admin")
+            server_summary  = {
+                "host": server_status['host'],
+                "version": server_status['version']
+            }
+
+
+
+            if ("repl" in server_status and
+                "ismaster" in server_status["repl"]):
+                server_summary["repl"] = {
+                    "ismaster": server_status["repl"]["ismaster"]
                 }
 
-            # TODO: discuss with Angela
-            status["selfReplicaSetStatusSummary"] = {
-                "name": "TBD",
-                "stateStr": "TBD"
-                }
 
+            if is_cluster_member(self):
+                member_rs_status = self.get_member_rs_status()
+                if member_rs_status:
+                    status["selfReplicaSetStatusSummary"] = {
+                        "name": member_rs_status['name'],
+                        "stateStr": member_rs_status['stateStr']
+                    }
+
+
+
+            status["serverStatusSummary"] =  server_summary
         except (RuntimeError, Exception),e:
             status['connection'] = False
             if type(e) == MongoctlException:
@@ -3146,6 +3150,20 @@ class Server(DocumentWrapper):
             log_verbose("Cannot get rs config from server '%s'. cause: %s" %
                         (self.get_id(), e))
             return None
+
+    ###########################################################################
+    def get_member_rs_status(self):
+        try:
+            rs_status_cmd = SON([('replSetGetStatus', 1)])
+            rs_status =  self.db_command(rs_status_cmd, 'admin')
+            for member in rs_status['members']:
+                if 'self' in member and member['self']:
+                    return member
+        except (Exception,RuntimeError), e:
+            log_verbose("Cannot get rs status from server '%s'. cause: %s" %
+                        (self.get_id(), e))
+            return None
+
 
 ###############################################################################
 # ReplicaSet Cluster Member Class
