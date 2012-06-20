@@ -47,6 +47,7 @@ import shutil
 import platform
 import urllib
 import urlparse
+import signal
 
 from dargparse import dargparse
 from pymongo import Connection
@@ -56,7 +57,6 @@ from bson.son import SON
 from minify_json import minify_json
 from mongoctl_command_config import MONGOCTL_PARSER_DEF
 from verlib import NormalizedVersion, suggest_normalized_version
-
 ###############################################################################
 # Constants
 ###############################################################################
@@ -373,6 +373,9 @@ def start_server(server_id, options_override=None, rs_add=False):
                     rs_add=rs_add)
 
 ###############################################################################
+__mongod_process__ = None
+__current_server__ = None
+
 def do_start_server(server, options_override=None, rs_add=False):
     # ensure that the start was issued locally. Fail otherwise
     validate_local_op(server, "start")
@@ -474,9 +477,15 @@ def _start_server_process_4real(server, options_override=None):
     child_process_out = None
     if is_forking(server, options_override):
         child_process_out = subprocess.PIPE
-    mongod_process = subprocess.Popen(start_cmd, stdout=child_process_out,
-                                      preexec_fn=_set_process_limits)
-    return mongod_process
+
+    global __mongod_process__
+    global __current_server__
+
+    __mongod_process__ = create_subprocess(start_cmd,
+                                           stdout=child_process_out,
+                                           preexec_fn=server_process_preexec)
+    __current_server__ = server
+    return __mongod_process__
 
 
 def start_server_process(server,options_override=None):
@@ -518,6 +527,14 @@ def start_server_process(server,options_override=None):
         mongod_process.communicate()
 
     return mongod_process
+
+###############################################################################
+def server_process_preexec():
+    """ make the server ignore ctrl+c signals and have the global mongoctl
+        signal handler take care of it
+    """
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    _set_process_limits()
 
 ###############################################################################
 def _set_process_limits():
@@ -578,7 +595,7 @@ def tail_server_log(server):
 
         tail_cmd = ["tail", "-f", logpath]
         log_verbose("Executing command: %s" % (" ".join(tail_cmd)))
-        return subprocess.Popen(tail_cmd)
+        return create_subprocess(tail_cmd)
     except Exception,e:
         log_error("Unable to tail server log file. Cause: %s" % e)
         return None
@@ -901,7 +918,7 @@ def do_connect_to_server(server):
                             "-p",
                             db_user['password']])
 
-    connect_process = subprocess.Popen(connect_cmd)
+    connect_process = create_subprocess(connect_cmd)
 
     connect_process.communicate()
 
@@ -2327,6 +2344,8 @@ def resolve_path(path):
         return path
 
 ###############################################################################
+# sub-processing functions
+###############################################################################
 def execute_command(command, call=False):
     if call:
         return subprocess.check_call(command)
@@ -2339,8 +2358,15 @@ def execute_command(command, call=False):
                                 stderr=subprocess.STDOUT).communicate()[0]
 
 ###############################################################################
-def get_environment():
-    return os.environ
+__child_subprocesses__ = []
+
+def create_subprocess(command, **kwargs):
+    child_process = subprocess.Popen(command, **kwargs)
+
+    global __child_subprocesses__
+    __child_subprocesses__.append(child_process)
+
+    return child_process
 
 ###############################################################################
 def is_pid_alive(pid):
@@ -2351,6 +2377,7 @@ def is_pid_alive(pid):
     except OSError:
         return False
 
+###############################################################################
 def kill_process(pid, force=False):
     signal = 9 if force else 1
     try:
@@ -2359,6 +2386,40 @@ def kill_process(pid, force=False):
     except OSError:
         return False
 
+###############################################################################
+# SIGNAL HANDLER FUNCTIONS
+###############################################################################
+
+def mongoctl_signal_handler(signal_val, frame):
+    global __mongod_process__
+    # if there is no mongod server yet then exit
+    if __mongod_process__ is None:
+        exit(0)
+
+    # otherwise prompt to kill server
+    global __child_subprocesses__
+    global __current_server__
+
+    def kill_child(child_process):
+        try:
+            if child_process.poll() is None:
+                log_verbose("Killing child process '%s'" % child_process )
+                child_process.terminate()
+        except Exception, e:
+            log_verbose("Unable to kill child process '%s': Cause: %s" %
+                        (child_process, e))
+
+    def exit_mongoctl():
+        # kill all children then exit
+        map(kill_child, __child_subprocesses__)
+        exit(0)
+
+    prompt_execute_task("Kill server '%s'?" % __current_server__.get_id(),
+                        exit_mongoctl)
+
+###############################################################################
+# Register the global mongoctl signal handler
+signal.signal(signal.SIGINT, mongoctl_signal_handler)
 
 ###############################################################################
 # Network Utils Functions
