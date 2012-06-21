@@ -2392,9 +2392,6 @@ def kill_process(pid, force=False):
 
 def mongoctl_signal_handler(signal_val, frame):
     global __mongod_process__
-    # if there is no mongod server yet then exit
-    if __mongod_process__ is None:
-        exit(0)
 
     # otherwise prompt to kill server
     global __child_subprocesses__
@@ -2414,8 +2411,12 @@ def mongoctl_signal_handler(signal_val, frame):
         map(kill_child, __child_subprocesses__)
         exit(0)
 
-    prompt_execute_task("Kill server '%s'?" % __current_server__.get_id(),
-                        exit_mongoctl)
+        # if there is no mongod server yet then exit
+    if __mongod_process__ is None:
+        exit_mongoctl()
+    else:
+        prompt_execute_task("Kill server '%s'?" % __current_server__.get_id(),
+                             exit_mongoctl)
 
 ###############################################################################
 # Register the global mongoctl signal handler
