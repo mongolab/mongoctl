@@ -376,6 +376,7 @@ def start_server(server_id, options_override=None, rs_add=False):
 __mongod_process__ = None
 __current_server__ = None
 
+###############################################################################
 def do_start_server(server, options_override=None, rs_add=False):
     # ensure that the start was issued locally. Fail otherwise
     validate_local_op(server, "start")
@@ -421,7 +422,15 @@ def do_start_server(server, options_override=None, rs_add=False):
         am_bootstrapping(sez_i=False)
         log_server_activity(server, "start")
 
+    # Note: The following block has to be the last block
+    # because mongod_process.communicate() will not return unless you
+    # interrupt the mongod process which will kill mongoctl, so nothing after
+    # this block will be executed. Almost never...
 
+    if not is_forking(server, options_override):
+        mongod_process.communicate()
+
+###############################################################################
 def maybe_config_server_repl_set(server, rs_add=False):
     # if the server belongs to a replica set cluster,
     # then prompt the user to init the replica set IF not already initialized
@@ -522,9 +531,6 @@ def start_server_process(server,options_override=None):
 
     log_info("Server '%s' started successfully! (pid=%s)\n" %
              (server.get_id(),get_server_pid(server)))
-
-    if not is_forking(server, options_override):
-        mongod_process.communicate()
 
     return mongod_process
 
