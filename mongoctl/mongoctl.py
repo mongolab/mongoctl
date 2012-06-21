@@ -192,7 +192,7 @@ def do_main(args):
     server_id = namespace_get_property(parsed_args,SERVER_ID_PARAM)
 
     if server_id is not None:
-        parse_global_users(server_id, args)
+        parse_global_users(server_id, parsed_args)
         # check if assumeLocal was specified
         assume_local = namespace_get_property(parsed_args,"assumeLocal")
         if assume_local:
@@ -2635,27 +2635,29 @@ def get_server_global_users(server_id):
     global __global_users__
     return get_document_property(__global_users__,server_id)
 
-def parse_global_users(server_id, args):
-    server_glolbal_users = {}
-    index = 0
-    for arg in args:
-        if arg == "--user":
-            parsed_user = parse_user(args[index+1])
-            dbname = parsed_user["dbname"]
-            db_users = get_document_property(server_glolbal_users, dbname)
-            if db_users is None:
-                db_users = []
-                server_glolbal_users[dbname] = db_user
+def parse_global_users(server_id, parsed_args):
+    user_args = namespace_get_property(parsed_args, "user")
 
-            db_users.append({"username": db_users["username"],
-                           "password": db_users["password"]})
+    if not user_args:
+        return
 
+    server_global_users = {}
+    for user_arg in user_args:
 
-        index += 1
+        parsed_user = parse_user(user_arg)
+        dbname = parsed_user["dbname"]
+        db_users = get_document_property(server_global_users, dbname)
+        if db_users is None:
+            db_users = []
+            server_global_users[dbname] = db_users
 
-    if len(server_glolbal_users) > 0:
-        __global_users__[server_id] = server_glolbal_users
+        db_users.append({"username": parsed_user["username"],
+                       "password": parsed_user["password"]})
 
+    if len(server_global_users) > 0:
+        __global_users__[server_id] = server_global_users
+
+###############################################################################
 def parse_user(user_arg):
 
     if not is_valid_user_arg(user_arg):
@@ -2668,9 +2670,11 @@ def parse_user(user_arg):
             "username": user_arr[1],
             "password": user_arr[2]}
 
+###############################################################################
 def is_valid_user_arg(user_arg):
     return user_arg.count(":") == 2
 
+###############################################################################
 def validate_users(users):
     """
     Checks users document for proper form, and returns filtered version.

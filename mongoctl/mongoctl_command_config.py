@@ -156,6 +156,19 @@ MONGOCTL_PARSER_DEF = {
                             "its not added yet",
                     "default": False
                 },
+
+
+                    {
+                    "name": "user",
+                    "type" : "optional",
+                    "help": "pass in a user config in the "
+                            "'database:user:password' format",
+                    "cmd_arg": [
+                        "--user"
+                    ],
+                    "nargs": 1,
+                    "action": "append"
+                },
                 # confusing
                 #                {
                 #                    "name": "config",
