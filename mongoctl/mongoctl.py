@@ -2344,10 +2344,7 @@ def dir_exists(path):
 
 ###############################################################################
 def resolve_path(path):
-    if path.startswith("~"):
-        return os.path.expanduser(path)
-    else:
-        return path
+    return os.path.expandvars(os.path.expanduser(path))
 
 ###############################################################################
 # sub-processing functions
