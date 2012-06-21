@@ -48,6 +48,7 @@ import platform
 import urllib
 import urlparse
 import signal
+import getpass
 
 from dargparse import dargparse
 from pymongo import Connection
@@ -192,7 +193,7 @@ def do_main(args):
     server_id = namespace_get_property(parsed_args,SERVER_ID_PARAM)
 
     if server_id is not None:
-        parse_global_users(server_id, parsed_args)
+        parse_cmdline_users(server_id, parsed_args, args)
         # check if assumeLocal was specified
         assume_local = namespace_get_property(parsed_args,"assumeLocal")
         if assume_local:
@@ -2635,27 +2636,57 @@ def get_server_global_users(server_id):
     global __global_users__
     return get_document_property(__global_users__,server_id)
 
-def parse_global_users(server_id, parsed_args):
+###############################################################################
+def parse_cmdline_users(server_id, parsed_args, raw_args):
+
+    server_users = {}
+
+    """
+      First read user specified through -u -p
+      if admin user is specified then add it to the top of the list of admin db
+      users to give top priority to be used
+    """
+    admin_user = read_admin_user_arg(server_id, parsed_args, raw_args)
+    if admin_user:
+        server_users = {"admin":[admin_user]}
+
+    # now read users specified through --user arg
     user_args = namespace_get_property(parsed_args, "user")
 
-    if not user_args:
-        return
+    if user_args:
+        for user_arg in user_args:
+            parsed_user = parse_user(user_arg)
+            dbname = parsed_user["dbname"]
+            db_users = get_document_property(server_users, dbname)
+            if db_users is None:
+                db_users = []
+                server_users[dbname] = db_users
 
-    server_global_users = {}
-    for user_arg in user_args:
+            db_users.append({"username": parsed_user["username"],
+                             "password": parsed_user["password"]})
 
-        parsed_user = parse_user(user_arg)
-        dbname = parsed_user["dbname"]
-        db_users = get_document_property(server_global_users, dbname)
-        if db_users is None:
-            db_users = []
-            server_global_users[dbname] = db_users
+    global __global_users__
 
-        db_users.append({"username": parsed_user["username"],
-                       "password": parsed_user["password"]})
+    if server_users:
+        __global_users__[server_id] = server_users
 
-    if len(server_global_users) > 0:
-        __global_users__[server_id] = server_global_users
+###############################################################################
+def read_admin_user_arg(server_id, parsed_args, raw_args):
+    username = namespace_get_property(parsed_args, "username")
+    password = namespace_get_property(parsed_args, "password")
+
+    if username:
+        if not password:
+            if "-p" in raw_args:
+                password = password = getpass.getpass()
+            else:
+                raise MongoctlException("You need to specify a password with -p")
+        server = lookup_and_validate_server(server_id)
+        if server.is_valid_admin_login(username, password):
+            return {"username": username,
+                    "password": password}
+        else:
+            raise MongoctlException("Login failed.")
 
 ###############################################################################
 def parse_user(user_arg):
@@ -3042,6 +3073,11 @@ class Server(DocumentWrapper):
             raise MongoctlException("Failed to authenticate"
                                     " to %s db" % dbname)
         return db
+
+    ###########################################################################
+    def is_valid_admin_login(self, username, password):
+        admin_db = self.get_db("admin")
+        return admin_db.authenticate(username, password)
 
     ###########################################################################
     def get_db(self, dbname):

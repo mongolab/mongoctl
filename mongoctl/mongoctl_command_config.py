@@ -167,7 +167,8 @@ MONGOCTL_PARSER_DEF = {
                         "--user"
                     ],
                     "nargs": 1,
-                    "action": "append"
+                    "action": "append",
+                    "default": []
                 },
                 # confusing
                 #                {
@@ -648,6 +649,36 @@ MONGOCTL_PARSER_DEF = {
                     "help": "Assumes that the server will be stopped on local"
                             " host. This will skip local address/dns check",
                     "default": False
+                },
+                    {
+                    "name": "user",
+                    "type" : "optional",
+                    "help": "pass in a user config in the "
+                            "'database:user:password' format",
+                    "cmd_arg": [
+                        "--user"
+                    ],
+                    "nargs": 1,
+                    "action": "append",
+                    "default": []
+                },
+                    {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                    {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
                 }
             ]
         },
@@ -695,6 +726,36 @@ MONGOCTL_PARSER_DEF = {
                         "cmd_arg": ["-v", "--verbose"],
                         "nargs": 0,
                         "help": "include more information in status"
+                },
+                    {
+                    "name": "user",
+                    "type" : "optional",
+                    "help": "pass in a user config in the "
+                            "'database:user:password' format",
+                    "cmd_arg": [
+                        "--user"
+                    ],
+                    "nargs": 1,
+                    "action": "append",
+                    "default": []
+                },
+                    {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                    {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
                 }
             ]
         },
