@@ -939,7 +939,7 @@ def install_mongodb(version):
     if os_name == 'darwin' and platform.mac_ver():
         os_name = "osx"
 
-    do_install_mongodb(os_name, bits, version)
+    return do_install_mongodb(os_name, bits, version)
 
 ###############################################################################
 def do_install_mongodb(os_name, bits, version):
@@ -969,7 +969,7 @@ def do_install_mongodb(os_name, bits, version):
     if mongo_installation is not None: # no-op
         log_info("You already have MongoDB %s installed ('%s'). "
                  "Nothing to do..." % (version, mongo_installation))
-        return
+        return mongo_installation
 
     archive_name = "mongodb-%s-%s.tgz" % (platform_spec, version)
     url = "http://fastdl.mongodb.org/%s/%s" % (os_name, archive_name)
@@ -1002,6 +1002,7 @@ def do_install_mongodb(os_name, bits, version):
             log_info("Deleting archive %s" % archive_name)
 
             log_info("MongoDB %s installed successfully!" % version)
+            return install_dir
         except Exception, e:
             log_error("Failed to install MongoDB '%s'. Cause: %s" %
                       (version, e))
@@ -1515,7 +1516,8 @@ def options_to_command_args(args):
 ###############################################################################
 def get_mongo_executable(server,
                          executable_name,
-                         version_check_pref=VERSION_PREF_EXACT):
+                         version_check_pref=VERSION_PREF_EXACT,
+                         prompt_install=False):
 
     mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
     mongo_installs_dir = get_mongodb_installs_dir()
@@ -1549,6 +1551,21 @@ def get_mongo_executable(server,
             os.getenv("PATH"),
             mongo_home,
             mongo_installs_dir))
+
+    def install_compatible_mongodb():
+        return install_mongodb(server_version)
+
+    if prompt_install:
+        log_info(msg)
+        result = prompt_execute_task("Install a MongoDB compatible with server"
+                                     " '%s'?" % server.get_id(),
+                                     install_compatible_mongodb)
+        if result[0]:
+            new_mongo_home = result[1]
+            return get_mongo_home_exe(new_mongo_home, executable_name)
+
+
+
     raise MongoctlException(msg)
 
 ###############################################################################
@@ -1703,12 +1720,14 @@ def is_valid_mongo_exe(path):
 def get_mongod_executable(server):
     return get_mongo_executable(server,
                                 'mongod',
-                                version_check_pref=VERSION_PREF_EXACT)
+                                version_check_pref=VERSION_PREF_EXACT,
+                                prompt_install=True)
 
 def get_mongo_shell_executable(server):
     return get_mongo_executable(server,
                                 'mongo',
-                                version_check_pref=VERSION_PREF_MAJOR_GE)
+                                version_check_pref=VERSION_PREF_MAJOR_GE,
+                                prompt_install=True)
 
 def get_mongo_home_exe(mongo_home, executable_name):
     return os.path.join(mongo_home, 'bin', executable_name)
