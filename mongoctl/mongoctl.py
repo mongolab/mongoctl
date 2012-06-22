@@ -1191,21 +1191,6 @@ def validate_server(server):
             errors.append("** mongoVersion '%s' is not supported. Please refer"
                           " to mongoctl documentation for supported"
                           " versions." % version)
-
-    # ensure has needed users when auth is on
-    if server.is_auth():
-        if server.is_arbiter_server():
-            if not server.has_db_users("local"):
-                msg = ("** Server '%s' is an arbiter and has auth on but there"
-                       " are no local users configured. Please configure at "
-                       "lease one local user to proceed." % server.get_id())
-                errors.append(msg)
-        elif not server.has_db_users("admin"):
-            msg = ("** Server '%s' has auth on but there"
-                   " are no admin users configured. Please configure at least"
-                   " one admin user to proceed." % server.get_id())
-            errors.append(msg)
-
     return errors
 
 def validate_local_op(server, op):
@@ -3150,40 +3135,23 @@ class Server(DocumentWrapper):
         try:
             self.new_db_connection()
             status['connection'] = True
-            default_dbname = self.get_default_dbname()
 
-            if self.is_auth() and self.needs_to_auth(default_dbname):
-                has_auth = self.has_auth_to(default_dbname)
-                if not has_auth:
-                    status['error'] = "Cannot authenticate"
-                    self.sever_db_connection()   # better luck next time!
+            can_admin = True
+            if (self.is_auth() and
+                self.needs_to_auth("admin") and
+                not self.has_auth_to("admin")):
+                status['error'] = "Cannot authenticate"
+                self.sever_db_connection()   # better luck next time!
+                can_admin = False
 
-            server_status = self.db_command(SON([('serverStatus', 1)]),"admin")
-            server_summary  = {
-                "host": server_status['host'],
-                "version": server_status['version']
-            }
-
-
-
-            if ("repl" in server_status and
-                "ismaster" in server_status["repl"]):
-                server_summary["repl"] = {
-                    "ismaster": server_status["repl"]["ismaster"]
-                }
+            if can_admin:
+                server_summary = self.get_server_status_summary()
+                status["serverStatusSummary"] = server_summary
+                rs_summary = self.get_rs_status_summary()
+                if rs_summary:
+                    status["selfReplicaSetStatusSummary"] = rs_summary
 
 
-            if is_cluster_member(self):
-                member_rs_status = self.get_member_rs_status()
-                if member_rs_status:
-                    status["selfReplicaSetStatusSummary"] = {
-                        "name": member_rs_status['name'],
-                        "stateStr": member_rs_status['stateStr']
-                    }
-
-
-
-            status["serverStatusSummary"] =  server_summary
         except (RuntimeError, Exception),e:
             status['connection'] = False
             if type(e) == MongoctlException:
@@ -3193,6 +3161,31 @@ class Server(DocumentWrapper):
             if "timed out" in status['error']:
                 status['timedOut'] = True
         return status
+
+    ###########################################################################
+    def get_server_status_summary(self):
+        server_status = self.db_command(SON([('serverStatus', 1)]),"admin")
+        server_summary  = {
+            "host": server_status['host'],
+            "version": server_status['version']
+        }
+        if ("repl" in server_status and
+            "ismaster" in server_status["repl"]):
+            server_summary["repl"] = {
+                "ismaster": server_status["repl"]["ismaster"]
+            }
+
+        return server_summary
+
+    ###########################################################################
+    def get_rs_status_summary(self):
+        if is_cluster_member(self):
+            member_rs_status = self.get_member_rs_status()
+            if member_rs_status:
+                return {
+                    "name": member_rs_status['name'],
+                    "stateStr": member_rs_status['stateStr']
+                }
 
     ###########################################################################
     def get_default_dbname(self):
