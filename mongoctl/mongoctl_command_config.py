@@ -795,11 +795,29 @@ MONGOCTL_PARSER_DEF = {
             "function": "mongoctl.mongoctl.connect_command",
             "args": [
                     {
-                    "name": "server",
+                    "name": "to",
                     "type" : "positional",
                     "nargs": 1,
-                    "displayName": "SERVER_ID",
-                    "help": "A valid server id"
+                    "displayName": "TO",
+                    "help": "Where to connect to."
+                },
+                    {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                    {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
                 }
             ]
         },

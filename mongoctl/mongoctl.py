@@ -52,6 +52,8 @@ import getpass
 
 from dargparse import dargparse
 from pymongo import Connection
+from pymongo import uri_parser
+
 from pymongo import errors
 from bson import json_util
 from bson.son import SON
@@ -290,7 +292,9 @@ def show_server_command(parsed_options):
 # connect command
 ###############################################################################
 def connect_command(parsed_options):
-    connect_to_server(parsed_options.server)
+    open_mongo_shell_to(parsed_options.to,
+                        username=parsed_options.username,
+                        password=parsed_options.password)
 
 ###############################################################################
 # configure cluster command
@@ -328,7 +332,12 @@ def list_clusters_command(parsed_options):
 # show cluster command
 ###############################################################################
 def show_cluster_command(parsed_options):
-    print lookup_cluster(parsed_options.cluster)
+    cluster = lookup_cluster(parsed_options.cluster)
+    if cluster is None:
+        raise MongoctlException("Could not find cluster '%s'." %
+                            parsed_options.cluster)
+    log_info("Configuration for cluster '%s':" % parsed_options.cluster)
+    print cluster
 
 ###############################################################################
 # install command
@@ -901,36 +910,105 @@ def prompt_add_member_to_replica(replica_cluster, server):
     prompt_execute_task(prompt, add_member_func)
 
 ###############################################################################
-# connect_to_server
+# open_mongo_shell_to
 ###############################################################################
-def connect_to_server(server_id):
-    do_connect_to_server(lookup_and_validate_server(server_id))
-
-###############################################################################
-def do_connect_to_server(server):
-
-    if not server.is_online():
-        log_info("Cannot connect to server '%s'." % server.get_id())
+def open_mongo_shell_to(to, username=None, password=None):
+    if is_mongo_uri(to):
+        open_mongo_shell_to_uri(to, username, password)
         return
 
-    log_info("Connecting to server '%s'..." % server.get_id())
+    # 'to' is an id string
+    id_path = to.split("/")
+    id = id_path[0]
+    database = id_path[1] if len(id_path) == 2 else None
 
-    dbname = server.get_default_dbname()
+    server = lookup_server(id)
+    if server:
+        open_mongo_shell_to_server(server, database, username, password)
+        return
 
-    connect_cmd = [get_mongo_shell_executable(server),
-                   "%s/%s" % (server.get_connection_address(),
-                              dbname)]
+    # Maybe cluster?
+    cluster = lookup_cluster(id)
+    if cluster:
+        open_mongo_shell_to_cluster(cluster, username, password)
+        return
+    # Unknown destination
+    raise MongoctlException("Unknown destination '%s'" % to)
+###############################################################################
+def open_mongo_shell_to_server(server, database=None,
+                               username=None, password=None):
+    validate_server(server)
 
-    if server.is_auth() and server.needs_to_auth(dbname):
-        db_user = server.get_db_default_user(dbname)
-        connect_cmd.extend(["-u",
-                            db_user['username'],
-                            "-p",
-                            db_user['password']])
+    database = database if database else "admin"
 
+    if not username:
+        db_user = server.get_db_default_user(database)
+        if db_user:
+            username = db_user['username']
+            password = db_user['password']
+        elif server.is_auth():
+            log_info("Server '%s' has auth on but does not have any users "
+                     "configured for '%s' database. You need to provide your"
+                     " user/pass" % (server.get_id(), database))
+            username = read_input("Enter username:")
+            password = getpass.getpass()
+
+    do_open_mongo_shell_to(server.get_connection_address(),
+                           database,
+                           username,
+                           password,
+                           server.get_mongo_version())
+
+###############################################################################
+def open_mongo_shell_to_cluster(cluster, database=None,
+                                username=None, password=None):
+    log_info("Connecting to clusters is not supported yet :)")
+###############################################################################
+def open_mongo_shell_to_uri(uri, username=None, password=None):
+    try:
+        uri_obj = uri_parser.parse_uri(uri)
+        node = uri_obj["nodelist"][0]
+        host = node[0]
+        port = node[1]
+        database = uri_obj["database"]
+        username = username if username else uri_obj["username"]
+        password = password if password else uri_obj["password"]
+        if not host:
+            raise MongoctlException("URI '%s' is missing a host." % uri)
+
+        address = "%s:%s" % (host, port)
+        do_open_mongo_shell_to(address, database, username, password)
+
+    except errors.ConfigurationError, e:
+        raise MongoctlException("Malformed URI '%s'. %s" % (uri, e))
+
+###############################################################################
+def do_open_mongo_shell_to(address,
+                           database=None,
+                           username=None,
+                           password=None,
+                           server_version=None ):
+
+    # default database to admin
+    database = database if database else "admin"
+
+
+    connect_cmd = [get_mongo_shell_executable(server_version),
+                   "%s/%s" % (address, database)]
+
+    if username:
+        connect_cmd.extend(["-u",username, "-p"])
+        if password:
+            connect_cmd.extend([password])
+
+    log_info("Executing command: \n%s" % " ".join(connect_cmd))
     connect_process = create_subprocess(connect_cmd)
 
     connect_process.communicate()
+
+###############################################################################
+def is_mongo_uri(str):
+    return str and str.startswith("mongodb://")
 
 ###############################################################################
 # install_mongodb
@@ -1144,6 +1222,11 @@ def prompt_execute_task(message, task_function):
             return (False,None)
 
 ###############################################################################
+def read_input(message, allow_null=True):
+    print >> sys.stderr, message,
+    return raw_input()
+
+###############################################################################
 def server_stopped_predicate(server, server_pid):
     def server_stopped():
         return (not server.is_online() and
@@ -1298,13 +1381,16 @@ def db_lookup_all_servers():
 def lookup_and_validate_cluster(cluster_id):
     cluster = lookup_cluster(cluster_id)
 
+    if cluster is None:
+        raise MongoctlException("Unknown cluster: %s" % cluster_id)
+
     validate_cluster(cluster)
 
     return cluster
 
 ###############################################################################
 # Lookup by cluster id
-def lookup_cluster(cluster_id, quiet=False):
+def lookup_cluster(cluster_id):
     validate_repositories()
     cluster = None
     # lookup cluster from the config first
@@ -1314,9 +1400,6 @@ def lookup_cluster(cluster_id, quiet=False):
     # if cluster is not found then try from db
     if cluster is None and has_db_repository():
         cluster = db_lookup_cluster(cluster_id)
-
-    if cluster is None and not quiet:
-        raise MongoctlException("Unknown cluster: %s" % cluster_id)
 
     return cluster
 
@@ -1440,7 +1523,7 @@ def generate_start_command(server, options_override=None):
     command = []
 
     # append the mongod executable
-    command.append(get_mongod_executable(server))
+    command.append(get_mongod_executable(server.get_mongo_version()))
 
 
     # create the command args
@@ -1503,7 +1586,7 @@ def options_to_command_args(args):
     return command_args
 
 ###############################################################################
-def get_mongo_executable(server,
+def get_mongo_executable(server_version,
                          executable_name,
                          version_check_pref=VERSION_PREF_EXACT,
                          prompt_install=False):
@@ -1511,11 +1594,10 @@ def get_mongo_executable(server,
     mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
     mongo_installs_dir = get_mongodb_installs_dir()
 
-    server_version = server.get_mongo_version()
+
     ver_disp = "[Unspecified]" if server_version is None else server_version
-    log_verbose("Looking for a compatible %s for server '%s' with "
-                "mongoVersion=%s." %
-                (executable_name, server.get_id(), ver_disp))
+    log_verbose("Looking for a compatible %s for mongoVersion=%s." %
+                (executable_name, ver_disp))
     exe_version_tuples = find_all_executables(executable_name)
 
     if len(exe_version_tuples) > 0:
@@ -1530,13 +1612,12 @@ def get_mongo_executable(server,
 
     ## ok nothing found at all. wtf case
     msg = ("Unable to find a compatible '%s' executable "
-           "for version %s "
-           "specified in configuration of server '%s'.\n"
+           "for version %s \n."
            "Here is your enviroment:\n\n"
            "$PATH=%s\n\n"
            "$MONGO_HOME=%s\n\n"
            "mongoDBInstallationsDirectory=%s (in mongoctl.config)" %
-           (executable_name, ver_disp, server.get_id(),
+           (executable_name, ver_disp,
             os.getenv("PATH"),
             mongo_home,
             mongo_installs_dir))
@@ -1546,8 +1627,8 @@ def get_mongo_executable(server,
 
     if prompt_install:
         log_info(msg)
-        result = prompt_execute_task("Install a MongoDB compatible with server"
-                                     " '%s'?" % server.get_id(),
+        result = prompt_execute_task("Install a MongoDB compatible with "
+                                     " '%s'?" % server_version,
                                      install_compatible_mongodb)
         if result[0]:
             new_mongo_home = result[1]
@@ -1706,14 +1787,14 @@ def is_valid_mongo_exe(path):
     return path is not None and is_exe(path)
 
 ###############################################################################
-def get_mongod_executable(server):
-    return get_mongo_executable(server,
+def get_mongod_executable(server_version):
+    return get_mongo_executable(server_version,
                                 'mongod',
                                 version_check_pref=VERSION_PREF_EXACT,
                                 prompt_install=True)
 
-def get_mongo_shell_executable(server):
-    return get_mongo_executable(server,
+def get_mongo_shell_executable(server_version):
+    return get_mongo_executable(server_version,
                                 'mongo',
                                 version_check_pref=VERSION_PREF_MAJOR_GE,
                                 prompt_install=True)
@@ -2666,7 +2747,7 @@ def read_admin_user_arg(server_id, parsed_args, raw_args):
     if username:
         if not password:
             if "-p" in raw_args:
-                password = password = getpass.getpass()
+                password = getpass.getpass()
             else:
                 raise MongoctlException("You need to specify a password with -p")
         server = lookup_and_validate_server(server_id)
@@ -2986,10 +3067,9 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_db_default_user(self, dbname):
-        if not self.has_db_users(dbname):
-            raise MongoctlException("No DB users for db %s" % dbname)
-
-        return self.get_db_users(dbname)[0]
+        db_users =  self.get_db_users(dbname)
+        if db_users:
+            return db_users[0]
 
 
 
