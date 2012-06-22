@@ -448,7 +448,10 @@ def maybe_config_server_repl_set(server, rs_add=False):
             log_info("Replica set cluster '%s' has not been initialized yet." % 
                      cluster.get_id())
             if cluster.get_member_for(server).can_become_primary():
-                prompt_init_replica_cluster(cluster, server)
+                if rs_add:
+                    cluster.initialize_replicaset(server)
+                else:
+                    prompt_init_replica_cluster(cluster, server)
             else:
                 log_info("Skipping replica set initialization because "
                          "server '%s' cannot be elected primary." %
