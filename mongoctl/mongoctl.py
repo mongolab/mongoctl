@@ -195,7 +195,7 @@ def do_main(args):
     server_id = namespace_get_property(parsed_args,SERVER_ID_PARAM)
 
     if server_id is not None:
-        parse_cmdline_users(server_id, parsed_args, args)
+        parse_cmdline_users(server_id, parsed_args)
         # check if assumeLocal was specified
         assume_local = namespace_get_property(parsed_args,"assumeLocal")
         if assume_local:
@@ -2742,7 +2742,7 @@ def get_server_global_users(server_id):
     return get_document_property(__global_users__,server_id)
 
 ###############################################################################
-def parse_cmdline_users(server_id, parsed_args, raw_args):
+def parse_cmdline_users(server_id, parsed_args):
 
     server_users = {}
 
@@ -2751,7 +2751,7 @@ def parse_cmdline_users(server_id, parsed_args, raw_args):
       if admin user is specified then add it to the top of the list of admin db
       users to give top priority to be used
     """
-    admin_user = read_admin_user_arg(server_id, parsed_args, raw_args)
+    admin_user = read_admin_user_arg(server_id, parsed_args)
     if admin_user:
         server_users = {"admin":[admin_user]}
 
@@ -2776,13 +2776,13 @@ def parse_cmdline_users(server_id, parsed_args, raw_args):
         __global_users__[server_id] = server_users
 
 ###############################################################################
-def read_admin_user_arg(server_id, parsed_args, raw_args):
+def read_admin_user_arg(server_id, parsed_args):
     username = namespace_get_property(parsed_args, "username")
     password = namespace_get_property(parsed_args, "password")
 
     if username:
         if not password:
-            if "-p" in raw_args:
+            if parsed_args.is_arg_specified("-p"):
                 password = getpass.getpass()
             else:
                 raise MongoctlException("You need to specify a password with -p")
