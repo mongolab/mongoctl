@@ -795,11 +795,21 @@ MONGOCTL_PARSER_DEF = {
             "function": "mongoctl.mongoctl.connect_command",
             "args": [
                     {
-                    "name": "to",
+                    "name": "dbAddress",
                     "type" : "positional",
                     "nargs": 1,
-                    "displayName": "TO",
-                    "help": "Where to connect to."
+                    "displayName": "[db address]",
+                    "help": "database addresses supported by mongoctl."
+                            " Check docs for more details."
+                },
+                    {
+                    "name": "jsFiles",
+                    "type" : "positional",
+                    "nargs": "*",
+                    "displayName": "[file names (ending in .js)]",
+                    "help": "file names: a list of files to run. files have to"
+                            " end in .js and will exit after unless --shell"
+                            " is specified"
                 },
                     {
                     "name": "username",
@@ -818,7 +828,70 @@ MONGOCTL_PARSER_DEF = {
                         "-p"
                     ],
                     "nargs": "?"
-                }
+                },
+
+                    {
+                    "name": "shell",
+                    "type" : "optional",
+                    "help": "run the shell after executing files",
+                    "cmd_arg": [
+                        "--shell"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "norc",
+                    "type" : "optional",
+                    "help": 'will not run the ".mongorc.js" file on start up',
+                    "cmd_arg": [
+                        "--norc"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "quiet",
+                    "type" : "optional",
+                    "help": 'be less chatty',
+                    "cmd_arg": [
+                        "--quiet"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "eval",
+                    "type" : "optional",
+                    "help": 'evaluate javascript',
+                    "cmd_arg": [
+                        "--eval"
+                    ],
+                    "nargs": 1
+                },
+
+                    {
+                    "name": "verbose",
+                    "type" : "optional",
+                    "help": 'increase verbosity',
+                    "cmd_arg": [
+                        "--verbose"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "ipv6",
+                    "type" : "optional",
+                    "help": 'enable IPv6 support (disabled by default)',
+                    "cmd_arg": [
+                        "--ipv6"
+                    ],
+                    "nargs": 0
+                },
+
+
+
             ]
         },
         #### configure-cluster ####

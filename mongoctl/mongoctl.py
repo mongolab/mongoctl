@@ -292,9 +292,12 @@ def show_server_command(parsed_options):
 # connect command
 ###############################################################################
 def connect_command(parsed_options):
-    open_mongo_shell_to(parsed_options.to,
+    shell_options = extract_mongo_shell_options(parsed_options)
+    open_mongo_shell_to(parsed_options.dbAddress,
                         username=parsed_options.username,
-                        password=parsed_options.password)
+                        password=parsed_options.password,
+                        shell_options=shell_options,
+                        js_files=parsed_options.jsFiles)
 
 ###############################################################################
 # configure cluster command
@@ -912,31 +915,42 @@ def prompt_add_member_to_replica(replica_cluster, server):
 ###############################################################################
 # open_mongo_shell_to
 ###############################################################################
-def open_mongo_shell_to(to, username=None, password=None):
-    if is_mongo_uri(to):
-        open_mongo_shell_to_uri(to, username, password)
+def open_mongo_shell_to(db_address,
+                        username=None,
+                        password=None,
+                        shell_options={},
+                        js_files=[]):
+    if is_mongo_uri(db_address):
+        open_mongo_shell_to_uri(db_address, username, password,
+                                shell_options, js_files)
         return
 
-    # 'to' is an id string
-    id_path = to.split("/")
+    # db_address is an id string
+    id_path = db_address.split("/")
     id = id_path[0]
     database = id_path[1] if len(id_path) == 2 else None
 
     server = lookup_server(id)
     if server:
-        open_mongo_shell_to_server(server, database, username, password)
+        open_mongo_shell_to_server(server, database, username, password,
+                                   shell_options, js_files)
         return
 
     # Maybe cluster?
     cluster = lookup_cluster(id)
     if cluster:
-        open_mongo_shell_to_cluster(cluster, username, password)
+        open_mongo_shell_to_cluster(cluster, username, password,
+                                    shell_options, js_files)
         return
     # Unknown destination
-    raise MongoctlException("Unknown destination '%s'" % to)
+    raise MongoctlException("Unknown db address '%s'" % db_address)
 ###############################################################################
-def open_mongo_shell_to_server(server, database=None,
-                               username=None, password=None):
+def open_mongo_shell_to_server(server,
+                               database=None,
+                               username=None,
+                               password=None,
+                               shell_options={},
+                               js_files=[]):
     validate_server(server)
 
     database = database if database else "admin"
@@ -957,14 +971,25 @@ def open_mongo_shell_to_server(server, database=None,
                            database,
                            username,
                            password,
-                           server.get_mongo_version())
+                           server.get_mongo_version(),
+                           shell_options,
+                           js_files)
 
 ###############################################################################
-def open_mongo_shell_to_cluster(cluster, database=None,
-                                username=None, password=None):
+def open_mongo_shell_to_cluster(cluster,
+                                database=None,
+                                username=None,
+                                password=None,
+                                shell_options={},
+                                js_files=[]):
     log_info("Connecting to clusters is not supported yet :)")
+
 ###############################################################################
-def open_mongo_shell_to_uri(uri, username=None, password=None):
+def open_mongo_shell_to_uri(uri,
+                            username=None,
+                            password=None,
+                            shell_options={},
+                            js_files=[]):
     try:
         uri_obj = uri_parser.parse_uri(uri)
         node = uri_obj["nodelist"][0]
@@ -977,7 +1002,8 @@ def open_mongo_shell_to_uri(uri, username=None, password=None):
             raise MongoctlException("URI '%s' is missing a host." % uri)
 
         address = "%s:%s" % (host, port)
-        do_open_mongo_shell_to(address, database, username, password)
+        do_open_mongo_shell_to(address, database, username, password,
+                               shell_options, js_files)
 
     except errors.ConfigurationError, e:
         raise MongoctlException("Malformed URI '%s'. %s" % (uri, e))
@@ -987,7 +1013,9 @@ def do_open_mongo_shell_to(address,
                            database=None,
                            username=None,
                            password=None,
-                           server_version=None ):
+                           server_version=None,
+                           shell_options={},
+                           js_files=[]):
 
     # default database to admin
     database = database if database else "admin"
@@ -1000,6 +1028,14 @@ def do_open_mongo_shell_to(address,
         connect_cmd.extend(["-u",username, "-p"])
         if password:
             connect_cmd.extend([password])
+
+    # append shell options
+    if shell_options:
+        connect_cmd.extend(options_to_command_args(shell_options))
+
+    # append js files
+    if js_files:
+        connect_cmd.extend(js_files)
 
     log_info("Executing command: \n%s" % " ".join(connect_cmd))
     connect_process = create_subprocess(connect_cmd)
@@ -3949,23 +3985,21 @@ class MongoctlNormalizedVersion(NormalizedVersion):
 
 ###############################################################################
 def get_mongoctl_cmd_parser():
-
     parser = dargparse.build_parser(MONGOCTL_PARSER_DEF)
-
     return parser
 
 ###############################################################################
-def is_supported_mongod_option(option_name):
-    return option_name in SUPPORTED_MONGOD_OPTIONS
-
-###############################################################################
-def mongod_config_supports_arg(mongod_option_cfg, option_name):
-    mongod_arg = mongod_option_cfg['mongod_arg']
-    return option_name in listify(mongod_arg)
-
-###############################################################################
 def extract_mongod_options(parsed_args):
-    options_override = {}
+    return extract_mongo_exe_options(parsed_args, SUPPORTED_MONGOD_OPTIONS)
+
+###############################################################################
+def extract_mongo_shell_options(parsed_args):
+    return extract_mongo_exe_options(parsed_args,
+                                     SUPPORTED_MONGO_SHELL_OPTIONS)
+
+###############################################################################
+def extract_mongo_exe_options(parsed_args, supported_options):
+    options_extract = {}
 
     # Iterating over parsed options dict
     # Yeah in a hacky way since there is no clean documented way of doing that
@@ -3973,10 +4007,10 @@ def extract_mongod_options(parsed_args):
     # this should be changed when argparse provides a cleaner way
 
     for (option_name,option_val) in parsed_args.__dict__.items():
-        if is_supported_mongod_option(option_name) and option_val is not None:
-            options_override[option_name] = option_val
+        if option_name in supported_options and option_val is not None:
+            options_extract[option_name] = option_val
 
-    return options_override
+    return options_extract
 
 ###############################################################################
 # Supported mongod command-line options/flags
@@ -4036,6 +4070,17 @@ SUPPORTED_MONGOD_OPTIONS = [
     "shardsvr",
     "noMoveParanoia"
 ]
+
+
+SUPPORTED_MONGO_SHELL_OPTIONS = [
+    "shell",
+    "norc",
+    "quiet",
+    "eval",
+    "verbose",
+    "ipv6",
+]
+
 
 ###############################################################################
 ########################                   ####################################
