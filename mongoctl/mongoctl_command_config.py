@@ -1,7 +1,8 @@
+#
 # The MIT License
-
+#
 # Copyright (c) 2012 ObjectLabs Corporation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -9,10 +10,10 @@
 # distribute, sublicense, and/or sell copies of the Software, and to
 # permit persons to whom the Software is furnished to do so, subject to
 # the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
-
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -788,17 +789,18 @@ MONGOCTL_PARSER_DEF = {
             "prog": "connect",
             "group": "clientCommands",
             "shortDescription" : "open a mongo shell connection to a server",
-            "description" : "Opens a mongo shell connection to a specific server. "
-                            "Uses the 'address' \nfield of the specified server "
-                            "config if specified, otherwise \ntries to connect "
-                            "to the configured port on localhost.",
+            "description" : "Opens a mongo shell connection to the specified database.\n\n"
+                            "<db-address> can be one of:\n"
+                            "   (a) a mongodb URI (e.g. mongodb://localhost:27017/mydb)\n"
+                            "   (b) <server-id>/<db>\n"
+                            "   (c) <cluster-id>/<db> (not yet supported)\n",
             "function": "mongoctl.mongoctl.connect_command",
             "args": [
                     {
                     "name": "dbAddress",
                     "type" : "positional",
                     "nargs": 1,
-                    "displayName": "[db address]",
+                    "displayName": "<db-address>",
                     "help": "database addresses supported by mongoctl."
                             " Check docs for more details."
                 },
