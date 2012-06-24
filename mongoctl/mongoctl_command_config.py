@@ -789,7 +789,8 @@ MONGOCTL_PARSER_DEF = {
             "prog": "connect",
             "group": "clientCommands",
             "shortDescription" : "open a mongo shell connection to a server",
-            "description" : "Opens a mongo shell connection to the specified database.\n\n"
+            "description" : "Opens a mongo shell connection to the specified database. If a\n"
+                            "cluster is specified command will connect to the primary server.\n\n"
                             "<db-address> can be one of:\n"
                             "   (a) a mongodb URI (e.g. mongodb://localhost:27017/mydb)\n"
                             "   (b) <server-id>/<db>\n"
