@@ -264,7 +264,7 @@ def list_servers_command(parsed_options):
     bar = "-"*80
     print bar
     formatter = "%-14s %-40s %s"
-    print formatter % ("_ID", "DESCRIPTION", "ADDRESS")
+    print formatter % ("_ID", "DESCRIPTION", "CONNECT TO")
     print bar
 
 
