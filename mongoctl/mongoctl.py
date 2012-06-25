@@ -264,7 +264,7 @@ def list_servers_command(parsed_options):
     bar = "-"*80
     print bar
     formatter = "%-14s %-40s %s"
-    print formatter % ("_ID", "DESCRIPTION", "ADDRESS")
+    print formatter % ("_ID", "DESCRIPTION", "CONNECT TO")
     print bar
 
 
@@ -982,7 +982,20 @@ def open_mongo_shell_to_cluster(cluster,
                                 password=None,
                                 shell_options={},
                                 js_files=[]):
-    log_info("Connecting to clusters is not supported yet :)")
+    log_info("Locating primary server for cluster '%s' ..." % cluster.get_id())
+    primary_member = cluster.get_primary_member()
+    if primary_member:
+        primary_server = primary_member.get_server()
+        log_info("Connecting to primary server '%s'" % primary_server.get_id())
+        open_mongo_shell_to_server(primary_server,
+                                   database=database,
+                                   username=username,
+                                   password=password,
+                                   shell_options=shell_options,
+                                   js_files=js_files)
+    else:
+        log_error("No primary server found for cluster '%s'" %
+                  cluster.get_id())
 
 ###############################################################################
 def open_mongo_shell_to_uri(uri,
