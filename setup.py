@@ -30,9 +30,9 @@ import stat
 import pwd
 import subprocess
 import sys
+import inspect
 
 from setuptools import setup
-from setuptools.command.install import install as _install
 
 ###############################################################################
 # CONSTANTS
@@ -44,6 +44,14 @@ SAMPLE_CONF_FILE_NAMES = ["mongoctl.config",
 
 ###############################################################################
 # Calculating sample_conf_files
+###############################################################################
+
+
+def get_sample_conf_dir():
+    this_dir = os.path.dirname(
+        inspect.getfile(inspect.currentframe()))
+    return os.path.join(this_dir, "sample_conf")
+
 ###############################################################################
 
 def copy_sample_configs():
@@ -67,10 +75,12 @@ def copy_sample_configs():
         os.chown(dot_mongoctl_dir, owner_uid, owner_gid)
         os.chmod(dot_mongoctl_dir, 00755)
 
+        sample_conf_dir = get_sample_conf_dir()
+
         for fname in SAMPLE_CONF_FILE_NAMES:
             data_file_path = os.path.join(dot_mongoctl_dir, fname)
             if not os.path.exists(data_file_path):
-                src_file = os.path.join("sample_conf", fname)
+                src_file = os.path.join(sample_conf_dir, fname)
                 # copy file
                 print ("Creating sample configuration file '%s' in '%s' " %
                        (fname,dot_mongoctl_dir))
@@ -92,13 +102,11 @@ def install_latest_mongodb():
     except Exception,e:
         print "Unable to install latest mongodb. Cause: '%s' " % e
 ###############################################################################
-# Creating a custom distutils install command
-class install_mongoctl(_install):
-    def run(self):
-        _install.run(self)
-        configs_exists = copy_sample_configs()
-        if not configs_exists:
-            install_latest_mongodb()
+# mongoct post install
+def mongoctl_post_install():
+    configs_exists = copy_sample_configs()
+    if not configs_exists:
+        install_latest_mongodb()
 
 ###############################################################################
 # Setup
@@ -129,7 +137,11 @@ setup(
         'verlib==0.1'],
     dependency_links=[
         "https://github.com/dampier/mongo-python-driver/tarball/master#egg=dampier-pymongo-2.1.1"
-    ],
-    cmdclass=dict(install=install_mongoctl)
+    ]
+
 
 )
+
+### execute this block after setup "install" command is complete
+if "install" in sys.argv:
+    mongoctl_post_install()
