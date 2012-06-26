@@ -100,7 +100,8 @@ def install_latest_mongodb():
         from mongoctl.mongoctl import install_mongodb
         install_mongodb(None)
     except Exception,e:
-        print "Unable to install latest mongodb. Cause: '%s' " % e
+        #print "Unable to install latest mongodb. Cause: '%s' " % e
+        pass
 ###############################################################################
 # mongoct post install
 def mongoctl_post_install():
