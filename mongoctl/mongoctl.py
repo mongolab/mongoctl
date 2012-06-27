@@ -3366,8 +3366,8 @@ class Server(DocumentWrapper):
 
         try:
             return Connection(address,
-                socketTimeoutMS=CONN_TIMEOUT,
-                connectTimeoutMS=CONN_TIMEOUT)
+                              sockettimeoutms=CONN_TIMEOUT,
+                              connecttimeoutms=CONN_TIMEOUT)
         except Exception,e:
             error_msg = "Cannot connect to %s . Cause: %s" %\
                         (address , e)
