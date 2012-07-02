@@ -954,7 +954,11 @@ def open_mongo_shell_to_server(server,
                                js_files=[]):
     validate_server(server)
 
-    database = database if database else "admin"
+    if not database:
+        if server.is_arbiter_server():
+            database = "local"
+        else:
+            database = "admin"
 
     if not username:
         db_user = server.get_db_default_user(database)
