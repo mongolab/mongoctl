@@ -944,6 +944,7 @@ def open_mongo_shell_to(db_address,
         return
     # Unknown destination
     raise MongoctlException("Unknown db address '%s'" % db_address)
+
 ###############################################################################
 def open_mongo_shell_to_server(server,
                                database=None,
@@ -1050,7 +1051,13 @@ def do_open_mongo_shell_to(address,
     if js_files:
         connect_cmd.extend(js_files)
 
-    log_info("Executing command: \n%s" % " ".join(connect_cmd))
+    cmd_display =  connect_cmd[:]
+    # mask password
+    if username and password:
+        cmd_display[5] =  "****"
+
+
+    log_info("Executing command: \n%s" % " ".join(cmd_display))
     connect_process = create_subprocess(connect_cmd)
 
     connect_process.communicate()
