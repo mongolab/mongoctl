@@ -1952,7 +1952,7 @@ def setup_server_users(server):
     if count_new_users > 0:
         log_info("Added %s new users." % count_new_users)
     else:
-        log_info("Did not add any new users.")
+        log_verbose("Did not add any new users.")
 
 ###############################################################################
 def setup_db_users(db, db_users):
@@ -1995,7 +1995,7 @@ def setup_server_admin_users(server):
     admin_users = server.get_admin_users()
     if(admin_users is None or
        len(admin_users) < 1):
-        log_info("No users configured for admin DB...")
+        log_verbose("No users configured for admin DB...")
         return 0
 
     log_verbose("Checking setup for admin users...")
