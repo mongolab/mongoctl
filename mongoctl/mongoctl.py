@@ -191,11 +191,11 @@ def do_main(args):
     # get the function to call from the parser framework
     command_function = parsed_args.func
 
-    # parse users
+    # parse global login if present
+    parse_global_login_user_arg(parsed_args)
     server_id = namespace_get_property(parsed_args,SERVER_ID_PARAM)
 
     if server_id is not None:
-        parse_cmdline_users(server_id, parsed_args)
         # check if assumeLocal was specified
         assume_local = namespace_get_property(parsed_args,"assumeLocal")
         if assume_local:
@@ -453,33 +453,47 @@ def maybe_config_server_repl_set(server, rs_add=False):
     cluster = lookup_cluster_by_server(server)
 
     if cluster is not None:
-        log_verbose("Server '%s' is a member in the configuration for"
+        log_info("Server '%s' is a member in the configuration for"
                     " cluster '%s'." % (server.get_id(),cluster.get_id()))
 
-        if not cluster.is_replicaset_initialized():
-            log_info("Replica set cluster '%s' has not been initialized yet." % 
-                     cluster.get_id())
-            if cluster.get_member_for(server).can_become_primary():
-                if rs_add:
-                    cluster.initialize_replicaset(server)
-                else:
-                    prompt_init_replica_cluster(cluster, server)
-            else:
-                log_info("Skipping replica set initialization because "
-                         "server '%s' cannot be elected primary." %
-                         server.get_id())
+        # prompt the user if he/she wants to check repl conf for this server
+        msg = ("Do you want to check the replicaset config for server '%s'?" %
+               server.get_id())
+
+        def check_replset():
+            assist_server_replset_conf(server, cluster, rs_add)
+
+        if rs_add:
+            check_replset()
         else:
-            log_verbose("No need to initialize cluster '%s', as it has"
-                        " already been initialized." % cluster.get_id())
-            if not cluster.is_member_configured_for(server):
-                if rs_add:
-                    cluster.add_member_to_replica(server)
-                else:
-                    prompt_add_member_to_replica(cluster, server)
+            prompt_execute_task(msg, check_replset)
+
+###############################################################################
+def assist_server_replset_conf(server, cluster, rs_add):
+    if not cluster.is_replicaset_initialized():
+        log_info("Replica set cluster '%s' has not been initialized yet." %
+                 cluster.get_id())
+        if cluster.get_member_for(server).can_become_primary():
+            if rs_add:
+                cluster.initialize_replicaset(server)
             else:
-                log_verbose("Server '%s' is already added to the replicaset"
-                            " conf of cluster '%s'." %
-                            (server.get_id(),cluster.get_id()))
+                prompt_init_replica_cluster(cluster, server)
+        else:
+            log_info("Skipping replica set initialization because "
+                     "server '%s' cannot be elected primary." %
+                     server.get_id())
+    else:
+        log_verbose("No need to initialize cluster '%s', as it has"
+                    " already been initialized." % cluster.get_id())
+        if not cluster.is_member_configured_for(server):
+            if rs_add:
+                cluster.add_member_to_replica(server)
+            else:
+                prompt_add_member_to_replica(cluster, server)
+        else:
+            log_verbose("Server '%s' is already added to the replicaset"
+                        " conf of cluster '%s'." %
+                        (server.get_id(),cluster.get_id()))
 
 ###############################################################################
 def _start_server_process_4real(server, options_override=None):
@@ -859,7 +873,7 @@ def do_restart_server(server, options_override=None):
 ###############################################################################
 def get_server_status(server_id, verbose=False):
     server  = lookup_and_validate_server(server_id)
-    return server.get_status(verbose=verbose)
+    return server.get_status(admin=True)
 
 ###############################################################################
 # Cluster Methods
@@ -960,11 +974,16 @@ def open_mongo_shell_to_server(server,
         else:
             database = "admin"
 
-    if not username:
-        db_user = server.get_db_default_user(database)
-        if db_user:
-            username = db_user['username']
-            password = db_user['password']
+    if not username and server.needs_to_auth(database):
+        login_user = server.get_login_user(database)
+        if login_user:
+            username = get_document_property(login_user, "username")
+            password = get_document_property(login_user, "password")
+            if not password:
+                password = server.get_password_from_seed_users(username)
+            if not password:
+                password = read_password("Enter password for user '%s' for"
+                                         " database '%s'" % (username, database))
         elif server.is_auth():
             log_info("Server '%s' has auth on but does not have any users "
                      "configured for '%s' database. You need to provide your"
@@ -1285,6 +1304,11 @@ def prompt_execute_task(message, task_function):
 def read_input(message, allow_null=True):
     print >> sys.stderr, message,
     return raw_input()
+
+###############################################################################
+def read_password(message='', allow_null=True):
+    print >> sys.stderr, message
+    return getpass.getpass()
 
 ###############################################################################
 def server_stopped_predicate(server, server_pid):
@@ -1921,23 +1945,28 @@ def mk_server_dir(server):
 
 ###############################################################################
 def setup_server_users(server):
+
     """
-    FOR NOW: tries to make sure all the specified users exist.
-    TODO: see comments
+    Seeds all users returned by get_seed_users() IF there are no users seed yet
+    i.e. system.users collection is empty
     """
-    # TODO: update passwords
-    # TODO: remove unwanted users?
+    """if not should_seed_users(server):
+        log_verbose("Not seeding users for server '%s'" % server.get_id())
+        return"""
+
 
     log_info("Checking if there are any users that need to be added for "
                 "server '%s'..." % server.get_id())
-    users = server.get_users()
+
+    seed_users = server.get_seed_users()
+
     count_new_users = 0
 
-    for dbname, db_users in users.items():
+    for dbname, db_seed_users in seed_users.items():
         # create the admin ones last so we won't have an auth issue
         if (dbname == "admin"):
             continue
-        count_new_users += setup_server_db_users(server, dbname, db_users)
+        count_new_users += setup_server_db_users(server, dbname, db_seed_users)
 
 
 
@@ -1945,41 +1974,73 @@ def setup_server_users(server):
     # users because primary server will do that at replinit
 
     # Now create admin ones
-    if (not server.is_slave() and
-        not is_cluster_member(server)):
+    if not server.is_slave():
         count_new_users += setup_server_admin_users(server)
 
     if count_new_users > 0:
-        log_info("Added %s new users." % count_new_users)
+        log_info("Added %s users." % count_new_users)
     else:
         log_verbose("Did not add any new users.")
 
 ###############################################################################
-def setup_db_users(db, db_users):
+def should_seed_users(server):
+    log_verbose("See if we should seed users for server '%s'" %
+                server.get_id())
+    try:
+        connection = server.get_db_connection()
+        dbnames = connection.database_names()
+        for dbname in dbnames:
+            if connection[dbname]['system.users'].find_one():
+                return False
+        return True
+    except Exception,e:
+        return False
+
+###############################################################################
+def should_seed_db_users(server, dbname):
+    log_verbose("See if we should seed users for database '%s'" % dbname)
+    try:
+        connection = server.get_db_connection()
+        if connection[dbname]['system.users'].find_one():
+            return False
+        else:
+            return True
+    except Exception,e:
+        return False
+
+###############################################################################
+def setup_db_users(server, db, db_users):
     count_new_users = 0
-    existing_users = [d['user'] for d in db['system.users'].find()]
     for user in db_users :
         username = user['username']
-        if username not in existing_users :
-            log_verbose("adding user '%s' to db '%s'" % (username, db.name))
-            db.add_user(username, user['password'])
-            count_new_users += 1
-        else:
-            log_verbose("user '%s' already present in db '%s'" %
-                        (username, db.name))
-            #TODO: check password?
+        log_verbose("adding user '%s' to db '%s'" % (username, db.name))
+        password = get_document_property(user, 'password')
+        if not password:
+            password = read_seed_password(db.name, username)
+        db.add_user(username, password)
+        # if there is no login user for this db then set it to this new one
+        db_login_user = server.get_login_user(db.name)
+        if not db_login_user:
+            server.set_login_user(db.name, username, password)
+        # inc new users
+        count_new_users += 1
 
     return count_new_users
 
 
+###############################################################################
 def setup_server_db_users(server, dbname, db_users):
     log_verbose("Checking if there are any users that needs to be added for "
                 "database '%s'..." % dbname)
 
+    if not should_seed_db_users(server, dbname):
+        log_verbose("Not seeding users for database '%s'" % dbname)
+        return 0
+
     db = server.get_authenticate_db(dbname)
 
     try:
-        any_new_user_added = setup_db_users(db, db_users)
+        any_new_user_added = setup_db_users(server, db, db_users)
         if not any_new_user_added:
             log_verbose("No new users added for database '%s'" % dbname)
         return any_new_user_added
@@ -1991,6 +2052,10 @@ def setup_server_db_users(server, dbname, db_users):
 
 ###############################################################################
 def setup_server_admin_users(server):
+
+    if not should_seed_db_users(server, "admin"):
+        log_verbose("Not seeding users for database 'admin'")
+    return 0
 
     admin_users = server.get_admin_users()
     if(admin_users is None or
@@ -2004,7 +2069,7 @@ def setup_server_admin_users(server):
         admin_db = server.get_admin_db()
 
         # potentially create the 1st admin user
-        count_new_users += setup_db_users(admin_db, admin_users[0:1])
+        count_new_users += setup_db_users(server, admin_db, admin_users[0:1])
 
         # the 1st-time init case:
         # BEFORE adding 1st admin user, auth. is not possible --
@@ -2014,12 +2079,17 @@ def setup_server_admin_users(server):
         admin_db = server.get_admin_db()
 
         # create the rest of the users
-        count_new_users += setup_db_users(admin_db, admin_users[1:])
+        count_new_users += setup_db_users(server, admin_db, admin_users[1:])
         return count_new_users
     except Exception,e:
         raise MongoctlException(
             "Error while setting up admin users on server '%s'."
             "\n Cause: %s" % (server.get_id(), e))
+
+###############################################################################
+def read_seed_password(dbname, username):
+    return read_password("Please create a password for user '%s' in DB '%s'" %
+                         (username, dbname))
 
 ###############################################################################
 # Mongoctl Database Functions
@@ -2766,20 +2836,61 @@ def get_server_global_users(server_id):
     return get_document_property(__global_users__,server_id)
 
 ###############################################################################
+__global_login_user__= {
+    "serverId": None,
+    "database": "admin",
+    "username": None,
+    "password": None}
+
+###############################################################################
+def get_global_login_user(server, dbname):
+    global __global_login_user__
+
+    # all server or exact server + db match
+    if ((not __global_login_user__["serverId"] or
+        __global_login_user__["serverId"] == server.get_id()) and
+        __global_login_user__["username"] and
+        __global_login_user__["database"] == dbname):
+        return __global_login_user__
+
+    # same cluster members and DB is not 'local'?
+    if __global_login_user__["serverId"]:
+        global_login_server = lookup_server(__global_login_user__["serverId"])
+        global_login_cluster = lookup_cluster_by_server(global_login_server)
+        cluster = lookup_cluster_by_server(server)
+        if (global_login_cluster and cluster and
+            global_login_cluster.get_id() == cluster.get_id()):
+            return __global_login_user__
+
+
+
+###############################################################################
+def parse_global_login_user_arg(parsed_args):
+    username = namespace_get_property(parsed_args, "username")
+    password = namespace_get_property(parsed_args, "password")
+    server_id = namespace_get_property(parsed_args,SERVER_ID_PARAM)
+
+    if username:
+        if parsed_args.is_arg_specified("-p"):
+            if not password:
+                password = read_password()
+            # we only validate login if -p is specified
+            #server = lookup_and_validate_server(server_id)
+            #if not server.is_valid_admin_login(username, password):
+             #   raise MongoctlException("Login failed.")
+
+
+        global __global_login_user__
+        __global_login_user__['serverId'] = server_id
+        __global_login_user__['username'] = username
+        __global_login_user__['password'] = password
+
+###############################################################################
 def parse_cmdline_users(server_id, parsed_args):
 
     server_users = {}
 
-    """
-      First read user specified through -u -p
-      if admin user is specified then add it to the top of the list of admin db
-      users to give top priority to be used
-    """
-    admin_user = read_admin_user_arg(server_id, parsed_args)
-    if admin_user:
-        server_users = {"admin":[admin_user]}
-
-    # now read users specified through --user arg
+    # read users specified through --user arg
     user_args = namespace_get_property(parsed_args, "user")
 
     if user_args:
@@ -2798,24 +2909,6 @@ def parse_cmdline_users(server_id, parsed_args):
 
     if server_users:
         __global_users__[server_id] = server_users
-
-###############################################################################
-def read_admin_user_arg(server_id, parsed_args):
-    username = namespace_get_property(parsed_args, "username")
-    password = namespace_get_property(parsed_args, "password")
-
-    if username:
-        if not password:
-            if parsed_args.is_arg_specified("-p"):
-                password = getpass.getpass()
-            else:
-                raise MongoctlException("You need to specify a password with -p")
-        server = lookup_and_validate_server(server_id)
-        if server.is_valid_admin_login(username, password):
-            return {"username": username,
-                    "password": password}
-        else:
-            raise MongoctlException("Login failed.")
 
 ###############################################################################
 def parse_user(user_arg):
@@ -2922,7 +3015,8 @@ class Server(DocumentWrapper):
     def __init__(self, server_doc):
         DocumentWrapper.__init__(self, server_doc)
         self.__db_connection__ = None
-        self.__users__ = None
+        self.__seed_users__ = None
+        self.__login_users__ = {}
 
     ###########################################################################
     # Properties
@@ -3082,31 +3176,45 @@ class Server(DocumentWrapper):
         return cmd_options
 
     ###########################################################################
-    def get_users(self):
+    def get_seed_users(self):
 
-        if self.__users__ is None:
-            users = self.get_property('users')
+        if self.__seed_users__ is None:
+            seed_users = self.get_property('seedUsers')
 
-            ## TODO: this should be removed later
-            if users is None or len(users) < 1:
-                users = get_default_users()
+            ## This hidden for internal user and should not be documented
+            if not seed_users:
+                seed_users = get_default_users()
 
-            server_global_users = get_server_global_users(self.get_id())
+            self.__seed_users__ = seed_users
 
-            # merge global users with configured ones
-            if server_global_users is not None:
-                for dbname,glbl_db_user in server_global_users.items():
-                    db_user = get_document_property(users, dbname)
-                    if db_user is None:
-                        db_user = []
-                        users[dbname] = db_user
+        return self.__seed_users__
 
-                    db_user.extend(glbl_db_user)
+    ###########################################################################
+    def get_login_user(self, dbname):
+        login_user =  get_document_property(self.__login_users__, dbname)
+        # if no login user found then check global login
 
-            self.__users__ = validate_users(users)
+        if not login_user:
+            login_user = get_global_login_user(self, dbname)
 
-        return self.__users__
+        return login_user
 
+    ###########################################################################
+    def get_password_from_seed_users(self, dbname, username):
+        # look in seed users
+        db_seed_users = self.get_db_seed_users(dbname)
+        if db_seed_users:
+            user = find(lambda user: user['username'] == username,
+                        db_seed_users)
+            if user and "password" in user:
+                return user["password"]
+
+    ###########################################################################
+    def set_login_user(self, dbname, username, password):
+        self.__login_users__[dbname] = {
+            "username": username,
+            "password": password
+        }
     ###########################################################################
     def has_users(self):
         users = self.get_users()
@@ -3114,11 +3222,11 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_admin_users(self):
-        return self.get_db_users("admin")
+        return self.get_db_seed_users("admin")
 
     ###########################################################################
-    def get_db_users(self, dbname):
-        return get_document_property(self.get_users(), dbname)
+    def get_db_seed_users(self, dbname):
+        return get_document_property(self.get_seed_users(), dbname)
 
     ###########################################################################
     def has_db_users(self, dbname):
@@ -3175,32 +3283,29 @@ class Server(DocumentWrapper):
         auth_success = False
         db = self.get_db(dbname)
 
+        # check if we already authed
+        if db.__dict__['is_authed']:
+            return db
+
         # If the DB doesn't need to be authenticated to (or at least yet)
         # then don't authenticate. this piece of code is important for the case
         # where you are connecting to the DB on local host where --auth is on
         # but there are no admin users yet
         if not self.needs_to_auth(dbname):
             return db
-        # If the db has users then use them
-        if self.has_db_users(dbname):
-            auth_success = self.authenticate_db(db, dbname)
-            if auth_success:
-                return db
-        # Otherwise, or if that didn't work, try to auth against
-        # admin db in order to then grab requested db
-        if self.has_db_users("admin") and dbname != "admin":
+
+        login_user = self.get_login_user(dbname)
+        if not login_user and dbname != "admin":
             # if this passes then we are authed!
             admin_db = self.get_admin_db()
-            auth_success = True
-            db =  admin_db.connection[dbname]
+            return admin_db.connection[dbname]
+
+        auth_success = self.authenticate_db(db, dbname)
+        if auth_success:
+            return db
         else:
-            raise MongoctlException("No users found for db %s."
-                                    " Need to have users for %s or"
-                                    " admin db" % (dbname,dbname))
-        if not auth_success:
             raise MongoctlException("Failed to authenticate"
                                     " to %s db" % dbname)
-        return db
 
     ###########################################################################
     def is_valid_admin_login(self, username, password):
@@ -3210,7 +3315,12 @@ class Server(DocumentWrapper):
     ###########################################################################
     def get_db(self, dbname):
         conn = self.get_db_connection()
-        return conn[dbname]
+        db = conn[dbname]
+
+        if 'is_authed' not in db.__dict__:
+            db.__dict__['is_authed'] = False
+
+        return db
 
     ###########################################################################
     def is_online(self):
@@ -3272,7 +3382,7 @@ class Server(DocumentWrapper):
             return True
 
     ###########################################################################
-    def get_status(self, verbose=False):
+    def get_status(self, admin=False):
         status = {}
         ## check if the server is online
         try:
@@ -3280,14 +3390,15 @@ class Server(DocumentWrapper):
             status['connection'] = True
 
             can_admin = True
-            if (self.is_auth() and
+            if (admin and
+                self.is_auth() and
                 self.needs_to_auth("admin") and
                 not self.has_auth_to("admin")):
                 status['error'] = "Cannot authenticate"
                 self.sever_db_connection()   # better luck next time!
                 can_admin = False
 
-            if can_admin:
+            if admin and can_admin:
                 server_summary = self.get_server_status_summary()
                 status["serverStatusSummary"] = server_summary
                 rs_summary = self.get_rs_status_summary()
@@ -3395,18 +3506,39 @@ class Server(DocumentWrapper):
         """
         Returns True if we manage to auth to the given db, else False.
         """
-        db_users = self.get_db_users(dbname)
-        if db_users is not None:
-            for a_user in db_users:
-                if db.authenticate(a_user['username'],
-                                   a_user['password']):
-                    return True
-        return False
+        login_user = self.get_login_user(dbname)
+        username = None
+        password = None
+
+
+
+        if login_user is None:
+            username = read_input("Enter username for database '%s': " %
+                                  dbname)
+            password = read_password()
+        else:
+            username = login_user["username"]
+            if get_document_property(login_user, "password"):
+                password = login_user["password"]
+            else:
+                password = self.get_password_from_seed_users(dbname, username)
+                if not password:
+                    password = read_password("Enter password for user '%s' for"
+                                             " database '%s'" % (username,
+                                                                 dbname))
+
+        # memoize the login
+        self.set_login_user(dbname, username, password)
+        auth_success = db.authenticate(username,password)
+        # keep track of is authed on our own because pymongo does not do that
+        db.__dict__['is_authed'] = auth_success
+        return auth_success
+
 
     ###########################################################################
     def get_rs_config(self):
         try:
-            return self.get_db('local')['system.replset'].find_one()
+            return self.get_authenticate_db('local')['system.replset'].find_one()
         except (Exception,RuntimeError), e:
             log_verbose("Cannot get rs config from server '%s'. cause: %s" %
                         (self.get_id(), e))
@@ -3706,8 +3838,6 @@ class ReplicaSetCluster(DocumentWrapper):
                 raise MongoctlException(msg)
 
             log_info("Server '%s' is primary now!" % primary_server.get_id())
-            log_info("Attempting to add user to the admin database...")
-            setup_server_admin_users(primary_server)
 
             log_info("New replica set configuration:\n%s" %
                      document_pretty_string(self.read_rs_config()))

@@ -158,7 +158,26 @@ MONGOCTL_PARSER_DEF = {
                     "default": False
                 },
 
+                    {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                    {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
+                },
 
+                # mongod supported options
                     {
                     "name": "user",
                     "type" : "optional",
@@ -705,7 +724,27 @@ MONGOCTL_PARSER_DEF = {
                     "help": "Assumes that the server will be stopped on local"
                             " host. This will skip local address/dns check",
                     "default": False
+                },
+
+                    {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                    {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
                 }
+
             ]
         },
         #### status ####
@@ -924,7 +963,26 @@ MONGOCTL_PARSER_DEF = {
                     "help": "prints configure cluster db command to execute "
                             "without executing it",
                     "default": False
-                }
+                },
+
+                    {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                    {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
+                },
             ]
         },
         #### list-clusters ####

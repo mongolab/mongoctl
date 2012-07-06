@@ -50,7 +50,8 @@ class ReplicasetTest(MongoctlTestBase):
         # sleep for a couple of seconds
         time.sleep(2)
         # RE-Configure the cluster
-        self.mongoctl_assert_cmd("configure-cluster ReplicasetTestCluster")
+        self.mongoctl_assert_cmd("configure-cluster ReplicasetTestCluster"
+                                 " -u abdulito")
 
         print "Sleeping for 2 seconds..."
         # sleep for a couple of seconds

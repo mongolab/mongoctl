@@ -44,13 +44,15 @@ class AuthReplicasetTest(MongoctlTestBase):
         self.assert_server_running("auth_node2_test_server")
 
         # Configure the cluster
-        self.mongoctl_assert_cmd("configure-cluster AuthReplicasetTestCluster")
+        self.mongoctl_assert_cmd("configure-cluster AuthReplicasetTestCluster"
+                                 " -u abdulito")
 
         print "Sleeping for 2 seconds..."
         # sleep for a couple of seconds
         time.sleep(2)
         # RE-Configure the cluster
-        self.mongoctl_assert_cmd("configure-cluster AuthReplicasetTestCluster")
+        self.mongoctl_assert_cmd("configure-cluster AuthReplicasetTestCluster"
+                                 " -u abdulito")
 
         print "Sleeping for 2 seconds..."
         # sleep for a couple of seconds

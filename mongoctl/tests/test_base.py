@@ -109,22 +109,22 @@ class MongoctlTestBase(unittest.TestCase):
 
     ###########################################################################
     def assert_server_status(self, server_id, is_running):
-        status=  self.mongoctl_assert_cmd("status %s" % server_id)
+        status=  self.mongoctl_assert_cmd("status %s -u abdulito" % server_id)
         self.assertEquals(status['connection'], is_running)
 
     ###########################################################################
     def assert_start_server(self, server_id):
-        return self.mongoctl_assert_cmd("start %s" % server_id)
+        return self.mongoctl_assert_cmd("start %s -u abdulito" % server_id)
 
     ###########################################################################
     def assert_stop_server(self, server_id, force=False):
 
         args = ("--force %s" % server_id) if force else server_id
-        return self.mongoctl_assert_cmd("stop %s" % args)
+        return self.mongoctl_assert_cmd("stop %s -u abdulito" % args)
 
     ###########################################################################
     def assert_restart_server(self, server_id):
-        return self.mongoctl_assert_cmd("restart %s" % server_id)
+        return self.mongoctl_assert_cmd("restart %s -u abdulito" % server_id)
 
     ###########################################################################
     def mongoctl_assert_cmd(self, cmd, exit_code=0):
@@ -154,7 +154,7 @@ class MongoctlTestBase(unittest.TestCase):
 
     ###########################################################################
     def to_mongoctl_test_command(self,cmd):
-        return ("mongoctl -v --noninteractive --config-root %s %s" %
+        return ("mongoctl -v --yes --config-root %s %s" %
                 (self.get_testing_conf_root(), cmd))
 
     ###########################################################################
