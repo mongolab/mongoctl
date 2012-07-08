@@ -303,10 +303,17 @@ def connect_command(parsed_options):
 # configure cluster command
 ###############################################################################
 def configure_cluster_command(parsed_options):
+    cluster_id = parsed_options.cluster
+    force_primary_server_id = parsed_options.forcePrimaryServer
+
     if parsed_options.dryRun:
-        dry_run_configure_cluster(parsed_options.cluster)
+        dry_run_configure_cluster(cluster_id=cluster_id,
+                                  force_primary_server_id=
+                                    force_primary_server_id)
     else:
-        configure_cluster(parsed_options.cluster)
+        configure_cluster(cluster_id=cluster_id,
+                          force_primary_server_id=
+                            force_primary_server_id)
 
 ###############################################################################
 # list clusters command
@@ -864,24 +871,37 @@ def get_server_status(server_id, verbose=False):
 ###############################################################################
 # Cluster Methods
 ###############################################################################
-def configure_cluster(cluster_id):
+def configure_cluster(cluster_id, force_primary_server_id=None):
     cluster = lookup_and_validate_cluster(cluster_id)
-    configure_replica_cluster(cluster)
+    force_primary_server = None
+    if force_primary_server_id:
+        force_primary_server = \
+            lookup_and_validate_server(force_primary_server_id)
+
+        if not cluster.has_member_server(force_primary_server):
+            raise MongoctlException("Server '%s' is not a member of cluster"
+                                    " '%s'" %
+                                    (force_primary_server_id, cluster_id))
+
+
+    configure_replica_cluster(cluster,force_primary_server=
+                                       force_primary_server)
 
 ###############################################################################
-def configure_replica_cluster(replica_cluster):
-    replica_cluster.configure_replicaset()
+def configure_replica_cluster(replica_cluster, force_primary_server=None):
+    replica_cluster.configure_replicaset(force_primary_server=
+                                           force_primary_server)
 
 ###############################################################################
-def dry_run_configure_cluster(cluster_id):
+def dry_run_configure_cluster(cluster_id, force_primary_server_id=None):
     cluster = lookup_and_validate_cluster(cluster_id)
     log_info("\n************ Dry Run ************\n")
     db_command = None
-
+    force = force_primary_server_id is not None
     if cluster.is_replicaset_initialized():
         log_info("Replica set already initialized. "
                  "Making the replSetReconfig command...")
-        db_command = cluster.get_replicaset_reconfig_db_command()
+        db_command = cluster.get_replicaset_reconfig_db_command(force=force)
     else:
         log_info("Replica set has not yet been initialized."
                  " Making the replSetInitiate command...")
@@ -1263,6 +1283,14 @@ def prompt_execute_task(message, task_function):
     if is_say_yes_to_everything():
         return (True,task_function())
 
+    yes = prompt_confirm(message)
+    if yes:
+        return (True,task_function())
+    else:
+        return (False,None)
+
+###############################################################################
+def prompt_confirm(message):
     valid_choices = {"yes":True,
                      "y":True,
                      "ye":True,
@@ -1277,10 +1305,9 @@ def prompt_execute_task(message, task_function):
             print >> sys.stderr, ("Please respond with 'yes' or 'no' "
                                   "(or 'y' or 'n').\n")
         elif valid_choices[choice]:
-            return (True,task_function())
+            return True
         else:
-            return (False,None)
-
+            return False
 ###############################################################################
 def read_input(message, allow_null=True):
     print >> sys.stderr, message,
@@ -3718,7 +3745,7 @@ class ReplicaSetCluster(DocumentWrapper):
                                     (self.get_id(),e) )
 
     ###########################################################################
-    def configure_replicaset(self, add_server=None):
+    def configure_replicaset(self, add_server=None, force_primary_server=None):
 
         # Check if this is an init VS an update
         if not self.is_replicaset_initialized():
@@ -3727,26 +3754,41 @@ class ReplicaSetCluster(DocumentWrapper):
 
         primary_member = self.get_primary_member()
 
-        if primary_member is None:
+        if force_primary_server:
+            if primary_member:
+                msg = ("Cluster '%s' has primary server '%s'. Proceed?" %
+                       (self.get_id(), primary_member.get_server().get_id()))
+                if not prompt_confirm(msg):
+                    return
+            else:
+                log_info("No primary server found for cluster '%s'" %
+                         self.get_id())
+        elif primary_member is None:
             raise MongoctlException("Unable to determine primary server"
                                     " for replica set cluster '%s'" %
                                     self.get_id())
-        primary_server = primary_member.get_server()
+
+        cmd_server = (force_primary_server if force_primary_server
+                                               else primary_member.get_server())
+
         log_info("Re-configuring replica set cluster '%s'..." % self.get_id())
 
-        rs_reconfig_cmd = self.get_replicaset_reconfig_db_command(add_server)
+        force = force_primary_server is not None
+        rs_reconfig_cmd = \
+            self.get_replicaset_reconfig_db_command(add_server=add_server,
+                                                    force=force)
 
         try:
             log_info("Executing the following command on the current primary:"
                      "\n%s" % document_pretty_string(rs_reconfig_cmd))
 
-            primary_server.disconnecting_db_command(rs_reconfig_cmd, "admin")
+            cmd_server.disconnecting_db_command(rs_reconfig_cmd, "admin")
 
             log_info("Re-configuration for replica set cluster '%s' ran"
                      " successfully!" % self.get_id())
 
             # Probably need to reconnect.  May not be primary any more.
-            realized_config = primary_member.read_rs_config()
+            realized_config = self.read_rs_config()
             log_info("New replica set configuration:\n %s" %
                      document_pretty_string(realized_config))
 
@@ -3762,7 +3804,7 @@ class ReplicaSetCluster(DocumentWrapper):
 
 
     ###########################################################################
-    def get_replicaset_reconfig_db_command(self, add_server=None):
+    def get_replicaset_reconfig_db_command(self, add_server=None, force=False):
         current_rs_conf = self.read_rs_config()
         new_config = self.make_replset_config(add_server=add_server,
                                               current_rs_conf=current_rs_conf)
@@ -3773,7 +3815,7 @@ class ReplicaSetCluster(DocumentWrapper):
         log_info("Current replica set configuration:\n %s" %
                  document_pretty_string(current_rs_conf))
 
-        return {"replSetReconfig": new_config}
+        return {"replSetReconfig": new_config, "force": force}
 
     ###########################################################################
     def get_replicaset_init_all_db_command(self, only_for_server=None):

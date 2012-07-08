@@ -924,7 +924,17 @@ MONGOCTL_PARSER_DEF = {
                     "help": "prints configure cluster db command to execute "
                             "without executing it",
                     "default": False
-                }
+                },
+
+                    {
+                    "name": "forcePrimaryServer",
+                    "type" : "optional",
+                    "displayName": "SERVER",
+                    "cmd_arg":  [ "-f", "--force"],
+                    "nargs": 1,
+                    "help": "force member to become primary",
+                    "default": None
+                },
             ]
         },
         #### list-clusters ####
