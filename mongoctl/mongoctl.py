@@ -874,15 +874,10 @@ def get_server_status(server_id, verbose=False):
 def configure_cluster(cluster_id, force_primary_server_id=None):
     cluster = lookup_and_validate_cluster(cluster_id)
     force_primary_server = None
+    # validate force primary
     if force_primary_server_id:
         force_primary_server = \
             lookup_and_validate_server(force_primary_server_id)
-
-        if not cluster.has_member_server(force_primary_server):
-            raise MongoctlException("Server '%s' is not a member of cluster"
-                                    " '%s'" %
-                                    (force_primary_server_id, cluster_id))
-
 
     configure_replica_cluster(cluster,force_primary_server=
                                        force_primary_server)
@@ -3754,10 +3749,35 @@ class ReplicaSetCluster(DocumentWrapper):
 
         primary_member = self.get_primary_member()
 
+        # force server validation and setup
         if force_primary_server:
+            force_primary_member = self.get_member_for(force_primary_server)
+            # validate is cluster member
+            if not force_primary_member:
+                msg = ("Server '%s' is not a member of cluster '%s'" %
+                       (force_primary_server.get_id(), self.get_id()))
+                raise MongoctlException(msg)
+
+            # validate is administrable
+            if not force_primary_server.is_administrable():
+                msg = ("Server '%s' is not running or has connection problems. "
+                       "For more details, Run 'mongoctl status %s'" %
+                       (force_primary_server.get_id(),
+                        force_primary_server.get_id()))
+                raise MongoctlException(msg)
+
+            if not force_primary_member.can_become_primary():
+                msg = ("Server '%s' cannot become primary. Reconfiguration of"
+                       " a replica set must be sent to a node that can become"
+                       " primary" % force_primary_server.get_id())
+                raise MongoctlException(msg)
+
             if primary_member:
-                msg = ("Cluster '%s' has primary server '%s'. Proceed?" %
-                       (self.get_id(), primary_member.get_server().get_id()))
+                msg = ("Cluster '%s' has primary server '%s'. Proceed "
+                       "reconfiguring with server '%s'?" %
+                       (self.get_id(),
+                        primary_member.get_server().get_id(),
+                        force_primary_server.get_id()))
                 if not prompt_confirm(msg):
                     return
             else:
