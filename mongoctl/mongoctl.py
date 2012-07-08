@@ -3481,11 +3481,9 @@ class ReplicaSetClusterMember(DocumentWrapper):
 
     ###########################################################################
     def get_host(self):
-        host = self.get_property("host")
-        if host is None:
-            host = self.get_server().get_address()
-
-        return host
+        server = self.get_server()
+        if server:
+            return server.get_address()
 
     ###########################################################################
     def is_arbiter(self):
@@ -3582,6 +3580,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
                                     "'%s'. address property is not set." %
                                     (server.get_id()))
 
+###############################################################################
 def is_valid_member_address(address):
     if address is None:
         return False
@@ -3634,7 +3633,7 @@ class ReplicaSetCluster(DocumentWrapper):
             if server is not None:
                 info.append(server.get_id())
             else:
-                info.append( member.get_host())
+                info.append("<Unknown>")
 
         return info
 
@@ -4016,7 +4015,7 @@ def new_host_member_wrapper_server(address):
         return None
 
     port = int(address.split(":")[1])
-    server_doc = {"id": address,
+    server_doc = {"_id": address,
                   "address": address,
                   "cmdOptions":{
                       "port": port
