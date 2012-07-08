@@ -3633,7 +3633,7 @@ class ReplicaSetCluster(DocumentWrapper):
             if server is not None:
                 info.append(server.get_id())
             else:
-                info.append("<Unknown>")
+                info.append("<Invalid Member>")
 
         return info
 
