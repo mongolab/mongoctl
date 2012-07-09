@@ -3245,7 +3245,12 @@ class Server(DocumentWrapper):
     ###########################################################################
     def is_administrable(self):
         status = self.get_status()
-        return status['connection'] and 'error' not in status
+        if status['connection']:
+            if 'error' not in status:
+                return True
+            else:
+                log_verbose("Error while connecting to server '%s': %s " %
+                            (self.get_id(), status['error']))
 
     ###########################################################################
     def is_online_locally(self):
@@ -3798,8 +3803,9 @@ class ReplicaSetCluster(DocumentWrapper):
                                                     force=force)
 
         try:
-            log_info("Executing the following command on the current primary:"
-                     "\n%s" % document_pretty_string(rs_reconfig_cmd))
+            log_info("Executing the following command on server '%s':"
+                     "\n%s" % (cmd_server.get_id(),
+                               document_pretty_string(rs_reconfig_cmd)))
 
             cmd_server.disconnecting_db_command(rs_reconfig_cmd, "admin")
 
