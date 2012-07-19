@@ -3522,9 +3522,12 @@ class Server(DocumentWrapper):
         try:
             return self.get_authenticate_db('local')['system.replset'].find_one()
         except (Exception,RuntimeError), e:
-            log_verbose("Cannot get rs config from server '%s'. cause: %s" %
-                        (self.get_id(), e))
-            return None
+            if type(e) == MongoctlException:
+                raise e
+            else:
+                log_verbose("Cannot get rs config from server '%s'. "
+                            "cause: %s" % (self.get_id(), e))
+                return None
 
     ###########################################################################
     def get_member_rs_status(self):
