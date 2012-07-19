@@ -154,7 +154,7 @@ class MongoctlTestBase(unittest.TestCase):
 
     ###########################################################################
     def to_mongoctl_test_command(self,cmd):
-        return ("mongoctl -v --noninteractive --config-root %s %s" %
+        return ("mongoctl -v --yes --config-root %s %s" %
                 (self.get_testing_conf_root(), cmd))
 
     ###########################################################################
