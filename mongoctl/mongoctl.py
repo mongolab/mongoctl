@@ -1271,13 +1271,6 @@ def extract_archive(archive_name):
 ###############################################################################
 def prompt_execute_task(message, task_function):
 
-    if (not is_interactive_mode() or
-        is_say_no_to_everything()):
-        return (False,None)
-
-    if is_say_yes_to_everything():
-        return (True,task_function())
-
     yes = prompt_confirm(message)
     if yes:
         return (True,task_function())
@@ -1286,6 +1279,16 @@ def prompt_execute_task(message, task_function):
 
 ###############################################################################
 def prompt_confirm(message):
+
+    # return False if non-interactive or --no was specified
+    if (not is_interactive_mode() or
+        is_say_no_to_everything()):
+        return False
+
+    # return True if --yes was specified
+    if is_say_yes_to_everything():
+        return True
+
     valid_choices = {"yes":True,
                      "y":True,
                      "ye":True,
