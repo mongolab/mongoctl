@@ -2870,7 +2870,9 @@ def get_global_login_user(server, dbname):
         return __global_login_user__
 
     # same cluster members and DB is not 'local'?
-    if __global_login_user__["serverId"]:
+    if (__global_login_user__["serverId"] and
+        __global_login_user__["database"] == dbname and
+        dbname != "local"):
         global_login_server = lookup_server(__global_login_user__["serverId"])
         global_login_cluster = lookup_cluster_by_server(global_login_server)
         cluster = lookup_cluster_by_server(server)
