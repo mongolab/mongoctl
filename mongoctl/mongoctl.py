@@ -2233,10 +2233,15 @@ def get_database_repository_conf():
 def get_file_repository_conf():
     return get_mongoctl_config_val('fileRepository')
 
+###############################################################################
 def get_mongodb_installs_dir():
     installs_dir = get_mongoctl_config_val('mongoDBInstallationsDirectory')
     if installs_dir:
         return resolve_path(installs_dir)
+
+###############################################################################
+def set_mongodb_installs_dir(installs_dir):
+    set_mongoctl_config_val('mongoDBInstallationsDirectory', installs_dir)
 
 ###############################################################################
 def get_mongoctl_server_db_collection():
@@ -2326,6 +2331,10 @@ def get_generate_key_file(server):
 ###############################################################################
 def get_mongoctl_config_val(key, default=None):
     return get_document_property(get_mongoctl_config(), key, default)
+
+###############################################################################
+def set_mongoctl_config_val(key, value):
+    get_mongoctl_config()[key] = value
 
 ###############################################################################
 ## Global variable CONFIG: a dictionary of configurations read from config file
