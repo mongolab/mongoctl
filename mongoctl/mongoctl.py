@@ -452,24 +452,6 @@ def maybe_config_server_repl_set(server, rs_add=False):
 
     cluster = lookup_cluster_by_server(server)
 
-    if cluster is not None:
-        log_info("Server '%s' is a member in the configuration for"
-                    " cluster '%s'." % (server.get_id(),cluster.get_id()))
-
-        # prompt the user if he/she wants to check repl conf for this server
-        msg = ("Do you want to check the replicaset config for server '%s'?" %
-               server.get_id())
-
-        def check_replset():
-            assist_server_replset_conf(server, cluster, rs_add)
-
-        if rs_add:
-            check_replset()
-        else:
-            prompt_execute_task(msg, check_replset)
-
-###############################################################################
-def assist_server_replset_conf(server, cluster, rs_add):
     if not cluster.is_replicaset_initialized():
         log_info("Replica set cluster '%s' has not been initialized yet." %
                  cluster.get_id())
@@ -2055,7 +2037,7 @@ def setup_server_admin_users(server):
 
     if not should_seed_db_users(server, "admin"):
         log_verbose("Not seeding users for database 'admin'")
-    return 0
+        return 0
 
     admin_users = server.get_admin_users()
     if(admin_users is None or
