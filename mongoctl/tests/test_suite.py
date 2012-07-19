@@ -30,7 +30,7 @@ from master_slave_test import MasterSlaveTest
 from replicaset_test import ReplicasetTest
 from misc_test import MiscTest
 from auth_replicaset_test import AuthReplicasetTest
-from install_test import InstallTest
+
 ###############################################################################
 all_suites = [
     unittest.TestLoader().loadTestsFromTestCase(VersionFunctionsTest),
@@ -38,8 +38,7 @@ all_suites = [
     unittest.TestLoader().loadTestsFromTestCase(MasterSlaveTest),
     unittest.TestLoader().loadTestsFromTestCase(ReplicasetTest),
     unittest.TestLoader().loadTestsFromTestCase(AuthReplicasetTest),
-    unittest.TestLoader().loadTestsFromTestCase(MiscTest),
-    unittest.TestLoader().loadTestsFromTestCase(InstallTest)
+    unittest.TestLoader().loadTestsFromTestCase(MiscTest)
 ]
 ###############################################################################
 # booty

@@ -25,27 +25,37 @@ import unittest
 import time
 import os
 import shutil
+import mongoctl
 
 from mongoctl.tests.test_base import MongoctlTestBase
+from mongoctl import mongoctl
 
-TEMP_MONGO_VERS = "temp_mongo_versions"
+TEMP_MONGO_INSTALL_DIR = "temp_mongo_installs_dir"
+MONGO_INSTALL_DIR = mongoctl.get_mongodb_installs_dir()
 class InstallTest(MongoctlTestBase):
 
 ###########################################################################
     def setUp(self):
-        print ("setUp(): Temporarily setting $MONGO_VERSIONS=%s" %
-               TEMP_MONGO_VERS)
-        os.environ['MONGO_VERSIONS'] = TEMP_MONGO_VERS
+        print ("setUp(): Temporarily setting mongoDBInstallationsDirectory=%s" %
+               TEMP_MONGO_INSTALL_DIR)
+
+        mongoctl.set_mongodb_installs_dir(TEMP_MONGO_INSTALL_DIR)
         super(InstallTest, self).setUp()
 
     ###########################################################################
     def tearDown(self):
         super(InstallTest, self).tearDown()
-        if os.path.exists(TEMP_MONGO_VERS):
-            print ("tearDown(): Deleting temp $MONGO_VERSIONS=%s" %
-                   TEMP_MONGO_VERS)
-            shutil.rmtree(TEMP_MONGO_VERS)
+        if os.path.exists(TEMP_MONGO_INSTALL_DIR):
+            print ("tearDown(): Deleting temp mongoDBInstallationsDirectory=%s" %
+                   TEMP_MONGO_INSTALL_DIR)
+            shutil.rmtree(TEMP_MONGO_INSTALL_DIR)
 
+        print ("tearDown(): Resetting  mongoDBInstallationsDirectory back to"
+               " '%s'" % MONGO_INSTALL_DIR)
+
+        mongoctl.set_mongodb_installs_dir(MONGO_INSTALL_DIR)
+
+    ###########################################################################
     def test_install(self):
 
         # install and list
@@ -64,6 +74,8 @@ class InstallTest(MongoctlTestBase):
         self.mongoctl_assert_cmd("list-versions")
         self.mongoctl_assert_cmd("uninstall 2.0.5")
         self.mongoctl_assert_cmd("list-versions")
+
+    ###########################################################################
 # booty
 if __name__ == '__main__':
     unittest.main()

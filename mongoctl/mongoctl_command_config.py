@@ -966,6 +966,16 @@ MONGOCTL_PARSER_DEF = {
                 },
 
                     {
+                    "name": "forcePrimaryServer",
+                    "type" : "optional",
+                    "displayName": "SERVER",
+                    "cmd_arg":  [ "-f", "--force"],
+                    "nargs": 1,
+                    "help": "force member to become primary",
+                    "default": None
+                },
+
+                    {
                     "name": "username",
                     "type" : "optional",
                     "help": "admin username",
@@ -982,7 +992,7 @@ MONGOCTL_PARSER_DEF = {
                         "-p"
                     ],
                     "nargs": "?"
-                },
+                }
             ]
         },
         #### list-clusters ####

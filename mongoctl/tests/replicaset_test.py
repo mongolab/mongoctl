@@ -57,6 +57,14 @@ class ReplicasetTest(MongoctlTestBase):
         # sleep for a couple of seconds
         time.sleep(2)
 
+        # reconfigure with FORCE
+        self.mongoctl_assert_cmd("configure-cluster ReplicasetTestCluster "
+                                 "--force node2_test_server")
+
+        print "Sleeping for 2 seconds..."
+        # sleep for a couple of seconds
+        time.sleep(2)
+
         ## Stop all servers
         self.assert_stop_server("arbiter_test_server")
         self.assert_server_stopped("arbiter_test_server")
