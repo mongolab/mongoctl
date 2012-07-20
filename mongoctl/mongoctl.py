@@ -979,8 +979,10 @@ def open_mongo_shell_to_server(server,
         if not username:
             username = read_input("Enter username for database"
                                   " '%s':" % database)
-        if not password:
+            password = getpass.getpass()
+        elif not password:
             password = server.get_password_from_seed_users(database, username)
+
         if not password:
             password = getpass.getpass()
 
