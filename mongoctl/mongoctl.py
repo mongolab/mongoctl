@@ -3295,10 +3295,17 @@ class Server(DocumentWrapper):
     ###########################################################################
     def db_command(self, cmd, dbname):
 
-        if self.is_auth():
-            return self.get_authenticate_db(dbname).command(cmd)
-        else:
+        if not self.is_auth() or not self.command_needs_auth(cmd):
             return self.get_db(dbname).command(cmd)
+        else:
+            return self.get_authenticate_db(dbname).command(cmd)
+
+    ###########################################################################
+    def command_needs_auth(self, cmd):
+        if 'shutdown' in cmd and self.is_arbiter_server():
+            return False
+
+        return self.is_auth()
 
     ###########################################################################
     def get_authenticate_db(self, dbname):
@@ -3404,8 +3411,6 @@ class Server(DocumentWrapper):
                 return "system.users" in coll_names
             return False
         except (RuntimeError,Exception), e:
-            if "master has changed" in str(e):
-                return False
             return True
 
     ###########################################################################
