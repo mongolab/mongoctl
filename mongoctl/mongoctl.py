@@ -975,21 +975,13 @@ def open_mongo_shell_to_server(server,
         else:
             database = "admin"
 
-    if not username and server.needs_to_auth(database):
-        login_user = server.get_login_user(database)
-        if login_user:
-            username = get_document_property(login_user, "username")
-            password = get_document_property(login_user, "password")
-            if not password:
-                password = server.get_password_from_seed_users(username)
-            if not password:
-                password = read_password("Enter password for user '%s' for"
-                                         " database '%s'" % (username, database))
-        elif server.is_auth():
-            log_info("Server '%s' has auth on but does not have any users "
-                     "configured for '%s' database. You need to provide your"
-                     " user/pass" % (server.get_id(), database))
-            username = read_input("Enter username:")
+    if server.needs_to_auth(database):
+        if not username:
+            username = read_input("Enter username for database"
+                                  " '%s':" % database)
+        if not password:
+            password = server.get_password_from_seed_users(database, username)
+        if not password:
             password = getpass.getpass()
 
     do_open_mongo_shell_to(server.get_connection_address(),
