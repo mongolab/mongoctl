@@ -459,30 +459,34 @@ def maybe_config_server_repl_set(server, rs_add=False):
 
     cluster = lookup_cluster_by_server(server)
 
-    if not cluster.is_replicaset_initialized():
-        log_info("Replica set cluster '%s' has not been initialized yet." %
-                 cluster.get_id())
-        if cluster.get_member_for(server).can_become_primary():
-            if rs_add:
-                cluster.initialize_replicaset(server)
+    if cluster is not None:
+        log_verbose("Server '%s' is a member in the configuration for"
+                    " cluster '%s'." % (server.get_id(),cluster.get_id()))
+
+        if not cluster.is_replicaset_initialized():
+            log_info("Replica set cluster '%s' has not been initialized yet." %
+                     cluster.get_id())
+            if cluster.get_member_for(server).can_become_primary():
+                if rs_add:
+                    cluster.initialize_replicaset(server)
+                else:
+                    prompt_init_replica_cluster(cluster, server)
             else:
-                prompt_init_replica_cluster(cluster, server)
+                log_info("Skipping replica set initialization because "
+                         "server '%s' cannot be elected primary." %
+                         server.get_id())
         else:
-            log_info("Skipping replica set initialization because "
-                     "server '%s' cannot be elected primary." %
-                     server.get_id())
-    else:
-        log_verbose("No need to initialize cluster '%s', as it has"
-                    " already been initialized." % cluster.get_id())
-        if not cluster.is_member_configured_for(server):
-            if rs_add:
-                cluster.add_member_to_replica(server)
+            log_verbose("No need to initialize cluster '%s', as it has"
+                        " already been initialized." % cluster.get_id())
+            if not cluster.is_member_configured_for(server):
+                if rs_add:
+                    cluster.add_member_to_replica(server)
+                else:
+                    prompt_add_member_to_replica(cluster, server)
             else:
-                prompt_add_member_to_replica(cluster, server)
-        else:
-            log_verbose("Server '%s' is already added to the replicaset"
-                        " conf of cluster '%s'." %
-                        (server.get_id(),cluster.get_id()))
+                log_verbose("Server '%s' is already added to the replicaset"
+                            " conf of cluster '%s'." %
+                            (server.get_id(),cluster.get_id()))
 
 ###############################################################################
 def _start_server_process_4real(server, options_override=None):
