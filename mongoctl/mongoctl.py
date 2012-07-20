@@ -3411,7 +3411,10 @@ class Server(DocumentWrapper):
                 return "system.users" in coll_names
             return False
         except (RuntimeError,Exception), e:
-            return True
+            if "master has changed" in str(e):
+                return False
+            else:
+                return True
 
     ###########################################################################
     def get_status(self, admin=False):
