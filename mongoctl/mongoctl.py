@@ -3069,7 +3069,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_local_address(self):
-        return "127.0.0.1:%s" % self.get_port()
+        return "localhost:%s" % self.get_port()
 
     ###########################################################################
     def get_port(self):
