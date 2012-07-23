@@ -178,18 +178,6 @@ MONGOCTL_PARSER_DEF = {
                 },
 
                 # mongod supported options
-                    {
-                    "name": "user",
-                    "type" : "optional",
-                    "help": "pass in a user config in the "
-                            "'database:user:password' format",
-                    "cmd_arg": [
-                        "--user"
-                    ],
-                    "nargs": 1,
-                    "action": "append",
-                    "default": []
-                },
                 # confusing
                 #                {
                 #                    "name": "config",
@@ -671,18 +659,6 @@ MONGOCTL_PARSER_DEF = {
                     "default": False
                 },
                     {
-                    "name": "user",
-                    "type" : "optional",
-                    "help": "pass in a user config in the "
-                            "'database:user:password' format",
-                    "cmd_arg": [
-                        "--user"
-                    ],
-                    "nargs": 1,
-                    "action": "append",
-                    "default": []
-                },
-                    {
                     "name": "username",
                     "type" : "optional",
                     "help": "admin username",
@@ -766,18 +742,6 @@ MONGOCTL_PARSER_DEF = {
                         "cmd_arg": ["-v", "--verbose"],
                         "nargs": 0,
                         "help": "include more information in status"
-                },
-                    {
-                    "name": "user",
-                    "type" : "optional",
-                    "help": "pass in a user config in the "
-                            "'database:user:password' format",
-                    "cmd_arg": [
-                        "--user"
-                    ],
-                    "nargs": 1,
-                    "action": "append",
-                    "default": []
                 },
                     {
                     "name": "username",

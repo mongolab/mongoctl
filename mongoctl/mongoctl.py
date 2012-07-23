@@ -2901,47 +2901,6 @@ def parse_global_login_user_arg(parsed_args):
         __global_login_user__['username'] = username
         __global_login_user__['password'] = password
 
-###############################################################################
-def parse_cmdline_users(server_id, parsed_args):
-
-    server_users = {}
-
-    # read users specified through --user arg
-    user_args = namespace_get_property(parsed_args, "user")
-
-    if user_args:
-        for user_arg in user_args:
-            parsed_user = parse_user(user_arg)
-            dbname = parsed_user["dbname"]
-            db_users = get_document_property(server_users, dbname)
-            if db_users is None:
-                db_users = []
-                server_users[dbname] = db_users
-
-            db_users.append({"username": parsed_user["username"],
-                             "password": parsed_user["password"]})
-
-    global __global_users__
-
-    if server_users:
-        __global_users__[server_id] = server_users
-
-###############################################################################
-def parse_user(user_arg):
-
-    if not is_valid_user_arg(user_arg):
-        raise MongoctlException("Invalid user argument '%s'."
-                                " user must be in "
-                                "dbname:user:pass format" % user_arg)
-    user_arr = user_arg.split(":")
-
-    return {"dbname": user_arr[0],
-            "username": user_arr[1],
-            "password": user_arr[2]}
-
-###############################################################################
-def is_valid_user_arg(user_arg):
-    return user_arg.count(":") == 2
 
 ###############################################################################
 def validate_users(users):
