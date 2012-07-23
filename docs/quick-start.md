@@ -1,7 +1,12 @@
 Quick start guide
 -----------------
 
-#### Install MongoDB
+```mongoctl``` comes packaged with sample configurations of servers and clusters that allow you to get going quickly.
+These samples are in ```~/.mongoctl/servers.config``` and ```~/.mongoctl/clusters.config```. Core configuration of 
+```mongoctl``` is defined in ```~/.mongoctl/mongoctl.config```.
+
+Install MongoDB
+----------------
 
 The first time you use ```mongoctl``` you will want to download MongoDB. To get the latest stable version:
 
@@ -14,9 +19,6 @@ You can also specify a specific version:
 ```
 % mongoctl install 2.0.2
 ```
-
-```mongoctl``` comes packaged with sample configurations of servers and clusters that allow you to get going quickly.
-These samples are in ```~/.mongoctl/servers.config``` and ```~/.mongoctl/clusters.config```. 
 
 Simple server example
 ------------------------
