@@ -2,7 +2,7 @@ Overview
 --------
 
 ```mongoctl``` is a lightweight command line utility that simplifies the
-management of MongoDB servers and replica set clusters. It is
+installation of MongoDB and management of MongoDB servers and replica set clusters. It is
 particularly useful if you maintain many MongoDB environments with
 lots of configurations to manage.
 
