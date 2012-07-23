@@ -117,8 +117,11 @@ setup(
     version='0.1.0',
     author='The MongoLab team',
     author_email='team@mongolab.com',
-    description='Mongo Control',
-    long_description="Controls the Mongo",
+    description='MongoDB command line utility',
+    long_description="mongoctl is a lightweight command line utility that simplifies the"
+                     "installation of MongoDB and management of MongoDB servers and replica set clusters. It is"
+                     " particularly useful if you maintain many MongoDB environments with"
+                     " lots of configurations to manage.",
     packages=['mongoctl',
               'mongoctl/tests',
               'mongoctl/tests/testing_conf',
