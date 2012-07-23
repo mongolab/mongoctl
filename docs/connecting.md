@@ -15,7 +15,7 @@ cluster is specified command will connect to the primary server.
 <db-address> can be one of:
    (a) a mongodb URI (e.g. mongodb://localhost:27017/mydb)
    (b) <server-id>/<db>
-   (c) <cluster-id>/<db> (not yet supported)
+   (c) <cluster-id>/<db> (will find and connect to primary)
 
 Arguments:
   <db-address>          database addresses supported by mongoctl. Check docs
