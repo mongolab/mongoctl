@@ -1,10 +1,28 @@
 Quick start guide
 -----------------
 
+#### Install MongoDB
+
+The first time you use ```mongoctl``` you will want to download MongoDB. To get the latest stable version:
+
+```
+% mongoctl install
+```
+
+You can also specify a specific version:
+
+```
+% mongoctl install 2.0.2
+```
+
 ```mongoctl``` comes packaged with sample configurations of servers and clusters that allow you to get going quickly.
 These samples are in ```~/.mongoctl/servers.config``` and ```~/.mongoctl/clusters.config```. 
 
-To see the set of servers currently defined we use the ```list-servers``` command:
+Simple server example
+------------------------
+
+Let's start with a very simple single-server example. To see the set of servers currently 
+defined we use the ```list-servers``` command:
 
 ```
 % mongoctl list-servers
@@ -18,11 +36,7 @@ SampleClusterArbiter       localhost:28037           Sample arbiter
 SampleServer               localhost:27017           Sample server (single mongod)
 ```
 
-Simple server example
-------------------------
-
-Let's start with a very simple single-server example. You can look at the details of the server
-configuration for ```SampleServer``` like this:
+You can look at the details of the server configuration for ```SampleServer``` like this:
 
 ```
 % mongoctl show-server SampleServer
