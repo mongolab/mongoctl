@@ -1,8 +1,8 @@
 Configuring and managing servers
 -------------------
 
-Server configurations are managed in a configuration repository, which can be either a 
-[FileRepository](configuring-mongoctl.md#using-a-filerepository) or a 
+Server configurations, which define ```mongod``` processes, are managed in a configuration repository, which can 
+be either a [FileRepository](configuring-mongoctl.md#using-a-filerepository) or a 
 [DatabaseRepository](configuring-mongoctl.md#using-a-databaserepository),
 and are managed by ```mongoctl```s [set of server commands](command-reference.md#server-commands).
 
