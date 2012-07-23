@@ -119,7 +119,7 @@ setup(
     author_email='team@mongolab.com',
     description='MongoDB command line utility',
     long_description="mongoctl is a lightweight command line utility that simplifies the"
-                     "installation of MongoDB and management of MongoDB servers and replica set clusters. It is"
+                     " installation of MongoDB and management of MongoDB servers and replica set clusters. It is"
                      " particularly useful if you maintain many MongoDB environments with"
                      " lots of configurations to manage.",
     packages=['mongoctl',
