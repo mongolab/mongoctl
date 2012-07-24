@@ -1932,7 +1932,15 @@ def version_obj(version_str):
 ###############################################################################
 def prepare_server(server):
     log_info("Preparing server '%s' for use as configured..." % server.get_id())
-    setup_server_users(server)
+
+    """ if the server is a cluster member then only setup local user because
+        the rest of the users will be setup at cluster init time by the
+        setup_cluster_users method
+    """
+    if is_cluster_member(server):
+        setup_server_local_users(server)
+    else:
+        setup_server_users(server)
     if am_bootstrapping():
         ensure_minimal_bootstrap(server)
 
@@ -1973,8 +1981,6 @@ def setup_server_users(server):
             continue
         count_new_users += setup_server_db_users(server, dbname, db_seed_users)
 
-
-
     # Note: If server member of a replica then don't setup admin
     # users because primary server will do that at replinit
 
@@ -1986,6 +1992,12 @@ def setup_server_users(server):
         log_info("Added %s users." % count_new_users)
     else:
         log_verbose("Did not add any new users.")
+
+###############################################################################
+def setup_cluster_users(cluster, primary_server):
+    log_verbose("Setting up cluster '%s' users using primary server '%s'" %
+                (cluster.get_id(), primary_server.get_id()))
+    return setup_server_users(primary_server)
 
 ###############################################################################
 def should_seed_users(server):
@@ -2089,6 +2101,26 @@ def setup_server_admin_users(server):
     except Exception,e:
         raise MongoctlException(
             "Error while setting up admin users on server '%s'."
+            "\n Cause: %s" % (server.get_id(), e))
+
+###############################################################################
+def setup_server_local_users(server):
+
+    if not should_seed_db_users(server, "local"):
+        log_verbose("Not seeding users for database 'local'")
+        return 0
+
+
+    try:
+        local_users = server.get_db_seed_users("local")
+        local_db = server.get_db("local")
+        if local_users:
+            return setup_db_users(server, local_db, local_users)
+        else:
+            return 0
+    except Exception,e:
+        raise MongoctlException(
+            "Error while setting up local users on server '%s'."
             "\n Cause: %s" % (server.get_id(), e))
 
 ###############################################################################
@@ -3827,6 +3859,9 @@ class ReplicaSetCluster(DocumentWrapper):
                 raise MongoctlException(msg)
 
             log_info("Server '%s' is primary now!" % primary_server.get_id())
+
+            # setup cluster users
+            setup_cluster_users(self, primary_server)
 
             log_info("New replica set configuration:\n%s" %
                      document_pretty_string(self.read_rs_config()))
