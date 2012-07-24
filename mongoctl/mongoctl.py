@@ -2875,6 +2875,10 @@ def get_default_users():
     return get_mongoctl_config_val('defaultUsers', {})
 
 ###############################################################################
+def get_cluster_member_tag_mapping():
+    return get_mongoctl_config_val('clusterMemeberTagMapping', {})
+
+###############################################################################
 __global_users__ = {}
 
 def get_server_global_users(server_id):
@@ -3647,11 +3651,11 @@ class ReplicaSetClusterMember(DocumentWrapper):
         return not self.is_arbiter() and self.get_priority() != 0
 
     ###########################################################################
-    def get_repl_config(self):
+    def get_member_repl_config(self):
 
-        # create the repl config with host
+        # create the member repl config with host
 
-        repl_config = {"host": self.get_host()}
+        member_conf = {"host": self.get_host()}
 
         # Add the rest of the properties configured in the document
         #  EXCEPT host/server
@@ -3660,9 +3664,30 @@ class ReplicaSetClusterMember(DocumentWrapper):
 
         for key,value in self.__document__.items():
             if key not in ignore :
-                repl_config[key] = value
+                member_conf[key] = value
 
-        return repl_config
+        # append tags from mappings
+        self.append_tags(member_conf)
+        return member_conf
+
+    ###########################################################################
+    def append_tags(self, member_conf):
+        tag_mapping = get_cluster_member_tag_mapping()
+        if not tag_mapping:
+            return
+
+        tags = get_document_property(member_conf, "tags", {})
+        for tag_name, server_prop in tag_mapping.items():
+            tag_val = self.get_server().get_property(server_prop)
+
+            if tag_val:
+                tags[tag_name] = tag_val
+            else:
+                log_verbose("No tag value created for tag mapping '%s=%s' for "
+                            "member \n%s" % (tag_name, server_prop, self))
+        # set the tags property of the member config if there are aby tags
+        if tags:
+            member_conf['tags'] = tags
 
     ###########################################################################
     def read_rs_config(self):
@@ -3993,7 +4018,7 @@ class ReplicaSetCluster(DocumentWrapper):
     ###########################################################################
     def is_member_configured_for(self, server):
         member = self.get_member_for(server)
-        mem_conf = member.get_repl_config()
+        mem_conf = member.get_member_repl_config()
         rs_conf = self.read_rs_config()
         return (rs_conf is not None and
                 self.get_member_id_if_exists(mem_conf,
@@ -4014,7 +4039,7 @@ class ReplicaSetCluster(DocumentWrapper):
         for member in self.get_members():
             if validate_members:
                 member.validate()
-            member_configs.append(member.get_repl_config())
+            member_configs.append(member.get_member_repl_config())
 
         return member_configs
 
@@ -4030,11 +4055,11 @@ class ReplicaSetCluster(DocumentWrapper):
             member.validate()
             member_confs = []
             member_confs.extend(current_rs_conf['members'])
-            member_confs.append(member.get_repl_config())
+            member_confs.append(member.get_member_repl_config())
         elif only_for_server is not None:
             member = self.get_member_for(only_for_server)
             member.validate()
-            member_confs = [member.get_repl_config()]
+            member_confs = [member.get_member_repl_config()]
         else:
             member_confs = self.get_all_members_configs()
 
