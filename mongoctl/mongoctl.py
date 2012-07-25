@@ -2875,8 +2875,8 @@ def get_default_users():
     return get_mongoctl_config_val('defaultUsers', {})
 
 ###############################################################################
-def get_cluster_member_tag_mapping():
-    return get_mongoctl_config_val('clusterMemeberTagMapping', {})
+def get_cluster_member_alt_address_mapping():
+    return get_mongoctl_config_val('clusterMemberAltAddressesMapping', {})
 
 ###############################################################################
 __global_users__ = {}
@@ -3666,28 +3666,34 @@ class ReplicaSetClusterMember(DocumentWrapper):
             if key not in ignore :
                 member_conf[key] = value
 
-        # append tags from mappings for non-arbiters
-        if not self.is_arbiter():
-            self.append_tags(member_conf)
+        self._apply_alt_address_mapping(member_conf)
 
         return member_conf
 
     ###########################################################################
-    def append_tags(self, member_conf):
-        tag_mapping = get_cluster_member_tag_mapping()
+    def _apply_alt_address_mapping(self, member_conf):
+
+        # Not applicable to arbiters
+        if self.is_arbiter():
+            return
+
+        tag_mapping = get_cluster_member_alt_address_mapping()
         if not tag_mapping:
             return
 
         tags = get_document_property(member_conf, "tags", {})
-        for tag_name, server_prop in tag_mapping.items():
-            tag_val = self.get_server().get_property(server_prop)
+        for tag_name, alt_address_prop in tag_mapping.items():
+            alt_address = self.get_server().get_property(alt_address_prop)
 
-            if tag_val:
-                tags[tag_name] = tag_val
+            # set the alt address if it is different than host
+            if alt_address and alt_address != member_conf['host']:
+                tags[tag_name] = alt_address
             else:
-                log_verbose("No tag value created for tag mapping '%s=%s' for "
-                            "member \n%s" % (tag_name, server_prop, self))
-        # set the tags property of the member config if there are aby tags
+                log_verbose("No alt address tag value created for alt address"
+                            " mapping '%s=%s' for member \n%s" %
+                            (tag_name, alt_address_prop, self))
+
+        # set the tags property of the member config if there are any
         if tags:
             member_conf['tags'] = tags
 
