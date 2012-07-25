@@ -570,6 +570,7 @@ def _set_process_limits():
     for (res_name, description, desired_limit) in PROCESS_LIMITS :
         _set_a_process_limit(res_name, desired_limit, description)
 
+###############################################################################
 def _set_a_process_limit(resource_name, desired_limit, description):
     which_resource = getattr(resource, resource_name)
     (soft, hard) = resource.getrlimit(which_resource)
@@ -586,6 +587,7 @@ def _set_a_process_limit(resource_name, desired_limit, description):
     log_info("Resulting OS limit on %s for mongod process:  " % description +
              "soft = %d   hard = %d" % resource.getrlimit(which_resource))
 
+###############################################################################
 def _rlimit_min(one_val, nother_val):
     """Returns the more stringent rlimit value.  -1 means no limit."""
     if one_val < 0 or nother_val < 0 :
@@ -593,6 +595,7 @@ def _rlimit_min(one_val, nother_val):
     else:
         return min(one_val, nother_val)
 
+###############################################################################
 def _negotiate_process_limit(set_resource, desired_limit, soft, hard):
 
     best_possible = _rlimit_min(hard, desired_limit)
@@ -612,8 +615,7 @@ def _negotiate_process_limit(set_resource, desired_limit, soft, hard):
             best_possible = attempt + (1 if best_possible < attempt else -1)
 
         attempt = (best_possible + worst_possible) / 2
-            
-    
+
 ###############################################################################
 def tail_server_log(server):
     try:
@@ -1610,6 +1612,10 @@ def is_replica_primary(server):
 ###############################################################################
 def generate_start_command(server, options_override=None):
     command = []
+
+    if mongod_needs_numactl():
+        log_info("Running on a NUMA machine...")
+        apply_numactl(command)
 
     # append the mongod executable
     command.append(get_mongod_executable(server.get_mongo_version()))
@@ -2653,6 +2659,38 @@ def kill_process(pid, force=False):
         return True
     except OSError:
         return False
+
+###############################################################################
+# NUMA Related functions
+###############################################################################
+def mongod_needs_numactl():
+    """ Logic kind of copied from MongoDB (mongodb-src/util/version.cpp) ;)
+
+        Return true IF we are on a box with a NUMA enabled kernel and more
+        than 1 numa node (they start at node0).
+    """
+    return dir_exists("/sys/devices/system/node/node1")
+
+###############################################################################
+def apply_numactl(command):
+
+    numactl_exe = get_numactl_exe()
+
+    if numactl_exe:
+        log_info("Using numactl '%s'" % numactl_exe)
+        command.extend([numactl_exe, "--interleave=all"])
+    else:
+        msg = ("You are running on a NUMA machine. It is recommended to run "
+               "your server using numactl but we cannot find a numactl "
+               "executable in your PATH. Proceeding might cause problems that"
+               " will manifest in strange ways, such as massive slow downs for"
+               " periods of time or high system cpu time. Proceed?")
+        if not prompt_confirm(msg):
+            exit(0)
+
+###############################################################################
+def get_numactl_exe():
+    return which("numactl")
 
 ###############################################################################
 # SIGNAL HANDLER FUNCTIONS
