@@ -3666,8 +3666,10 @@ class ReplicaSetClusterMember(DocumentWrapper):
             if key not in ignore :
                 member_conf[key] = value
 
-        # append tags from mappings
-        self.append_tags(member_conf)
+        # append tags from mappings for non-arbiters
+        if not self.is_arbiter():
+            self.append_tags(member_conf)
+
         return member_conf
 
     ###########################################################################
