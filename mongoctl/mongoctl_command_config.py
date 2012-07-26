@@ -797,7 +797,7 @@ MONGOCTL_PARSER_DEF = {
                             "<db-address> can be one of:\n"
                             "   (a) a mongodb URI (e.g. mongodb://localhost:27017/mydb)\n"
                             "   (b) <server-id>/<db>\n"
-                            "   (c) <cluster-id>/<db> (not yet supported)\n",
+                            "   (c) <cluster-id>/<db>\n",
             "function": "mongoctl.mongoctl.connect_command",
             "args": [
                     {
