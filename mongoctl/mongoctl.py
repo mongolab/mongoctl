@@ -956,7 +956,7 @@ def open_mongo_shell_to(db_address,
     # Maybe cluster?
     cluster = lookup_cluster(id)
     if cluster:
-        open_mongo_shell_to_cluster(cluster, username, password,
+        open_mongo_shell_to_cluster(cluster, database, username, password,
                                     shell_options, js_files)
         return
     # Unknown destination
