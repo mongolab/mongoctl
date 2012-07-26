@@ -582,7 +582,7 @@ def _set_a_process_limit(resource_name, desired_limit, description):
     log_info("Setting OS limit on %s for mongod process (desire up to %d)..."
              "\n\t Current limit values:   soft = %d   hard = %d" %
              (description, desired_limit, soft, hard))
-        
+
     _negotiate_process_limit(set_resource, desired_limit, soft, hard)
     log_info("Resulting OS limit on %s for mongod process:  " % description +
              "soft = %d   hard = %d" % resource.getrlimit(which_resource))
@@ -698,8 +698,8 @@ def do_stop_server(server, force=False):
                      server.get_id())
             return
 
-    server_pid = get_server_pid(server)
-    pid_disp = server_pid if server_pid else "[Cannot be determined]"
+    pid = get_server_pid(server)
+    pid_disp = pid if pid else "[Cannot be determined]"
     log_info("Stopping server '%s' (PID=%s) ..." %
              (server.get_id(), pid_disp))
     # log server activity stop
@@ -709,13 +709,12 @@ def do_stop_server(server, force=False):
 
     if can_stop_mongoly:
         log_verbose("  ... issuing db 'shutdown' command ... ")
-        shutdown_success = mongo_stop_server(server, force=False)
+        shutdown_success = mongo_stop_server(server, pid, force=False)
 
     if not can_stop_mongoly or not shutdown_success:
         log_verbose("  ... taking more forceful measures ... ")
         shutdown_success = \
-            prompt_or_force_stop_server(server,
-                                        force,
+            prompt_or_force_stop_server(server, pid, force,
                                         try_mongo_force=can_stop_mongoly)
 
     if shutdown_success:
@@ -734,8 +733,7 @@ def step_down_if_needed(server, force):
             prompt_step_server_down(server, force)
 
 ###############################################################################
-def mongo_stop_server(server, force=False):
-    server_pid = get_server_pid(server)
+def mongo_stop_server(server, pid, force=False):
 
     try:
         shutdown_cmd = SON( [('shutdown', 1),('force', force)])
@@ -746,7 +744,7 @@ def mongo_stop_server(server, force=False):
 
         log_info("Will now wait for server '%s' to stop." % server.get_id())
         # Check that the server has stopped
-        stop_pred = server_stopped_predicate(server,server_pid)
+        stop_pred = server_stopped_predicate(server, pid)
         wait_for(stop_pred,timeout=3)
 
         if not stop_pred():
@@ -760,19 +758,18 @@ def mongo_stop_server(server, force=False):
         return False
 
 ###############################################################################
-def force_stop_server(server, try_mongo_force=True):
+def force_stop_server(server, pid, try_mongo_force=True):
     success = False
     if try_mongo_force:
-        success = mongo_stop_server(server, force=True)
+        success = mongo_stop_server(server, pid, force=True)
 
     if not success or not try_mongo_force:
-        success = kill_stop_server(server)
+        success = kill_stop_server(server, pid)
 
     return success
 
 ###############################################################################
-def kill_stop_server(server):
-    pid = get_server_pid(server)
+def kill_stop_server(server, pid):
     if pid is None:
         log_error("Cannot forcibly stop the server because the server's process"
                   " ID cannot be determined; pid file '%s' does not exist." %
@@ -807,12 +804,15 @@ def kill_stop_server(server):
         return False
 
 ###############################################################################
-def prompt_or_force_stop_server(server, force=False, try_mongo_force=True):
+def prompt_or_force_stop_server(server, pid,
+                                force=False, try_mongo_force=True):
     if force:
-        return force_stop_server(server, try_mongo_force=try_mongo_force)
+        return force_stop_server(server, pid,
+                                 try_mongo_force=try_mongo_force)
 
     def stop_func():
-        return force_stop_server(server, try_mongo_force=try_mongo_force)
+        return force_stop_server(server, pid,
+                                 try_mongo_force=try_mongo_force)
 
     if try_mongo_force:
         result = prompt_execute_task("Issue the shutdown with force command?",
@@ -913,7 +913,7 @@ def prompt_init_replica_cluster(replica_cluster,
                                 suggested_primary_server):
 
     prompt = ("Do you want to initialize replica set cluster '%s' using "
-              "server '%s'?" % 
+              "server '%s'?" %
               (replica_cluster.get_id(), suggested_primary_server.get_id()))
 
     def init_repl_func():
@@ -1319,10 +1319,10 @@ def read_password(message='', allow_null=True):
     return getpass.getpass()
 
 ###############################################################################
-def server_stopped_predicate(server, server_pid):
+def server_stopped_predicate(server, pid):
     def server_stopped():
         return (not server.is_online() and
-                (server_pid is None or not is_pid_alive(server_pid)))
+                (pid is None or not is_pid_alive(pid)))
 
     return server_stopped
 
@@ -1588,7 +1588,7 @@ def lookup_cluster_by_server(server):
         cluster = config_lookup_cluster_by_server(server)
 
     ## If nothing found then look in db
-    ##   (but not if server is the Mothership; 
+    ##   (but not if server is the Mothership;
     ##    for now, its cluster gotta be in da file repository. -- TODO XXX &c.)
     if (cluster is None and has_db_repository() and
         not is_mongoctl_repo_db(server)):
@@ -2226,7 +2226,7 @@ def am_bootstrapping(sez_i=None):
 def ensure_minimal_bootstrap(server):
     """
     Make sure db repo has a document representing the mongoctl db server
-    that is to serve the db repo after handoff.  
+    that is to serve the db repo after handoff.
     If necessary, insert the one we've been using from the file repo.
     """
     if db_lookup_server(server.get_id()) is None:
@@ -2236,7 +2236,7 @@ def ensure_minimal_bootstrap(server):
                                                        safe=True)
         except Exception, e:
             log_error("Unable to ensure bootstrap of db repository!  %s" % e)
-            
+
 
 ###############################################################################
 # Global variables used to govern the mechanics of db repo startup & seeding
