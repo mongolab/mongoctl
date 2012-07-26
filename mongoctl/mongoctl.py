@@ -4168,40 +4168,6 @@ class ReplicaSetCluster(DocumentWrapper):
 
         return rs_conf
 
-    ###########################################################################
-    def match_members_to_rs_conf(self):
-
-        current_rs_conf = self.read_rs_config()
-        result = {
-            "docMembers" : [],
-            "rsConfMembers" : current_rs_conf
-        }
-
-        member_confs = self.get_all_members_configs(validate_members=False)
-        for mem_conf in member_confs:
-            doc_member = {
-                "member" : mem_conf,
-                "matchedBy": None
-            }
-
-            result["docMembers"].append(doc_member)
-
-            if current_rs_conf:
-                for rs_mem in current_rs_conf['members']:
-                    # try to match by id
-                    if ("_id" in mem_conf and
-                        mem_conf["_id"] == rs_mem["_id"]):
-                        doc_member["matchedBy"] = "_id"
-                    elif "host" in mem_conf and mem_conf["host"] == rs_mem["host"]:
-                        doc_member["matchedBy"] = "host"
-
-        return result
-
-
-
-
-
-
 ###############################################################################
 # Mongoctl Exception class
 ###############################################################################
