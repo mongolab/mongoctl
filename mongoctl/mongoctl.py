@@ -721,7 +721,8 @@ def do_stop_server(server, force=False):
     if shutdown_success:
         log_info("Server '%s' has stopped." % server.get_id())
     else:
-        log_error("Unable to stop server '%s'." % server.get_id())
+        raise MongoctlException("Unable to stop server '%s'." %
+                                server.get_id())
 
 ###############################################################################
 def step_down_if_needed(server, force):
