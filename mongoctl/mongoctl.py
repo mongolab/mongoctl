@@ -4080,8 +4080,7 @@ class ReplicaSetCluster(DocumentWrapper):
         mem_conf = member.get_member_repl_config()
         rs_conf = self.read_rs_config()
         return (rs_conf is not None and
-                self.get_member_id_if_exists(mem_conf,
-                                             rs_conf['members']) is not None)
+                self.match_member_id(mem_conf, rs_conf['members']) is not None)
 
     ###########################################################################
     def has_any_server_that(self, predicate):
