@@ -760,7 +760,8 @@ def mongo_stop_server(server, pid, force=False):
 ###############################################################################
 def force_stop_server(server, pid, try_mongo_force=True):
     success = False
-    if try_mongo_force:
+    # try mongo force stop if server is still online
+    if server.is_online() and try_mongo_force:
         success = mongo_stop_server(server, pid, force=True)
 
     if not success or not try_mongo_force:
