@@ -2746,10 +2746,17 @@ def is_host_local(host):
 
 ###############################################################################
 def is_same_host(host1, host2):
-    ips1 = get_host_ips(host1)
-    ips2 = get_host_ips(host2)
 
-    return len(set(ips1) & set(ips2)) > 0
+    """
+    Returns true if host1 == host2 OR map to the same host (using DNS)
+    """
+
+    if host1 == host2:
+        return True
+    else:
+        ips1 = get_host_ips(host1)
+        ips2 = get_host_ips(host2)
+        return len(set(ips1) & set(ips2)) > 0
 
 ###############################################################################
 def get_host_ips(host):
@@ -4130,8 +4137,10 @@ class ReplicaSetCluster(DocumentWrapper):
 
         for mem_conf in member_confs:
             if get_document_property(mem_conf, '_id') is None :
-                member_id = self.get_member_id_if_exists(mem_conf,
-                    current_member_confs)
+                member_id = self.match_member_id(mem_conf,
+                                                 current_member_confs)
+
+                # if there is no match then use increment
                 if member_id is None:
                     member_id = new_id
                     new_id = new_id + 1
@@ -4139,12 +4148,18 @@ class ReplicaSetCluster(DocumentWrapper):
                 mem_conf['_id'] = member_id
 
     ###########################################################################
-    def get_member_id_if_exists(self, member_conf, current_member_confs):
+    def match_member_id(self, member_conf, current_member_confs):
+        """
+        Attempts to find an id for member_conf where fom current members confs
+        there exists a element.
+        Returns the id of an element of current confs
+        WHERE member_conf.host and element.host are EQUAL or map to same host
+        """
         if current_member_confs is None:
             return None
 
         for curr_mem_conf in current_member_confs:
-            if member_conf['host'] == curr_mem_conf['host']:
+            if is_same_host(member_conf['host'], curr_mem_conf['host']):
                 return curr_mem_conf['_id']
 
         return None
