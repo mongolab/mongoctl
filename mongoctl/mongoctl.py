@@ -2760,6 +2760,17 @@ def is_same_host(host1, host2):
         return len(set(ips1) & set(ips2)) > 0
 
 ###############################################################################
+def is_same_address(addr1, addr2):
+    """
+    Where the two addresses are in the host:port
+    Returns true if ports are equals and hosts are the same using is_same_host
+    """
+    hostport1 = addr1.split(":")
+    hostport2 = addr2.split(":")
+
+    return (is_same_host(hostport1[0], hostport2[0]) and
+            hostport1[1] == hostport2[1])
+###############################################################################
 def get_host_ips(host):
     ips = []
     addr_info = socket.getaddrinfo(host, None)
@@ -4159,7 +4170,7 @@ class ReplicaSetCluster(DocumentWrapper):
             return None
 
         for curr_mem_conf in current_member_confs:
-            if is_same_host(member_conf['host'], curr_mem_conf['host']):
+            if is_same_address(member_conf['host'], curr_mem_conf['host']):
                 return curr_mem_conf['_id']
 
         return None
