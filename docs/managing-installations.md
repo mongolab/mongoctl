@@ -1,8 +1,7 @@
 Managing MongoDB installations
 --------------------
 
-```mongoctl``` allows you to manage multiple versions of MongoDB. When you first install ```mongoctl```, it will install the
-latest stable version of MongoDB. You can later install (and uninstall) other versions using the 
+```mongoctl``` allows you to manage multiple versions of MongoDB. You can install (and uninstall) different versions using the 
 [```mongoctl install```](command-reference.md#install) and 
 [```mongoctl uninstall```](command-reference.md#uninstall) commands respecively. At any time you can see what versions 
 of MongoDB are currently installed using [```mongoctl list-versions```](command-reference.md#list-versions).
