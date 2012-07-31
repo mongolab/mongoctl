@@ -36,7 +36,7 @@ from mongoctl import mongoctl
 ###############################################################################
 # Constants
 ###############################################################################
-TESTING_DB_DIR = "mongoctltest_dbs"
+MONGOCTL_TEST_DBS_DIR_ENV = "MONGOCTL_TEST_DIR"
 
 ###############################################################################
 # Base test class
@@ -45,26 +45,30 @@ class MongoctlTestBase(unittest.TestCase):
 
     ###########################################################################
     def setUp(self):
+        # set the test dir env
+        test_dir = self.get_test_dbs_dir()
+        os.environ[MONGOCTL_TEST_DBS_DIR_ENV] = test_dir
         # assure that the testing dir does not exist
-        print "--- Creating test db directory %s " % TESTING_DB_DIR
-        if os.path.exists(TESTING_DB_DIR):
+        print "--- Creating test db directory %s " % test_dir
+        if os.path.exists(test_dir):
             print ("Warning: %s already exists. Deleting and creating"
-                   " again..." % TESTING_DB_DIR)
-            shutil.rmtree(TESTING_DB_DIR)
+                   " again..." % test_dir)
+            shutil.rmtree(test_dir)
 
-        os.makedirs(TESTING_DB_DIR)
+        os.makedirs(test_dir)
 
         # cleanup pids before running
         self.cleanup_test_server_pids()
 
     ###########################################################################
     def tearDown(self):
+        test_dir = self.get_test_dbs_dir()
         print "Tearing down: Cleaning up all used resources..."
         # delete the database dir when done
         self.cleanup_test_server_pids()
 
-        print "--- Deleting the test db directory %s " % TESTING_DB_DIR
-        shutil.rmtree(TESTING_DB_DIR)
+        print "--- Deleting the test db directory %s " % test_dir
+        shutil.rmtree(test_dir)
 
     ###########################################################################
     def cleanup_test_server_pids(self):
@@ -162,3 +166,7 @@ class MongoctlTestBase(unittest.TestCase):
         tests_pkg_path = os.path.dirname(
             inspect.getfile(inspect.currentframe()))
         return os.path.join(tests_pkg_path, "testing_conf")
+
+    ###########################################################################
+    def get_test_dbs_dir(self):
+        return os.path.join(self.get_testing_conf_root(), "mongoctltest_dbs")

@@ -393,7 +393,7 @@ def start_server(server_id, options_override=None, rs_add=False):
                     rs_add=rs_add)
 
 ###############################################################################
-__mongod_process__ = None
+__mongod_pid__ = None
 __current_server__ = None
 
 ###############################################################################
@@ -423,7 +423,7 @@ def do_start_server(server, options_override=None, rs_add=False):
     else:
         log_server_activity(server, "start")
 
-    mongod_process = start_server_process(server,options_override)
+    mongod_pid = start_server_process(server,options_override)
 
     maybe_config_server_repl_set(server, rs_add=rs_add)
 
@@ -433,7 +433,7 @@ def do_start_server(server, options_override=None, rs_add=False):
         log_error("Unable to fully prepare server '%s'. Cause: %s \n"
                   "Stop server now if more preparation is desired..." %
                   (server.get_id(), e))
-        if shall_we_terminate(mongod_process):
+        if shall_we_terminate(mongod_pid):
             return
 
     if is_my_repo:
@@ -448,7 +448,7 @@ def do_start_server(server, options_override=None, rs_add=False):
     # this block will be executed. Almost never...
 
     if not is_forking(server, options_override):
-        mongod_process.communicate()
+        communicate_to_child_process(mongod_pid)
 
 ###############################################################################
 def maybe_config_server_repl_set(server, rs_add=False):
@@ -510,19 +510,35 @@ def _start_server_process_4real(server, options_override=None):
     if is_forking(server, options_override):
         child_process_out = subprocess.PIPE
 
-    global __mongod_process__
+    global __mongod_pid__
     global __current_server__
 
-    __mongod_process__ = create_subprocess(start_cmd,
-                                           stdout=child_process_out,
-                                           preexec_fn=server_process_preexec)
+    parent_mongod = create_subprocess(start_cmd,
+                                      stdout=child_process_out,
+                                      preexec_fn=server_process_preexec)
+
+
+    
+    if is_forking(server, options_override):
+        __mongod_pid__ = get_forked_mongod_pid(parent_mongod)
+    else:
+        __mongod_pid__ = parent_mongod.pid
+
     __current_server__ = server
-    return __mongod_process__
+    return __mongod_pid__
 
+###############################################################################
+def get_forked_mongod_pid(parent_mongod):
+    output = parent_mongod.communicate()[0]
+    pid_re_expr = "forked process: ([0-9]+)"
+    pid_str = re.search(pid_re_expr, output).groups()[0]
 
+    return int(pid_str)
+
+###############################################################################
 def start_server_process(server,options_override=None):
 
-    mongod_process = _start_server_process_4real(server, options_override)
+    mongod_pid = _start_server_process_4real(server, options_override)
 
     log_info("Will now wait for server '%s' to start up."
              " Enjoy mongod's log for now!" %
@@ -536,7 +552,7 @@ def start_server_process(server,options_override=None):
     log_tailer = tail_server_log(server)
     # wait until the server starts
     try:
-        is_online = wait_for(server_started_predicate(server,mongod_process),
+        is_online = wait_for(server_started_predicate(server, mongod_pid),
                              timeout=300)
     finally:
         # stop tailing
@@ -553,9 +569,9 @@ def start_server_process(server,options_override=None):
                                 server.get_id())
 
     log_info("Server '%s' started successfully! (pid=%s)\n" %
-             (server.get_id(),get_server_pid(server)))
+             (server.get_id(), mongod_pid))
 
-    return mongod_process
+    return mongod_pid
 
 ###############################################################################
 def server_process_preexec():
@@ -641,9 +657,9 @@ def stop_tailing(log_tailer):
         log_verbose("Failed to kill tail subprocess. Cause: %s" % e)
 
 ###############################################################################
-def shall_we_terminate(mongod_process):
+def shall_we_terminate(mongod_pid):
     def killit():
-        mongod_process.terminate()
+        kill_process(mongod_pid, force=true)
         log_info("Server process terminated at operator behest.")
 
     (condemned, _) = prompt_execute_task("Kill server now?", killit)
@@ -659,10 +675,6 @@ def dry_run_start_server_cmd(server_id, options_override=None):
 
     start_cmd = generate_start_command(server, options_override)
     start_cmd_str = " ".join(start_cmd)
-
-    log_info("\nPlease note:")
-    log_info("The following command will run mongod in the foreground. To run "
-             "it in the background as mongoctl does, please append --fork.")
 
     log_info("\nCommand:")
     log_info("%s\n" % start_cmd_str)
@@ -1328,10 +1340,10 @@ def server_stopped_predicate(server, pid):
     return server_stopped
 
 ###############################################################################
-def server_started_predicate(server, mongod_process):
+def server_started_predicate(server, mongod_pid):
     def server_started():
         # check if the command failed
-        if mongod_process.poll() is not None:
+        if not is_pid_alive(mongod_pid):
             raise MongoctlException("Could not start the server. Please check"
                                     " the log file.")
 
@@ -1634,6 +1646,7 @@ def generate_start_command(server, options_override=None):
     # set the logpath if forking..
 
     if is_forking(server, options_override):
+        cmd_options['fork'] = True
         set_document_property_if_missing(
             cmd_options,
             "logpath",
@@ -1658,10 +1671,7 @@ def generate_start_command(server, options_override=None):
     # apply the options override
     if options_override is not None:
         for (option_name,option_val) in options_override.items():
-            # TODO: ignoring fork because we never use --fork
-            # well fork should not be in options override to begin with
-            if option_name != 'fork':
-                cmd_options[option_name] = option_val
+            cmd_options[option_name] = option_val
 
 
     command.extend(options_to_command_args(cmd_options))
@@ -1673,9 +1683,6 @@ def options_to_command_args(args):
     command_args=[]
 
     for (arg_name,arg_val) in sorted(args.iteritems()):
-        # TODO: better way of ignoring fork( we never use mogod  with --fork
-        if arg_name == 'fork':
-            continue
             # append the arg name and val as needed
         if not arg_val:
             continue
@@ -2650,6 +2657,17 @@ def create_subprocess(command, **kwargs):
     return child_process
 
 ###############################################################################
+def communicate_to_child_process(child_pid):
+    get_child_process(child_pid).communicate()
+
+###############################################################################
+def get_child_process(child_pid):
+    global __child_subprocesses__
+    for child_process in __child_subprocesses__:
+        if child_process.pid == child_pid:
+            return child_process
+
+###############################################################################
 def is_pid_alive(pid):
 
     try:
@@ -2704,7 +2722,7 @@ def get_numactl_exe():
 ###############################################################################
 
 def mongoctl_signal_handler(signal_val, frame):
-    global __mongod_process__
+    global __mongod_pid__
 
     # otherwise prompt to kill server
     global __child_subprocesses__
@@ -2725,7 +2743,7 @@ def mongoctl_signal_handler(signal_val, frame):
         exit(0)
 
         # if there is no mongod server yet then exit
-    if __mongod_process__ is None:
+    if __mongod_pid__ is None:
         exit_mongoctl()
     else:
         prompt_execute_task("Kill server '%s'?" % __current_server__.get_id(),
