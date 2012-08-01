@@ -30,6 +30,7 @@ import inspect
 import os
 import shutil
 import mongoctl
+import traceback
 
 from mongoctl import mongoctl
 
@@ -143,6 +144,8 @@ class MongoctlTestBase(unittest.TestCase):
         except Exception, e:
             print("Error while executing test command '%s'. Cause: %s " %
                   (cmd, e))
+            print "================= STACK TRACE ================"
+            traceback.print_exc()
             print "Failing..."
             self.fail()
 

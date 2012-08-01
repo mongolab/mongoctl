@@ -2791,13 +2791,17 @@ def is_same_address(addr1, addr2):
             hostport1[1] == hostport2[1])
 ###############################################################################
 def get_host_ips(host):
-    ips = []
-    addr_info = socket.getaddrinfo(host, None)
-    for elem in addr_info:
-        ip = elem[4]
-        if ip not in ips:
-            ips.append(ip)
-    return ips
+    try:
+
+        ips = []
+        addr_info = socket.getaddrinfo(host, None)
+        for elem in addr_info:
+            ip = elem[4]
+            if ip not in ips:
+                ips.append(ip)
+        return ips
+    except Exception, e:
+        raise MongoctlException("Invalid host '%s'. Cause: %s" % (host, e))
 
 ###############################################################################
 # Utility Methods
@@ -3797,9 +3801,10 @@ class ReplicaSetClusterMember(DocumentWrapper):
 
     ###########################################################################
     def validate(self):
-        # validate host if exists
         host_conf = self.get_property("host")
         server_conf = self.get_property("server")
+
+        # ensure that 'server' or 'host' are configured
 
         if server_conf is None and host_conf is None:
             msg = ("Invalid member configuration:\n%s \n"
@@ -3807,12 +3812,14 @@ class ReplicaSetClusterMember(DocumentWrapper):
                    document_pretty_string(self.get_document()))
             raise MongoctlException(msg)
 
+        # validate host if set
         if host_conf and not is_valid_member_address(host_conf):
             msg = ("Invalid 'host' value in member:\n%s \n"
                    "Please make sure 'host' is in the 'address:port' form" %
                    document_pretty_string(self.get_document()))
             raise MongoctlException(msg)
 
+        # validate server if set
         server = self.get_server()
         if server is None:
             msg = ("Invalid 'server' value in member:\n%s \n"
@@ -3826,6 +3833,84 @@ class ReplicaSetClusterMember(DocumentWrapper):
                                     "'%s'. address property is not set." %
                                     (server.get_id()))
 
+    ###########################################################################
+    def validate_against_current_config(self, current_rs_conf):
+        """
+        Validates the member document against current rs conf
+            1- If there is a member in current config with _id equals to my id
+                then ensure hosts addresses resolve to the same host
+
+            2- If there is a member in current config with host resolving to my
+               host then ensure that if my id is et then it
+               must equal member._id
+
+        """
+
+        # if rs is not configured yet then there is nothing to validate
+        if not current_rs_conf:
+            return
+
+        my_host = self.get_host()
+        current_member_confs = current_rs_conf['members']
+        err = None
+        for curr_mem_conf in current_member_confs:
+            if (self.get_id() and
+                self.get_id() == curr_mem_conf['_id'] and
+                not is_same_address(my_host, curr_mem_conf['host'])):
+                err = ("Member config is not consistent with current rs "
+                       "config. \n%s\n. Both have the sam _id but addresses"
+                       " '%s' and '%s' do not resolve to the same host." %
+                       (document_pretty_string(curr_mem_conf),
+                        my_host, curr_mem_conf['host'] ))
+
+            elif (is_same_address(my_host, curr_mem_conf['host']) and
+                self.get_id() and
+                self.get_id() != curr_mem_conf['_id']):
+                err = ("Member config is not consistent with current rs "
+                       "config. \n%s\n. Both addresses"
+                       " '%s' and '%s' resolve to the same host but _ids '%s'"
+                       " and '%s' are not equal." %
+                       (document_pretty_string(curr_mem_conf),
+                        my_host, curr_mem_conf['host'],
+                        self.get_id(), curr_mem_conf['_id']))
+
+        if err:
+            raise MongoctlException("Invalid member configuration:\n%s \n%s" %
+                                    (self, err))
+
+
+    ###########################################################################
+    def validate_against_other(self, other_member):
+        err = None
+        # validate _id uniqueness
+        if self.get_id() and self.get_id() == other_member.get_id():
+            err = ("Duplicate '_id' ('%s') found in a different member." %
+                   self.get_id())
+
+        # validate server uniqueness
+        elif (self.get_property('server') and
+              self.get_server().get_id() == other_member.get_server().get_id()):
+            err = ("Duplicate 'server' ('%s') found in a different member." %
+                   self.get_server().get_id())
+        else:
+
+            # validate host uniqueness
+            h1 = self.get_host()
+            h2 = other_member.get_host()
+
+            try:
+
+                if is_same_address(h1, h2):
+                    err = ("Duplicate 'host' found. Host in '%s' and "
+                            "'%s' map to the same host." % (h1, h2))
+
+            except Exception, e:
+                err = "%s" % e
+
+        if err:
+            raise MongoctlException("Invalid member configuration:\n%s \n%s" %
+                                    (self, err))
+
 ###############################################################################
 def is_valid_member_address(address):
     if address is None:
@@ -3836,6 +3921,7 @@ def is_valid_member_address(address):
             and host_port[0]
             and host_port[1]
             and str(host_port[1]).isdigit())
+
 ###############################################################################
 # ReplicaSet Cluster Class
 ###############################################################################
@@ -4121,15 +4207,29 @@ class ReplicaSetCluster(DocumentWrapper):
         return len(filter(server_predicate, self.get_members())) > 0
 
     ###########################################################################
-    def get_all_members_configs(self, validate_members=True):
-
+    def get_all_members_configs(self, current_rs_conf):
         member_configs = []
         for member in self.get_members():
-            if validate_members:
-                member.validate()
             member_configs.append(member.get_member_repl_config())
 
         return member_configs
+
+    ###########################################################################
+    def validate_members(self, current_rs_conf):
+
+        members = self.get_members()
+        length = len(members)
+        for i in range(0, length):
+            member = members[i]
+            # basic validation
+            member.validate()
+            # validate member against other members
+            for j in range(i+1, length):
+               member.validate_against_other(members[j])
+
+            # validate members against current config
+            member.validate_against_current_config(current_rs_conf)
+
 
     ###########################################################################
     def make_replset_config(self,
@@ -4137,19 +4237,19 @@ class ReplicaSetCluster(DocumentWrapper):
                             add_server=None,
                             current_rs_conf=None):
 
+        # validate members first
+        self.validate_members(current_rs_conf)
         member_confs = None
         if add_server is not None:
             member = self.get_member_for(add_server)
-            member.validate()
             member_confs = []
             member_confs.extend(current_rs_conf['members'])
             member_confs.append(member.get_member_repl_config())
         elif only_for_server is not None:
             member = self.get_member_for(only_for_server)
-            member.validate()
             member_confs = [member.get_member_repl_config()]
         else:
-            member_confs = self.get_all_members_configs()
+            member_confs = self.get_all_members_configs(current_rs_conf)
 
         # populate member ids when needed
         self.populate_member_conf_ids(member_confs, current_rs_conf)
