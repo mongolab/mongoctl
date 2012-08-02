@@ -3,7 +3,7 @@ Connecting to servers with the mongo shell
 
 The [```mongoctl connect```](command-reference.md#connect) command is a convenience wrapper 
 around the ```mongo``` shell. The main conveniences are the ability to pass server or 
-cluster ```_id```s to the ```connect``` command (e.g. ```mongoctl connect SampleServer```), and 
+cluster ```_id```s to the ```connect``` command (e.g. ```mongoctl connect MyServer```), and
 support for standard MongoDB URIs as a way of specifying connection addresses. 
 
 ```

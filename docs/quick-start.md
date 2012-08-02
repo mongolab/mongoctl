@@ -32,23 +32,23 @@ defined we use the ```list-servers``` command:
 --------------------------------------------------------------------------------
 _id                        address                   description
 --------------------------------------------------------------------------------
-SampleClusterServer1       localhost:28017           Sample cluster member
-SampleClusterServer2       localhost:28027           Sample cluster member
-SampleClusterArbiter       localhost:28037           Sample arbiter
-SampleServer               localhost:27017           Sample server (single mongod)
+MyClusterServer1       localhost:28017           My cluster member
+MyClusterServer2       localhost:28027           My cluster member
+MyClusterArbiter       localhost:28037           My arbiter
+MyServer               localhost:27017           My server (single mongod)
 ```
 
-You can look at the details of the server configuration for ```SampleServer``` like this:
+You can look at the details of the server configuration for ```MyServer``` like this:
 
 ```
-% mongoctl show-server SampleServer
+% mongoctl show-server MyServer
 
-Configuration for server 'SampleServer':
+Configuration for server 'MyServer':
 {
-    "_id": "SampleServer"
+    "_id": "MyServer"
     "cmdOptions": {
         "port": 27017, 
-        "dbpath": "~/mongodb-data/sample-server"
+        "dbpath": "~/mongodb-data/my-server"
     }
 }
 ```
@@ -56,21 +56,21 @@ Configuration for server 'SampleServer':
 #### Start the server
 
 ```
-% mongoctl start SampleServer             
+% mongoctl start MyServer             
 
-Checking to see if server 'SampleServer' is already running before starting it...
+Checking to see if server 'MyServer' is already running before starting it...
 Using mongod at '/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod'...
-Starting server 'SampleServer' for the first time...
+Starting server 'MyServer' for the first time...
 
 Executing command:
-/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/mongodb-data/sample-server --logpath /Users/abdul/mongodb-data/sample-server/mongodb.log --pidfilepath /Users/abdul/mongodb-data/sample-server/pid.txt --port 27017
+/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/mongodb-data/my-server --logpath /Users/abdul/mongodb-data/my-server/mongodb.log --pidfilepath /Users/abdul/mongodb-data/my-server/pid.txt --port 27017
 
 <lots of stuff>
 
-Server 'SampleServer' started successfully! (pid=50877)
+Server 'MyServer' started successfully! (pid=50877)
 
-Preparing server 'SampleServer' for use as configured...
-Checking if there are any users that need to be added for server 'SampleServer'...
+Preparing server 'MyServer' for use as configured...
+Checking if there are any users that need to be added for server 'MyServer'...
 No users configured for admin DB...
 Did not add any new users.
 ```
@@ -78,9 +78,9 @@ Did not add any new users.
 #### Check the status
 
 ```
-% mongoctl status SampleServer
+% mongoctl status MyServer
 
-Status for server 'SampleServer':
+Status for server 'MyServer':
 {
     "connection": true, 
     "serverStatusSummary": {
@@ -93,9 +93,9 @@ Status for server 'SampleServer':
 #### Connect 
 
 ```
-% mongoctl connect SampleServer    
+% mongoctl connect MyServer    
 
-Connecting to server 'SampleServer'...
+Connecting to server 'MyServer'...
 Using mongo at '/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongo'...
 MongoDB shell version: 2.0.5
 connecting to: 127.0.0.1:27017/test
@@ -105,10 +105,10 @@ connecting to: 127.0.0.1:27017/test
 ### Stop the server
 
 ```
-% mongoctl stop SampleServer              
+% mongoctl stop MyServer              
 
-Checking to see if server 'SampleServer' is actually running before stopping it...
-Stopping server 'SampleServer' (PID=50877) ...
+Checking to see if server 'MyServer' is actually running before stopping it...
+Stopping server 'MyServer' (PID=50877) ...
 
 Sending the following command to 127.0.0.1:27017:
 {
@@ -116,9 +116,9 @@ Sending the following command to 127.0.0.1:27017:
     "force": false
 }
 
-Will now wait for server 'SampleServer' to stop.
+Will now wait for server 'MyServer' to stop.
 -- waiting --
-Server 'SampleServer' has stopped.
+Server 'MyServer' has stopped.
 ```
 
 Replica-set cluster example
@@ -132,14 +132,14 @@ Here we show how you configure and start a replica-set cluster.
 -------------------------------------------------------------------------------------------------------------
 _id             members                                                           description            
 -------------------------------------------------------------------------------------------------------------
-SampleCluster   [ SampleClusterServer1, SampleClusterServer2, SampleArbiter ]     A 2 + arbiter replica-set
+MyCluster   [ MyClusterServer1, MyClusterServer2, MyArbiter ]     A 2 + arbiter replica-set
 ```
 
 ```
-% mongoctl show-cluster SampleCluster
+% mongoctl show-cluster MyCluster
 
 {
-    "_id": "SampleCluster", 
+    "_id": "MyCluster", 
     
     "description" : "A 2 + arbiter replica-set",
     
@@ -147,20 +147,20 @@ SampleCluster   [ SampleClusterServer1, SampleClusterServer2, SampleArbiter ]   
         {
             "server": {
                 "$ref": "servers", 
-                "$id": "SampleClusterServer1"
+                "$id": "MyClusterServer1"
             }
         }, 
         {
             "server": {
                 "$ref": "servers", 
-                "$id": "SampleClusterServer2"
+                "$id": "MyClusterServer2"
             }
         }, 
         {
             "arbiterOnly": true, 
             "server": {
                 "$ref": "servers", 
-                "$id": "SampleArbiter"
+                "$id": "MyArbiter"
             }
         }
     ]
@@ -174,22 +174,22 @@ would like to initialize the replica-set with this server. You can say no, but h
 
 
 ```
-% mongoctl start SampleClusterServer1
+% mongoctl start MyClusterServer1
 
-Checking to see if server 'SampleClusterServer1' is already running before starting it...
+Checking to see if server 'MyClusterServer1' is already running before starting it...
 Using mongod at '/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod'...
-Validating cluster 'SampleCluster'...
-Starting server 'SampleClusterServer1' for the first time...
+Validating cluster 'MyCluster'...
+Starting server 'MyClusterServer1' for the first time...
 
 Executing command:
-/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/sample-cluster-server1 --directoryperdb --logpath /Users/abdul/sample-cluster-server1/mongodb.log --pidfilepath /Users/abdul/sample-cluster-server1/pid.txt --port 28017 --replSet SampleCluster
+/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/my-cluster-server1 --directoryperdb --logpath /Users/abdul/my-cluster-server1/mongodb.log --pidfilepath /Users/abdul/my-cluster-server1/pid.txt --port 28017 --replSet MyCluster
 
 <lots of stuff>
 
-Server 'SampleClusterServer1' started successfully! (pid=50908)
+Server 'MyClusterServer1' started successfully! (pid=50908)
 
-Replica set cluster 'SampleCluster' has not been initialized yet.
-Do you want to initialize replica set cluster 'SampleCluster' using server 'SampleClusterServer1'? [y/n] y
+Replica set cluster 'MyCluster' has not been initialized yet.
+Do you want to initialize replica set cluster 'MyCluster' using server 'MyClusterServer1'? [y/n] y
 
 <lots of stuff>
 ```
@@ -197,9 +197,9 @@ Do you want to initialize replica set cluster 'SampleCluster' using server 'Samp
 Now we have a running replica-set with one node: 
 
 ```
-% mongoctl status SampleClusterServer1 
+% mongoctl status MyClusterServer1 
 
-Status for server 'SampleClusterServer1':
+Status for server 'MyClusterServer1':
 {
     "connection": true, 
     "serverStatusSummary": {
@@ -221,21 +221,21 @@ Status for server 'SampleClusterServer1':
 Next we start the second server and add it to the replica-set when prompted:
 
 ```
-% mongoctl start SampleClusterServer2
+% mongoctl start MyClusterServer2
 
-Checking to see if server 'SampleClusterServer2' is already running before starting it...
+Checking to see if server 'MyClusterServer2' is already running before starting it...
 Using mongod at '/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod'...
-Validating cluster 'SampleCluster'...
-Starting server 'SampleClusterServer2' for the first time...
+Validating cluster 'MyCluster'...
+Starting server 'MyClusterServer2' for the first time...
 
 Executing command:
-/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/sample-cluster-server2 --directoryperdb --logpath /Users/abdul/sample-cluster-server2/mongodb.log --pidfilepath /Users/abdul/sample-cluster-server2/pid.txt --port 28027 --replSet SampleCluster
+/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/my-cluster-server2 --directoryperdb --logpath /Users/abdul/my-cluster-server2/mongodb.log --pidfilepath /Users/abdul/my-cluster-server2/pid.txt --port 28027 --replSet MyCluster
 
 <lots of stuff>
 
-Server 'SampleClusterServer2' started successfully! (pid=50913)
+Server 'MyClusterServer2' started successfully! (pid=50913)
 
-Do you want to add server 'SampleClusterServer2' to replica set cluster 'SampleCluster'? [y/n] y
+Do you want to add server 'MyClusterServer2' to replica set cluster 'MyCluster'? [y/n] y
 
 <lots of stuff>
 ```
@@ -245,21 +245,21 @@ Do you want to add server 'SampleClusterServer2' to replica set cluster 'SampleC
 Finally, we add the arbiter. 
 
 ```
-% mongoctl start SampleArbiter       
+% mongoctl start MyArbiter       
 
-Checking to see if server 'SampleArbiter' is already running before starting it...
+Checking to see if server 'MyArbiter' is already running before starting it...
 Using mongod at '/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod'...
-Validating cluster 'SampleCluster'...
-Starting server 'SampleArbiter' for the first time...
+Validating cluster 'MyCluster'...
+Starting server 'MyArbiter' for the first time...
 
 Executing command:
-/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/sample-arbiter --directoryperdb --logpath /Users/abdul/sample-arbiter/mongodb.log --pidfilepath /Users/abdul/sample-arbiter/pid.txt --port 28037 --replSet SampleCluster
+/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/my-arbiter --directoryperdb --logpath /Users/abdul/my-arbiter/mongodb.log --pidfilepath /Users/abdul/my-arbiter/pid.txt --port 28037 --replSet MyCluster
 
 <lots of stuff>
 
-Server 'SampleArbiter' started successfully! (pid=50918)
+Server 'MyArbiter' started successfully! (pid=50918)
 
-Do you want to add server 'SampleArbiter' to replica set cluster 'SampleCluster'? [y/n] y
+Do you want to add server 'MyArbiter' to replica set cluster 'MyCluster'? [y/n] y
  
 <lots of stuff>
 ```
@@ -267,7 +267,7 @@ Do you want to add server 'SampleArbiter' to replica set cluster 'SampleCluster'
 You now have a fully operational replica-set cluster you can connect to:
 
 ```
-% mongoctl connect SampleClusterServer1
+% mongoctl connect MyClusterServer1
 
 Using mongo at '/Users/abdul/mongodb/mongodb-osx-x86_64-2.0.6/bin/mongo'...
 Executing command: 
