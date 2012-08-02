@@ -304,7 +304,7 @@ def connect_command(parsed_options):
 ###############################################################################
 def tail_log_command(parsed_options):
     server = lookup_server(parsed_options.server)
-    validate_local_op(server, "tail")
+    validate_local_op(server, "tail-log")
     log_path = server.get_log_file_path()
     # check if log file exists
     if os.path.exists(log_path):
