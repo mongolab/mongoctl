@@ -305,8 +305,13 @@ def connect_command(parsed_options):
 def tail_log_command(parsed_options):
     server = lookup_server(parsed_options.server)
     validate_local_op(server, "tail")
-    log_tailer = tail_server_log(server)
-    log_tailer.communicate()
+    log_path = server.get_log_file_path()
+    # check if log file exists
+    if os.path.exists(log_path):
+        log_tailer = tail_server_log(server)
+        log_tailer.communicate()
+    else:
+        log_info("Log file '%s' does not exist." % log_path)
 
 ###############################################################################
 # configure cluster command
