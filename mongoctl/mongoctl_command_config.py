@@ -900,6 +900,23 @@ MONGOCTL_PARSER_DEF = {
 
             ]
         },
+        #### tail-log ####
+            {
+            "prog": "tail-log",
+            "group": "serverCommands",
+            "shortDescription" : "Tails server's log file",
+            "description" : "Tails server's log file. Works only on local host",
+            "function": "mongoctl.mongoctl.tail_log_command",
+            "args": [
+                    {
+                    "name": "server",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "displayName": "SERVER_ID",
+                    "help": "a valid server id"
+                }
+            ]
+        },
         #### configure-cluster ####
             {
             "prog": "configure-cluster",

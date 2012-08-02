@@ -300,6 +300,15 @@ def connect_command(parsed_options):
                         js_files=parsed_options.jsFiles)
 
 ###############################################################################
+# tail log command
+###############################################################################
+def tail_log_command(parsed_options):
+    server = lookup_server(parsed_options.server)
+    validate_local_op(server, "tail")
+    log_tailer = tail_server_log(server)
+    log_tailer.communicate()
+
+###############################################################################
 # configure cluster command
 ###############################################################################
 def configure_cluster_command(parsed_options):
