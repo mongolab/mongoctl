@@ -107,6 +107,10 @@ MONGOCTL_PARSER_DEF = {
             {
             "name" :"clusterCommands",
             "display": "Cluster Commands"
+        },
+            {
+            "name" :"miscCommands",
+            "display": "Miscellaneous"
         }
     ],
 
@@ -1046,7 +1050,26 @@ MONGOCTL_PARSER_DEF = {
             "description" : "list all available MongoDB installations on"
                             " this machine",
             "function": "mongoctl.mongoctl.list_versions_command",
-        }
+        },
+        #### print-uri ####
+            {
+            "prog": "print-uri",
+            "group": "miscCommands",
+            "shortDescription" : "Prints MongoDB connection URI of the specified"
+                                 " server or clurter",
+            "description" : "Prints MongoDB connection URI of the specified"
+                            " server or clurter",
+            "function": "mongoctl.mongoctl.print_uri_command",
+            "args": [
+                    {
+                    "name": "id",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "displayName": "SERVER or CLUSTER ID",
+                    "help": "Server or cluster id"
+                }
+            ]
+            }
 
 
         ]
