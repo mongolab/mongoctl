@@ -908,7 +908,7 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "tail-log",
             "group": "serverCommands",
-            "shortDescription" : "Tails server's log file",
+            "shortDescription" : "tails a server's log file",
             "description" : "Tails server's log file. Works only on local host",
             "function": "mongoctl.mongoctl.tail_log_command",
             "args": [
@@ -1055,8 +1055,8 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "print-uri",
             "group": "miscCommands",
-            "shortDescription" : "Prints MongoDB connection URI of the specified"
-                                 " server or clurter",
+            "shortDescription" : "prints connection URI for a"
+                                 " server or cluster",
             "description" : "Prints MongoDB connection URI of the specified"
                             " server or clurter",
             "function": "mongoctl.mongoctl.print_uri_command",
