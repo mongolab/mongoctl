@@ -2182,6 +2182,7 @@ def version_obj(version_str):
 
     #clean version string
     try:
+        version_str = version_str.strip()
         version_str = version_str.replace("-pre-" , "-pre")
         return MongoctlNormalizedVersion(version_str)
     except Exception, e:
