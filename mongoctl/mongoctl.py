@@ -1034,15 +1034,12 @@ def open_mongo_shell_to_server(server,
             database = "admin"
 
     if server.needs_to_auth(database):
-        if not username:
-            username = read_input("Enter username for database"
-                                  " '%s':" % database)
-            password = getpass.getpass()
-        elif not password:
-            password = server.get_password_from_seed_users(database, username)
-
-        if not password:
-            password = getpass.getpass()
+        # authenticate, if auth fails then an exception will be raised
+        server.get_authenticate_db(database)
+        # get the username/password from login user
+        login_user = server.get_login_user(database)
+        username = login_user["username"]
+        password = login_user["password"]
 
     do_open_mongo_shell_to(server.get_connection_address(),
                            database,
@@ -1191,16 +1188,14 @@ def mongo_dump_server(server,
                       dump_options={}):
     validate_server(server)
 
-    if database and server.needs_to_auth(database):
-        if not username:
-            username = read_input("Enter username for database"
-                                  " '%s':" % database)
-            password = getpass.getpass()
-        elif not password:
-            password = server.get_password_from_seed_users(database, username)
-
-        if not password:
-            password = getpass.getpass()
+    # if no db specified then make sure we have access to admin db if needed
+    if not database and server.needs_to_auth("admin"):
+        username,password = server.login_and_get_user("admin")
+    elif database and server.needs_to_auth(database):
+        username,password = server.login_and_get_user(database)
+    else: # no need to pass credentials here
+        username = None
+        password = None
 
     do_mongo_dump(server.get_connection_host_address(),
                   server.get_port(),
@@ -3652,6 +3647,13 @@ class Server(DocumentWrapper):
         else:
             raise MongoctlException("Failed to authenticate"
                                     " to %s db" % dbname)
+    ###########################################################################
+    def login_and_get_user(self, database):
+        self.get_authenticate_db(database)
+        login_user = self.get_login_user(database)
+        username = login_user["username"]
+        password = login_user["password"]
+        return username, password
 
     ###########################################################################
     def is_valid_admin_login(self, username, password):
@@ -3742,7 +3744,8 @@ class Server(DocumentWrapper):
             status['connection'] = True
 
             can_admin = True
-            if (self.is_auth() and
+            if (admin and
+                self.is_auth() and
                 self.needs_to_auth("admin") and
                 not self.has_auth_to("admin")):
                 status['error'] = "Cannot authenticate"
@@ -3868,12 +3871,9 @@ class Server(DocumentWrapper):
         password = None
 
 
+        auth_success = False
 
-        if login_user is None:
-            username = read_input("Enter username for database '%s': " %
-                                  dbname)
-            password = read_password()
-        else:
+        if login_user:
             username = login_user["username"]
             if get_document_property(login_user, "password"):
                 password = login_user["password"]
@@ -3883,10 +3883,22 @@ class Server(DocumentWrapper):
                     password = read_password("Enter password for user '%s' for"
                                              " database '%s'" % (username,
                                                                  dbname))
+        # have three attempts to authenticate
+        for i in range(0,3):
+            if login_user is None:
+                username = read_input("Enter username for database '%s': " %
+                                      dbname)
+                password = read_password()
 
-        # memoize the login
-        self.set_login_user(dbname, username, password)
-        auth_success = db.authenticate(username,password)
+            # if auth success then exit loop and memoize login
+            auth_success = db.authenticate(username,password)
+            if auth_success:
+                self.set_login_user(dbname, username, password)
+                break
+            else:
+                log_error("Invalid login!")
+                login_user = None
+
         # keep track of is authed on our own because pymongo does not do that
         db.__dict__['is_authed'] = auth_success
         return auth_success
