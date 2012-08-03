@@ -1992,7 +1992,7 @@ def exact_exe_version_match(executable_name, exe_version_tuples, version):
 
     for mongo_exe,exe_version in exe_version_tuples:
         if exe_version == version:
-            return mongo_exe
+            return mongo_exe_object(mongo_exe, exe_version)
 
     return None
 
