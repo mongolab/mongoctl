@@ -118,7 +118,7 @@ VERSION_PREF_EXACT = 0
 VERSION_PREF_GREATER = 1
 VERSION_PREF_MAJOR_GE = 2
 VERSION_PREF_LATEST_STABLE = 3
-
+VERSION_PREF_EXACT_OR_MINOR = 4
 # Version support stuff
 MIN_SUPPORTED_VERSION = "1.8"
 REPL_KEY_SUPPORTED_VERSION = '2.0.0'
@@ -298,6 +298,17 @@ def connect_command(parsed_options):
                         password=parsed_options.password,
                         shell_options=shell_options,
                         js_files=parsed_options.jsFiles)
+
+
+###############################################################################
+# dump command
+###############################################################################
+def dump_command(parsed_options):
+    dump_options = extract_mongo_dump_options(parsed_options)
+    mongo_dump(parsed_options.dbAddress,
+               username=parsed_options.username,
+               password=parsed_options.password,
+               dump_options=dump_options)
 
 ###############################################################################
 # tail log command
@@ -1128,6 +1139,122 @@ def do_open_mongo_shell_to(address,
     connect_process.communicate()
 
 ###############################################################################
+# mongo_dump
+###############################################################################
+def mongo_dump(db_address,
+               username=None,
+               password=None,
+               dump_options={}):
+    if is_mongo_uri(db_address):
+        mongo_dump_uri(db_address, username, password, dump_options)
+        return
+
+    # db_address is an id string
+    id_path = db_address.split("/")
+    id = id_path[0]
+    database = id_path[1] if len(id_path) == 2 else None
+
+    server = lookup_server(id)
+    if server:
+        mongo_dump_server(server, database, username, password, dump_options)
+        return
+
+        # Unknown destination
+    raise MongoctlException("Unknown db address '%s'" % db_address)
+
+###############################################################################
+def mongo_dump_uri(uri,
+                   username=None,
+                   password=None,
+                   dump_options={}):
+    try:
+        uri_obj = uri_parser.parse_uri(uri)
+        node = uri_obj["nodelist"][0]
+        host = node[0]
+        port = node[1]
+        database = uri_obj["database"]
+        username = username if username else uri_obj["username"]
+        password = password if password else uri_obj["password"]
+        if not host:
+            raise MongoctlException("URI '%s' is missing a host." % uri)
+
+        do_mongo_dump(host, port,  database, username, password, dump_options)
+
+    except errors.ConfigurationError, e:
+        raise MongoctlException("Malformed URI '%s'. %s" % (uri, e))
+
+###############################################################################
+def mongo_dump_server(server,
+                      database=None,
+                      username=None,
+                      password=None,
+                      dump_options={}):
+    validate_server(server)
+
+    if database and server.needs_to_auth(database):
+        if not username:
+            username = read_input("Enter username for database"
+                                  " '%s':" % database)
+            password = getpass.getpass()
+        elif not password:
+            password = server.get_password_from_seed_users(database, username)
+
+        if not password:
+            password = getpass.getpass()
+
+    do_mongo_dump(server.get_connection_host_address(),
+                  server.get_port(),
+                  database,
+                  username,
+                  password,
+                  server.get_mongo_version(),
+                  dump_options)
+
+###############################################################################
+def do_mongo_dump(host,
+                  port,
+                  database=None,
+                  username=None,
+                  password=None,
+                  server_version=None,
+                  dump_options={}):
+
+
+    # create dump command with host and port
+    dump_cmd = [get_mongo_dump_executable(server_version),
+                "--host",
+                host,
+                "--port",
+                str(port)]
+
+    # database
+    if database:
+        dump_cmd.extend(["-d", database])
+
+    # username and password
+    if username:
+        dump_cmd.extend(["-u", username, "-p"])
+        if password:
+            dump_cmd.append(password)
+
+    # append shell options
+    if dump_options:
+        dump_cmd.extend(options_to_command_args(dump_options))
+
+
+    cmd_display =  dump_cmd[:]
+    # mask password
+    if username and password:
+        cmd_display[cmd_display.index("-p") + 1] =  "****"
+
+
+
+    log_info("Executing command: \n%s" % " ".join(cmd_display))
+    dump_process = create_subprocess(dump_cmd)
+
+    dump_process.communicate()
+
+###############################################################################
 def is_mongo_uri(str):
     return str and str.startswith("mongodb://")
 
@@ -1747,7 +1874,10 @@ def get_mongo_executable(server_version,
                                              version_check_pref=
                                              version_check_pref)
         if selected_exe is not None:
-            log_info("Using %s at '%s'..." % (executable_name, selected_exe))
+            log_info("Using %s at '%s' version '%s' ..." %
+                     (executable_name,
+                      selected_exe.path,
+                      selected_exe.version))
             return selected_exe
 
     ## ok nothing found at all. wtf case
@@ -1772,7 +1902,8 @@ def get_mongo_executable(server_version,
                                      install_compatible_mongodb)
         if result[0]:
             new_mongo_home = result[1]
-            return get_mongo_home_exe(new_mongo_home, executable_name)
+            new_exe =  get_mongo_home_exe(new_mongo_home, executable_name)
+            return mongo_exe_object(new_exe, version_obj(server_version))
 
 
 
@@ -1842,6 +1973,8 @@ def best_executable_match(executable_name,
         match_func = latest_stable_exe
     elif version_check_pref == VERSION_PREF_MAJOR_GE:
         match_func = major_ge_exe_version_match
+    elif version_check_pref == VERSION_PREF_EXACT_OR_MINOR:
+        match_func = exact_or_minor_exe_version_match
 
     return match_func(executable_name, exe_version_tuples, version)
 
@@ -1877,6 +2010,7 @@ def latest_stable_exe(executable_name, exe_version_tuples, version=None):
             stable_exes.append((mongo_exe, exe_version))
 
     return latest_exe(executable_name, stable_exes)
+
 ###############################################################################
 def latest_exe(executable_name, exe_version_tuples, version=None):
 
@@ -1886,7 +2020,9 @@ def latest_exe(executable_name, exe_version_tuples, version=None):
         # sort desc by version
     exe_version_tuples.sort(key=lambda t: t[1], reverse=True)
 
-    return exe_version_tuples[0][0]
+    exe = exe_version_tuples[0]
+    return mongo_exe_object(exe[0], exe[1])
+
 ###############################################################################
 def major_ge_exe_version_match(executable_name, exe_version_tuples, version):
     # find all compatible exes then return closet match (min version)
@@ -1901,7 +2037,47 @@ def major_ge_exe_version_match(executable_name, exe_version_tuples, version):
         return None
     # find the best fit
     compatible_exes.sort(key=lambda t: t[1])
-    return compatible_exes[-1][0]
+    exe = compatible_exes[-1]
+    return mongo_exe_object(exe[0], exe[1])
+
+###############################################################################
+def exact_or_minor_exe_version_match(executable_name,
+                                     exe_version_tuples,
+                                     version):
+    """
+    IF there is an exact match then use it
+     OTHERWISE try to find a minor version match
+    """
+    exe = exact_exe_version_match(executable_name,
+                                  exe_version_tuples,
+                                  version)
+
+    if not exe:
+        exe = minor_exe_version_match(executable_name,
+                                         exe_version_tuples,
+                                         version)
+    return exe
+
+###############################################################################
+def minor_exe_version_match(executable_name,
+                                     exe_version_tuples,
+                                     version):
+
+    # hold values in a list of (exe,version) tuples
+    compatible_exes = []
+    for mongo_exe,exe_version in exe_version_tuples:
+        # compatible ==> major + minor equality
+        if (exe_version.parts[0][0] == version.parts[0][0] and
+            exe_version.parts[0][1] == version.parts[0][1]):
+            compatible_exes.append((mongo_exe, exe_version))
+
+    # Return nothing if nothing compatible
+    if len(compatible_exes) == 0:
+        return None
+        # find the best fit
+    compatible_exes.sort(key=lambda t: t[1])
+    exe = compatible_exes[-1]
+    return mongo_exe_object(exe[0], exe[1])
 
 ###############################################################################
 def get_exe_version_tuples(executables):
@@ -1928,26 +2104,45 @@ def is_valid_mongo_exe(path):
 
 ###############################################################################
 def get_mongod_executable(server_version):
-    return get_mongo_executable(server_version,
-                                'mongod',
-                                version_check_pref=VERSION_PREF_EXACT,
-                                prompt_install=True)
+    mongod_exe = get_mongo_executable(server_version,
+                                      'mongod',
+                                       version_check_pref=VERSION_PREF_EXACT,
+                                       prompt_install=True)
+    return mongod_exe.path
 
+###############################################################################
 def get_mongo_shell_executable(server_version):
-    return get_mongo_executable(server_version,
-                                'mongo',
-                                version_check_pref=VERSION_PREF_MAJOR_GE,
-                                prompt_install=True)
+    shell_exe = get_mongo_executable(server_version,
+                                     'mongo',
+                                     version_check_pref=VERSION_PREF_MAJOR_GE,
+                                     prompt_install=True)
+    return shell_exe.path
 
+###############################################################################
+def get_mongo_dump_executable(server_version):
+    dump_exe = get_mongo_executable(server_version,
+                                    'mongodump',
+                                    version_check_pref=
+                                    VERSION_PREF_EXACT_OR_MINOR,
+                                    prompt_install=True)
+    # Warn the user if it is not an exact match (minor match)
+    if server_version and version_obj(server_version) != dump_exe.version:
+        log_warning("Using mongodump '%s' that does not exactly match"
+                    "server version '%s'" % (dump_exe.version, server_version))
+
+    return dump_exe.path
+
+###############################################################################
 def get_mongo_home_exe(mongo_home, executable_name):
     return os.path.join(mongo_home, 'bin', executable_name)
 
+###############################################################################
 def mongo_exe_version(mongo_exe):
     try:
         re_expr = "v?((([0-9]+)\.([0-9]+)\.([0-9]+))([^, ]*))"
         vers_spew = execute_command([mongo_exe, "--version"])
-        vers_grep = re.search(re_expr, vers_spew)
-        full_version = vers_grep.groups()[0]
+        vers_grep = re.findall(re_expr, vers_spew)
+        full_version = vers_grep[-1][0]
         result = version_obj(full_version)
         if result is not None:
             return result
@@ -1957,6 +2152,18 @@ def mongo_exe_version(mongo_exe):
     except Exception, e:
         raise MongoctlException("Unable to get mongo version of '%s'."
                   " Cause: %s" % (mongo_exe, e))
+
+###############################################################################
+class MongoExeObject():
+    pass
+
+###############################################################################
+def mongo_exe_object(exe_path, exe_version):
+    exe_obj = MongoExeObject()
+    exe_obj.path =  exe_path
+    exe_obj.version =  exe_version
+
+    return exe_obj
 
 ###############################################################################
 def is_valid_version(version_str):
@@ -3216,6 +3423,10 @@ class Server(DocumentWrapper):
             return None
 
     ###########################################################################
+    def get_connection_host_address(self):
+        return self.get_connection_address().split(":")[0]
+
+    ###########################################################################
     def set_address(self, address):
         self.set_property("address", address)
 
@@ -4452,6 +4663,11 @@ def extract_mongo_shell_options(parsed_args):
                                      SUPPORTED_MONGO_SHELL_OPTIONS)
 
 ###############################################################################
+def extract_mongo_dump_options(parsed_args):
+    return extract_mongo_exe_options(parsed_args,
+                                     SUPPORTED_MONGO_DUMP_OPTIONS)
+
+###############################################################################
 def extract_mongo_exe_options(parsed_args, supported_options):
     options_extract = {}
 
@@ -4534,6 +4750,19 @@ SUPPORTED_MONGO_SHELL_OPTIONS = [
     "verbose",
     "ipv6",
 ]
+
+SUPPORTED_MONGO_DUMP_OPTIONS = [
+    "dbpath",
+    "directoryperdb",
+    "journal",
+    "collection",
+    "out",
+    "query",
+    "oplog",
+    "repair",
+    "forceTableScan",
+    "ipv6"
+    ]
 
 
 ###############################################################################

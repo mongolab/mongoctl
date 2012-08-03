@@ -54,7 +54,7 @@ MONGOCTL_PARSER_DEF = {
             "action": "store_true",
             "default": False
         },
-        
+
         {
             "name": "yesToEverything",
             "type" : "optional",
@@ -919,6 +919,162 @@ MONGOCTL_PARSER_DEF = {
                     "displayName": "SERVER_ID",
                     "help": "a valid server id"
                 }
+            ]
+        },
+
+        #### dump ####
+            {
+            "prog": "dump",
+            "group": "clientCommands",
+            "shortDescription" : "Export MongoDB data to BSON files (using mongodump)",
+            "description" : "",
+            "function": "mongoctl.mongoctl.dump_command",
+            "args": [
+                    {
+                    "name": "dbAddress",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "displayName": "<db-address>",
+                    "help": "database addresses supported by mongoctl."
+                            " Check docs for more details."
+                },
+                    {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                    {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
+                },
+
+                    {
+                    "name": "verbose",
+                    "type" : "optional",
+                    "help": 'increase verbosity',
+                    "cmd_arg": [
+                        "-v",
+                        "--verbose"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "dbpath",
+                    "type" : "optional",
+                    "displayName": "DBPATH",
+                    "help": "directly access mongod database files in the given "
+                            "path, instead of connecting to a mongod  server -"
+                            " needs to lock the data directory, so cannot be used "
+                            "if a mongod is currently accessing the same path ",
+                    "cmd_arg": [
+                        "--dbpath"
+                    ],
+                    "nargs": 1
+                },
+
+                    {
+                    "name": "directoryperdb",
+                    "type" : "optional",
+                    "help": "if dbpath specified, each db is in a separate directory",
+                    "cmd_arg": [
+                        "--directoryperdb"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "journal",
+                    "type" : "optional",
+                    "help": "enable journaling",
+                    "cmd_arg": [
+                        "--journal"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "collection",
+                    "type" : "optional",
+                    "displayName": "COLLECTION",
+                    "help": "if dbpath specified, each db is in a separate directory",
+                    "cmd_arg": [
+                        "-c",
+                        "--collection"
+                    ],
+                    "nargs": 1
+                },
+
+                    {
+                    "name": "out",
+                    "type" : "optional",
+                    "displayName": "DIR",
+                    "help": "output directory or '-' for stdout",
+                    "cmd_arg": [
+                        "-o",
+                        "--out"
+                    ],
+                    "nargs": 1
+                },
+
+                    {
+                    "name": "query",
+                    "type" : "optional",
+                    "displayName": "QUERY",
+                    "help": "json query",
+                    "cmd_arg": [
+                        "-q",
+                        "--query"
+                    ],
+                    "nargs": 1
+                },
+
+                    {
+                    "name": "oplog",
+                    "type" : "optional",
+                    "help": " Use oplog for point-in-time snapshotting",
+                    "cmd_arg": [
+                        "--oplog"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "repair",
+                    "type" : "optional",
+                    "help": " try to recover a crashed database",
+                    "cmd_arg": [
+                        "--repair"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "forceTableScan",
+                    "type" : "optional",
+                    "help": " force a table scan (do not use $snapshot)",
+                    "cmd_arg": [
+                        "--forceTableScan"
+                    ],
+                    "nargs": 0
+                },
+                    {
+                    "name": "ipv6",
+                    "type" : "optional",
+                    "cmd_arg":  "--ipv6",
+                    "nargs": 0,
+                    "help": "enable IPv6 support (disabled by default)"
+                }
+
             ]
         },
         #### configure-cluster ####
