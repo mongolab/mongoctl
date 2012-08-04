@@ -4366,8 +4366,8 @@ class ReplicaSetCluster(DocumentWrapper):
                 raise MongoctlException(msg)
 
             if primary_member:
-                msg = ("Cluster '%s' has primary server '%s'. Proceed "
-                       "reconfiguring with server '%s'?" %
+                msg = ("Cluster '%s' currently has server '%s' as primary. Proceed "
+                       "with force-reconfigure on server '%s'?" %
                        (self.get_id(),
                         primary_member.get_server().get_id(),
                         force_primary_server.get_id()))
