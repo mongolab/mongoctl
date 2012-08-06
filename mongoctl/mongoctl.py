@@ -241,12 +241,25 @@ def restart_command(parsed_options):
 # status command TODO: parsed?
 ###############################################################################
 def status_command(parsed_options):
-    log_info("Status for server '%s':" % parsed_options.server)
     # we need to print status json to stdout so that its seperate from all
     # other messages that are printed on stderr. This is so scripts can read
     # status json and parse it if it needs
-    status = get_server_status(parsed_options.server,
-                                   parsed_options.statusVerbose)
+
+    id = parsed_options.id
+    status = None
+    server  = lookup_server(id)
+    if server:
+        log_info("Status for server '%s':" % id)
+        status =  server.get_status(admin=True)
+    else:
+        cluster = lookup_cluster(id)
+        if cluster:
+            log_info("Status for cluster '%s':" % id)
+            status = {"status": "TBD"}
+        else:
+            raise MongoctlException("Cannot find a server or a cluster with"
+                                    " id '%s'" % id)
+
     status_str = document_pretty_string(status)
     stdout_log(status_str)
     return status
@@ -918,13 +931,6 @@ def do_restart_server(server, options_override=None):
         log_info("Server '%s' is not running." % server.get_id())
 
     do_start_server(server, options_override)
-
-###############################################################################
-# get server status
-###############################################################################
-def get_server_status(server_id, verbose=False):
-    server  = lookup_and_validate_server(server_id)
-    return server.get_status(admin=True)
 
 ###############################################################################
 # Cluster Methods

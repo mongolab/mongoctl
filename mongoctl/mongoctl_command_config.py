@@ -731,15 +731,15 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "status",
             "group": "serverCommands",
-            "shortDescription" : "retrieve status of server",
-            "description" : "Retrieves the status of a server.",
+            "shortDescription" : "retrieve status of server or a cluster",
+            "description" : "Retrieves the status of a server or a cluster.",
             "function": "mongoctl.mongoctl.status_command",
             "args":[
-                    {   "name": "server",
+                    {   "name": "id",
                         "type" : "positional",
                         "nargs": 1,
-                        "displayName": "SERVER_ID",
-                        "help": "A valid server id"
+                        "displayName": "[SERVER OR CLUSTER ID]",
+                        "help": "A valid server or cluster id"
                 },
                     {   "name": "statusVerbose",
                         "type" : "optional",
