@@ -3575,11 +3575,6 @@ class Server(DocumentWrapper):
         }
 
     ###########################################################################
-    def has_users(self):
-        users = self.get_users()
-        return users is not None and len(users) > 0
-
-    ###########################################################################
     def get_admin_users(self):
         return self.get_db_seed_users("admin")
 
