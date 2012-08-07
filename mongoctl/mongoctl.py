@@ -775,7 +775,7 @@ def do_stop_server(server, force=False):
 
     pid = get_server_pid(server)
     pid_disp = pid if pid else "[Cannot be determined]"
-    log_info("Stopping server '%s' (pid=%s) ..." %
+    log_info("Stopping server '%s' (pid=%s)..." %
              (server.get_id(), pid_disp))
     # log server activity stop
     log_server_activity(server, "stop")
@@ -921,7 +921,7 @@ def resync_secondary(server_id):
 
     do_stop_server(server)
 
-    log_info("Deleting server's '%s' dbpath '%s' ..." %
+    log_info("Deleting server's '%s' dbpath '%s'..." %
              (server_id, server.get_db_path()))
 
     shutil.rmtree(server.get_db_path())
@@ -930,12 +930,12 @@ def resync_secondary(server_id):
 
 ###############################################################################
 def step_server_down(server, force=False):
-    log_info("step down server '%s' ..." % server.get_id())
+    log_info("Stepping down server '%s'..." % server.get_id())
 
     try:
         cmd = SON( [('replSetStepDown', 10),('force', force)])
         server.disconnecting_db_command(cmd, "admin")
-        log_info("Server '%s' Stepped down successfully!" % server.get_id())
+        log_info("Server '%s' stepped down successfully!" % server.get_id())
         return True
     except (Exception), e:
         log_error("Failed to step down server '%s'. Cause: %s" %
@@ -1099,7 +1099,7 @@ def open_mongo_shell_to_cluster(cluster,
                                 password=None,
                                 shell_options={},
                                 js_files=[]):
-    log_info("Locating primary server for cluster '%s' ..." % cluster.get_id())
+    log_info("Locating primary server for cluster '%s'..." % cluster.get_id())
     primary_member = cluster.get_primary_member()
     if primary_member:
         primary_server = primary_member.get_server()
@@ -1451,7 +1451,7 @@ def get_validate_platform_spec(os_name, bits):
 
 ###############################################################################
 def download(url):
-    log_info("Downloading %s ..." % url)
+    log_info("Downloading %s..." % url)
 
     download_cmd = None
 
@@ -1467,7 +1467,7 @@ def download(url):
     execute_command(download_cmd, call=True)
 
 def extract_archive(archive_name):
-    log_info("Extracting %s ..." % archive_name)
+    log_info("Extracting %s..." % archive_name)
     if not which("tar"):
         msg = ("Cannot extract archive.You need to have 'tar' command in your"
                " path in order to proceed.")
@@ -1922,7 +1922,7 @@ def get_mongo_executable(server_version,
                                              version_check_pref=
                                              version_check_pref)
         if selected_exe is not None:
-            log_info("Using %s at '%s' version '%s' ..." %
+            log_info("Using %s at '%s' version '%s'..." %
                      (executable_name,
                       selected_exe.path,
                       selected_exe.version))
