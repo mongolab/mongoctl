@@ -3741,6 +3741,10 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def is_administrable(self):
+        return not self.is_arbiter_server() and self.can_function()
+
+    ###########################################################################
+    def can_function(self):
         status = self.get_status()
         if status['connection']:
             if 'error' not in status:
@@ -4125,7 +4129,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
     def read_rs_config(self):
         if self.is_valid():
             server = self.get_server()
-            if server.is_administrable():
+            if server.can_function():
                 return server.get_rs_config()
         return None
 
