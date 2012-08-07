@@ -3259,13 +3259,6 @@ def get_cluster_member_alt_address_mapping():
     return get_mongoctl_config_val('clusterMemberAltAddressesMapping', {})
 
 ###############################################################################
-__global_users__ = {}
-
-def get_server_global_users(server_id):
-    global __global_users__
-    return get_document_property(__global_users__,server_id)
-
-###############################################################################
 __global_login_user__= {
     "serverId": None,
     "database": "admin",
@@ -3316,36 +3309,6 @@ def parse_global_login_user_arg(parsed_args):
         __global_login_user__['serverId'] = server_id
         __global_login_user__['username'] = username
         __global_login_user__['password'] = password
-
-
-###############################################################################
-def validate_users(users):
-    """
-    Checks users document for proper form, and returns filtered version.
-    """
-    result = {}
-
-    if not isinstance(users, dict):
-        log_error("users should be a document with db names for keys, "
-                  "precisely like this is not: " + str(users))
-        return result
-
-    for dbname, db_users in users.items() :
-        result[dbname] = []
-        for usr_pass in listify(db_users) : # be lenient on the singleton.
-            if ("username" not in usr_pass or "password" not in usr_pass):
-                beef = "user must have 'username' and 'password' fields"
-            elif not (isinstance(usr_pass["username"], basestring) and
-                      isinstance(usr_pass["password"], basestring)):
-                beef = "'username' and 'password' fields must be strings"
-            else:
-                result[dbname].append(usr_pass)
-                continue
-            log_error("Rejecting user %s for db %s : %s" %
-                      (usr_pass, dbname, beef))
-        if len(result[dbname]) < 1:
-            del result[dbname]
-    return result
 
 ###############################################################################
 ########################                   ####################################
@@ -3610,6 +3573,7 @@ class Server(DocumentWrapper):
             "username": username,
             "password": password
         }
+
     ###########################################################################
     def has_users(self):
         users = self.get_users()
@@ -3622,19 +3586,6 @@ class Server(DocumentWrapper):
     ###########################################################################
     def get_db_seed_users(self, dbname):
         return get_document_property(self.get_seed_users(), dbname)
-
-    ###########################################################################
-    def has_db_users(self, dbname):
-        db_users = get_document_property(self.get_users(), dbname)
-        return db_users is not None and db_users
-
-    ###########################################################################
-    def get_db_default_user(self, dbname):
-        db_users =  self.get_db_users(dbname)
-        if db_users:
-            return db_users[0]
-
-
 
     ###########################################################################
     # DB Methods
@@ -3859,17 +3810,6 @@ class Server(DocumentWrapper):
                     "name": member_rs_status['name'],
                     "stateStr": member_rs_status['stateStr']
                 }
-
-    ###########################################################################
-    def get_default_dbname(self):
-        if self.is_arbiter_server():
-            return "local"
-        elif self.has_db_users("admin"):
-            return "admin"
-        elif self.has_users():
-            return self.get_users().keys()[0]
-        else:
-            return "test"
 
     ###########################################################################
     def is_arbiter_server(self):
