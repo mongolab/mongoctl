@@ -763,9 +763,9 @@ def do_stop_server(server, force=False):
     status = server.get_status()
     if not status['connection']:
         if "timedOut" in status:
-            log_info("Unable to issue 'shutdown' command to server: "
-                     "Server '%s' is not responding (connection timed out); "
-                     "though port %s is open, possibly for mongod." %
+            log_info("Unable to issue 'shutdown' command to server '%s': "
+                     "the server is not responding (connection timed out) "
+                     "although port %s is open, possibly for mongod." %
                      (server.get_id(), server.get_port()))
             can_stop_mongoly = False
         else:
