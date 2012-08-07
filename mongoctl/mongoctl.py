@@ -658,13 +658,13 @@ def _set_a_process_limit(resource_name, desired_limit, description):
                     (resource_name, attempted_value, hard))
         resource.setrlimit(which_resource, (attempted_value, hard))
 
-    log_info("Setting OS limit on %s for mongod process (desire up to %d)..."
-             "\n\t Current limit values:   soft = %d   hard = %d" %
+    log_info("Setting OS limit on %s for process (desire up to %d)..."
+             "\n\t Current limit values: soft = %d, hard = %d" %
              (description, desired_limit, soft, hard))
 
     _negotiate_process_limit(set_resource, desired_limit, soft, hard)
-    log_info("Resulting OS limit on %s for mongod process:  " % description +
-             "soft = %d   hard = %d" % resource.getrlimit(which_resource))
+    log_info("Resulting OS limit on %s for process: " % description +
+             "soft = %d, hard = %d" % resource.getrlimit(which_resource))
 
 ###############################################################################
 def _rlimit_min(one_val, nother_val):
