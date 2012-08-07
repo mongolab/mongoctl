@@ -1077,6 +1077,52 @@ MONGOCTL_PARSER_DEF = {
 
             ]
         },
+
+        #### resync-secondary ####
+            {
+            "prog": "resync-secondary",
+            "group": "serverCommands",
+            "shortDescription" : "Resyncs a secondary member",
+            "description" : "Resyncs a secondary member",
+            "function": "mongoctl.mongoctl.resync_secondary_command",
+            "args": [
+                    {
+                    "name": "server",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "displayName": "SERVER_ID",
+                    "help": "a valid server id"
+                },
+                    {
+                    "name": "assumeLocal",
+                    "type" : "optional",
+                    "cmd_arg": "--assume-local",
+                    "nargs": 0,
+                    "help": "Assumes that the server will be stopped on local"
+                            " host. This will skip local address/dns check",
+                    "default": False
+                },
+                    {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                    {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
+                }
+            ]
+        },
+
         #### configure-cluster ####
             {
             "prog": "configure-cluster",

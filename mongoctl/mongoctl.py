@@ -354,6 +354,13 @@ def print_uri_command(parsed_options):
         else:
             raise MongoctlException("Cannot find a server or a cluster with"
                                     " id '%s'" % id)
+
+###############################################################################
+# re-sync secondary command
+###############################################################################
+def resync_secondary_command(parsed_options):
+    resync_secondary(parsed_options.server)
+
 ###############################################################################
 # configure cluster command
 ###############################################################################
@@ -890,6 +897,35 @@ def prompt_or_force_stop_server(server, pid,
                                     stop_func)
 
     return result[1]
+
+###############################################################################
+def resync_secondary(server_id):
+
+    server = lookup_and_validate_server(server_id)
+    validate_local_op(server, "resync-secondary")
+
+    log_info("Checking if server '%s' is secondary..." % server_id)
+    # check if server is a replica primary
+
+    if not server.is_online():
+        msg = ("Server '%s' does not seem to be running. For more details,"
+               " run 'mongoctl status %s'" % (server_id, server_id))
+        raise MongoctlException(msg)
+
+    if not is_replica_secondary(server):
+        msg = ("Server '%s' is not a secondary member or cannot be determined"
+               " as secondary. For more details, run 'mongoctl status %s'" %
+               (server_id, server_id))
+        raise MongoctlException(msg)
+
+    do_stop_server(server)
+
+    log_info("Deleting server's '%s' dbpath '%s' ..." %
+             (server_id, server.get_db_path()))
+
+    shutil.rmtree(server.get_db_path())
+
+    do_start_server(server)
 
 ###############################################################################
 def step_server_down(server, force=False):
@@ -1768,15 +1804,25 @@ def lookup_cluster_by_server(server):
 
     return cluster
 
+###############################################################################
 def is_cluster_member(server):
     return lookup_cluster_by_server(server) is not None
 
-
+###############################################################################
 def is_replica_primary(server):
     cluster =  lookup_cluster_by_server(server)
     if cluster is not None:
         member = cluster.get_member_for(server)
         return member.is_primary_member()
+
+    return False
+
+###############################################################################
+def is_replica_secondary(server):
+    cluster =  lookup_cluster_by_server(server)
+    if cluster is not None:
+        member = cluster.get_member_for(server)
+        return member.is_secondary_member()
 
     return False
 
@@ -3985,18 +4031,30 @@ class ReplicaSetClusterMember(DocumentWrapper):
     # Interface Methods
     ###########################################################################
     def is_primary_member(self):
+        master_result = self.is_master_command()
+
+        if master_result:
+            return get_document_property(self.is_master_command(), "ismaster")
+
+    ###########################################################################
+    def is_secondary_member(self):
+        master_result = self.is_master_command()
+
+        if master_result:
+            return get_document_property(self.is_master_command(), "secondary")
+    ###########################################################################
+    def is_master_command(self):
         try:
             if self.is_valid() and self.get_server().is_administrable():
                 result = self.get_server().db_command({"isMaster" : 1},
-                                                       "admin")
-                return get_document_property(result,"ismaster")
+                    "admin")
+                return result
             else:
                 return False
         except(Exception, RuntimeError),e:
             log_verbose("isMaster command failed on server '%s'. Cause %s" %
                         (self.get_server().get_id(), e))
             return False
-
 
     ###########################################################################
     def can_become_primary(self):
