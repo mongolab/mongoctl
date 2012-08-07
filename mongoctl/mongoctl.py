@@ -721,7 +721,7 @@ def stop_tailing(log_tailer):
 ###############################################################################
 def shall_we_terminate(mongod_pid):
     def killit():
-        kill_process(mongod_pid, force=true)
+        kill_process(mongod_pid, force=True)
         log_info("Server process terminated at operator behest.")
 
     (condemned, _) = prompt_execute_task("Kill server now?", killit)
