@@ -2861,19 +2861,24 @@ def _set_config_root(root_path):
 def to_full_config_path(path_or_url):
     global __config_root__
 
-    # first resolve the path
-    path_or_url = resolve_path(path_or_url)
-    # handle abs paths and abs URLS
-    if os.path.isabs(path_or_url) or is_url(path_or_url):
-        return path_or_url
 
+    # handle abs paths and abs URLS
+    if os.path.isabs(path_or_url):
+        return resolve_path(path_or_url)
+    elif is_url(path_or_url):
+        return path_or_url
     else:
-        return resolve_path(os.path.join(__config_root__, path_or_url))
+        result =  os.path.join(__config_root__, path_or_url)
+        if not is_url(__config_root__):
+            result = resolve_path(result)
+
+        return result
 
 ###############################################################################
 def is_url(value):
     scheme = urlparse.urlparse(value).scheme
     return  scheme is not None and scheme != ''
+
 ###############################################################################
 # OS Functions
 ###############################################################################
@@ -2915,8 +2920,11 @@ def dir_exists(path):
 
 ###############################################################################
 def resolve_path(path):
-    return os.path.expandvars(os.path.expanduser(path))
-
+    # expand vars
+    path =  os.path.expandvars(os.path.expanduser(path))
+    # Turn relative paths to absolute
+    path = os.path.abspath(path)
+    return path
 ###############################################################################
 # sub-processing functions
 ###############################################################################
