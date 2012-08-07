@@ -3805,10 +3805,11 @@ class Server(DocumentWrapper):
             status['connection'] = True
 
             can_admin = True
+            auth_db = "local" if self.is_arbiter_server() else "admin"
             if (self.is_auth() and
-                self.needs_to_auth("admin") and
-                not self.has_auth_to("admin")):
-                status['error'] = "Cannot authenticate"
+                self.needs_to_auth(auth_db) and
+                not self.has_auth_to(auth_db)):
+                status['error'] = "Cannot authenticate to '%s' db" % auth_db
                 self.sever_db_connection()   # better luck next time!
                 can_admin = False
 
