@@ -918,6 +918,15 @@ MONGOCTL_PARSER_DEF = {
                     "nargs": 1,
                     "displayName": "SERVER_ID",
                     "help": "a valid server id"
+                },
+                    {
+                    "name": "assumeLocal",
+                    "type" : "optional",
+                    "cmd_arg": "--assume-local",
+                    "nargs": 0,
+                    "help": "Assumes that the server is running on local"
+                            " host. This will skip local address/dns check",
+                    "default": False
                 }
             ]
         },
@@ -1098,7 +1107,7 @@ MONGOCTL_PARSER_DEF = {
                     "type" : "optional",
                     "cmd_arg": "--assume-local",
                     "nargs": 0,
-                    "help": "Assumes that the server will be stopped on local"
+                    "help": "Assumes that the server is running on local"
                             " host. This will skip local address/dns check",
                     "default": False
                 },
