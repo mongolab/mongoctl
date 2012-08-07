@@ -3846,7 +3846,7 @@ class Server(DocumentWrapper):
     ###########################################################################
     def get_mongo_uri_template(self):
         creds = "[user]:[pass]@" if self.is_auth() else ""
-        return "mongodb://%s%s/[database]" % (creds,
+        return "mongodb://%s%s/[dbname]" % (creds,
                                               self.get_address_display())
 
     ###########################################################################
@@ -4588,7 +4588,7 @@ class ReplicaSetCluster(DocumentWrapper):
             server_uri_templates.append(server.get_address_display())
 
         creds = "[user]:[pass]@" if self.get_repl_key() else ""
-        return ("mongodb://%s%s/[database]" %
+        return ("mongodb://%s%s/[dbname]" %
                 (creds, ",".join(server_uri_templates)))
 
 ###############################################################################
