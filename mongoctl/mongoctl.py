@@ -775,7 +775,7 @@ def do_stop_server(server, force=False):
 
     pid = get_server_pid(server)
     pid_disp = pid if pid else "[Cannot be determined]"
-    log_info("Stopping server '%s' (PID=%s) ..." %
+    log_info("Stopping server '%s' (pid=%s) ..." %
              (server.get_id(), pid_disp))
     # log server activity stop
     log_server_activity(server, "stop")
