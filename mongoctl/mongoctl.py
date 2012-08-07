@@ -2711,7 +2711,13 @@ def get_generate_key_file(server):
         # set the permissions required by mongod
         os.chmod(key_file_path,stat.S_IRUSR)
     return key_file_path
+###############################################################################
+def is_auto_auth_server(id):
+    return id in get_aut_auth_servers()
 
+###############################################################################
+def get_aut_auth_servers():
+    return get_mongoctl_config_val("autoAuthServers", default=[])
 
 ###############################################################################
 # Configuration Functions
@@ -3554,6 +3560,11 @@ class Server(DocumentWrapper):
 
         if not login_user:
             login_user = get_global_login_user(self, dbname)
+
+        if not login_user and is_auto_auth_server(self.get_id()):
+            db_seed_users = self.get_db_seed_users(dbname)
+            if db_seed_users:
+                login_user = db_seed_users[0]
 
         return login_user
 
