@@ -3805,8 +3805,7 @@ class Server(DocumentWrapper):
             status['connection'] = True
 
             can_admin = True
-            if (admin and
-                self.is_auth() and
+            if (self.is_auth() and
                 self.needs_to_auth("admin") and
                 not self.has_auth_to("admin")):
                 status['error'] = "Cannot authenticate"
