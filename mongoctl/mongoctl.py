@@ -4647,15 +4647,25 @@ class ReplicaSetCluster(DocumentWrapper):
 
     ###########################################################################
     def read_rs_config(self):
-        rs_conf = None
+
         # iterate on all members until you get a non null rs-config
+        # Read from arbiters only when needed so skip members until the end
+
+        arb_members = []
         for member in self.get_members():
-            rs_conf = member.read_rs_config()
+            if member.is_arbiter():
+                arb_members.append(member)
+                continue
+            else:
+                rs_conf = member.read_rs_config()
+                if rs_conf is not None:
+                    return rs_conf
+
+        # No luck yet... iterate on arbiters
+        for arb in arb_members:
+            rs_conf = arb.read_rs_config()
             if rs_conf is not None:
-                break
-
-        return rs_conf
-
+                return rs_conf
     ###########################################################################
     def get_replica_mongo_uri_template(self, db=None):
 
