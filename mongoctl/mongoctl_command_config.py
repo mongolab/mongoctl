@@ -1278,6 +1278,16 @@ MONGOCTL_PARSER_DEF = {
                     "nargs": 1,
                     "displayName": "SERVER or CLUSTER ID",
                     "help": "Server or cluster id"
+                },
+                    {
+                    "name": "db",
+                    "type" : "optional",
+                    "help": "database name",
+                    "cmd_arg": [
+                        "-d",
+                        "--db"
+                    ],
+                    "nargs": 1
                 }
             ]
             }

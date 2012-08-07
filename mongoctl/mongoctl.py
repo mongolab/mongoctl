@@ -342,15 +342,16 @@ def tail_log_command(parsed_options):
 ###############################################################################
 def print_uri_command(parsed_options):
     id = parsed_options.id
+    db = parsed_options.db
     # check if the id is a server id
 
     server = lookup_server(id)
     if server:
-        print server.get_mongo_uri_template()
+        print server.get_mongo_uri_template(db=db)
     else:
         cluster = lookup_cluster(id)
         if cluster:
-            print cluster.get_replica_mongo_uri_template()
+            print cluster.get_replica_mongo_uri_template(db=db)
         else:
             raise MongoctlException("Cannot find a server or a cluster with"
                                     " id '%s'" % id)
@@ -3898,10 +3899,15 @@ class Server(DocumentWrapper):
             return self.get_address()
 
     ###########################################################################
-    def get_mongo_uri_template(self):
-        creds = "[user]:[pass]@" if self.is_auth() else ""
-        return "mongodb://%s%s/[dbname]" % (creds,
-                                              self.get_address_display())
+    def get_mongo_uri_template(self, db=None):
+        if not db:
+            if self.is_auth():
+                db = "admin"
+            else:
+                db = "[dbname]"
+
+        creds = "[dbuser]:[dbpass]@" if self.is_auth() else ""
+        return "mongodb://%s%s/%s" % (creds, self.get_address_display(), db)
 
     ###########################################################################
     def make_db_connection(self, address):
@@ -4647,15 +4653,22 @@ class ReplicaSetCluster(DocumentWrapper):
         return rs_conf
 
     ###########################################################################
-    def get_replica_mongo_uri_template(self):
+    def get_replica_mongo_uri_template(self, db=None):
+
+        if not db:
+            if self.get_repl_key():
+                db = "admin"
+            else:
+                db = "[dbname]"
+
         server_uri_templates = []
         for member in self.get_members():
             server = member.get_server()
             server_uri_templates.append(server.get_address_display())
 
-        creds = "[user]:[pass]@" if self.get_repl_key() else ""
-        return ("mongodb://%s%s/[dbname]" %
-                (creds, ",".join(server_uri_templates)))
+        creds = "[dbuser]:[dbpass]@" if self.get_repl_key() else ""
+        return ("mongodb://%s%s/%s" % (creds, ",".join(server_uri_templates),
+                                       db))
 
 ###############################################################################
 # Mongoctl Exception class
