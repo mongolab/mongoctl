@@ -763,8 +763,8 @@ def do_stop_server(server, force=False):
     status = server.get_status()
     if not status['connection']:
         if "timedOut" in status:
-            log_info("Unable to issue 'shutdown' command to server '%s': "
-                     "the server is not responding (connection timed out) "
+            log_info("Unable to issue 'shutdown' command to server '%s'. "
+                     "The server is not responding (connection timed out) "
                      "although port %s is open, possibly for mongod." %
                      (server.get_id(), server.get_port()))
             can_stop_mongoly = False
@@ -853,22 +853,22 @@ def kill_stop_server(server, pid):
         return False
 
     log_info("Forcibly stopping server '%s'...\n" % server.get_id())
-    log_info("Sending kill -1 (HUP) signal to server '%s'... (pid=%s)" %
+    log_info("Sending kill -1 (HUP) signal to server '%s' (pid=%s)..." %
              (server.get_id(), pid))
 
     kill_process(pid, force=False)
 
-    log_info("Will now wait for server '%s' pid '%s' to die." %
+    log_info("Will now wait for server '%s' (pid=%s) to die." %
              (server.get_id(), pid))
     wait_for(pid_dead_predicate(pid), timeout=3)
 
     if is_pid_alive(pid):
         log_error("Failed to kill server process with -1 (HUP).")
         log_info("Sending kill -9 (SIGKILL) signal to server"
-                 "'%s'... (pid=%s)" % (server.get_id(), pid))
+                 "'%s' (pid=%s)..." % (server.get_id(), pid))
         kill_process(pid, force=True)
 
-        log_info("Will now wait for server '%s' pid '%s' to die." %
+        log_info("Will now wait for server '%s' (pid=%s) to die." %
                  (server.get_id(), pid))
         wait_for(pid_dead_predicate(pid), timeout=3)
 
