@@ -34,7 +34,7 @@ _id                        address                   description
 --------------------------------------------------------------------------------
 MyClusterServer1       localhost:28017           My cluster member
 MyClusterServer2       localhost:28027           My cluster member
-MyClusterArbiter       localhost:28037           My arbiter
+MyClusterArbiter       localhost:28037           My cluster arbiter
 MyServer               localhost:27017           My server (single mongod)
 ```
 
@@ -132,7 +132,7 @@ Here we show how you configure and start a replica-set cluster.
 -------------------------------------------------------------------------------------------------------------
 _id             members                                                           description            
 -------------------------------------------------------------------------------------------------------------
-MyCluster   [ MyClusterServer1, MyClusterServer2, MyArbiter ]     A 2 + arbiter replica-set
+MyCluster   [ MyClusterServer1, MyClusterServer2, MyClusterArbiter ]     A 2 + arbiter replica-set
 ```
 
 ```
@@ -160,7 +160,7 @@ MyCluster   [ MyClusterServer1, MyClusterServer2, MyArbiter ]     A 2 + arbiter 
             "arbiterOnly": true, 
             "server": {
                 "$ref": "servers", 
-                "$id": "MyArbiter"
+                "$id": "MyClusterArbiter"
             }
         }
     ]
@@ -245,21 +245,21 @@ Do you want to add server 'MyClusterServer2' to replica set cluster 'MyCluster'?
 Finally, we add the arbiter. 
 
 ```
-% mongoctl start MyArbiter       
+% mongoctl start MyClusterArbiter       
 
-Checking to see if server 'MyArbiter' is already running before starting it...
+Checking to see if server 'MyClusterArbiter' is already running before starting it...
 Using mongod at '/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod'...
 Validating cluster 'MyCluster'...
-Starting server 'MyArbiter' for the first time...
+Starting server 'MyClusterArbiter' for the first time...
 
 Executing command:
-/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/my-arbiter --directoryperdb --logpath /Users/abdul/my-arbiter/mongodb.log --pidfilepath /Users/abdul/my-arbiter/pid.txt --port 28037 --replSet MyCluster
+/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/my-cluster-arbiter --directoryperdb --logpath /Users/abdul/my-cluster-arbiter/mongodb.log --pidfilepath /Users/abdul/my-cluster-arbiter/pid.txt --port 28037 --replSet MyCluster
 
 <lots of stuff>
 
-Server 'MyArbiter' started successfully! (pid=50918)
+Server 'MyClusterArbiter' started successfully! (pid=50918)
 
-Do you want to add server 'MyArbiter' to replica set cluster 'MyCluster'? [y/n] y
+Do you want to add server 'MyClusterArbiter' to replica set cluster 'MyCluster'? [y/n] y
  
 <lots of stuff>
 ```
