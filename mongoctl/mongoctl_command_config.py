@@ -799,9 +799,9 @@ MONGOCTL_PARSER_DEF = {
             "description" : "Opens a mongo shell connection to the specified database. If a\n"
                             "cluster is specified command will connect to the primary server.\n\n"
                             "<db-address> can be one of:\n"
-                            "   (a) a mongodb URI (e.g. mongodb://localhost:27017/mydb)\n"
-                            "   (b) <server-id>/<db>\n"
-                            "   (c) <cluster-id>/<db>\n",
+                            "   (a) a mongodb URI (e.g. mongodb://localhost:27017[/mydb])\n"
+                            "   (b) <server-id>[/<db>]\n"
+                            "   (c) <cluster-id>[/<db>]\n",
             "function": "mongoctl.mongoctl.connect_command",
             "args": [
                     {
@@ -936,7 +936,13 @@ MONGOCTL_PARSER_DEF = {
             "prog": "dump",
             "group": "clientCommands",
             "shortDescription" : "Export MongoDB data to BSON files (using mongodump)",
-            "description" : "",
+            "description" : "Runs a mongodump  to the specified database. If a\n"
+                            "cluster is specified command will run the dump against "
+                            "the primary server.\n\n"
+                            "<db-address> can be one of:\n"
+                            "   (a) a mongodb URI (e.g. mongodb://localhost:27017[/mydb])\n"
+                            "   (b) <server-id>[/<db>]\n"
+                            "   (c) <cluster-id>[/<db>]\n",
             "function": "mongoctl.mongoctl.dump_command",
             "args": [
                     {
