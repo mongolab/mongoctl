@@ -942,7 +942,7 @@ MONGOCTL_PARSER_DEF = {
                     {
                     "name": "dbAddress",
                     "type" : "positional",
-                    "nargs": 1,
+                    "nargs": "?",
                     "displayName": "<db-address>",
                     "help": "database addresses supported by mongoctl."
                             " Check docs for more details."

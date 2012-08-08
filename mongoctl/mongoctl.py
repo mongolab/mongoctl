@@ -317,11 +317,24 @@ def connect_command(parsed_options):
 # dump command
 ###############################################################################
 def dump_command(parsed_options):
+
+    # validate arguments
+    db_address = parsed_options.dbAddress
+    dbpath = parsed_options.dbpath
+
+    if ((db_address is None and dbpath is None) or
+        (db_address is not None and dbpath is not None)):
+        raise MongoctlException("Please specify either dbAddress or dbpath")
+
     dump_options = extract_mongo_dump_options(parsed_options)
-    mongo_dump(parsed_options.dbAddress,
-               username=parsed_options.username,
-               password=parsed_options.password,
-               dump_options=dump_options)
+    if db_address:
+        mongo_dump_db_address(db_address,
+                              username=parsed_options.username,
+                              password=parsed_options.password,
+                              dump_options=dump_options)
+    else:
+        mongo_dump_db_path(parsed_options.dbpath,
+                           dump_options=dump_options)
 
 ###############################################################################
 # tail log command
@@ -1181,10 +1194,11 @@ def do_open_mongo_shell_to(address,
 ###############################################################################
 # mongo_dump
 ###############################################################################
-def mongo_dump(db_address,
-               username=None,
-               password=None,
-               dump_options={}):
+def mongo_dump_db_address(db_address,
+                          username=None,
+                          password=None,
+                          dump_options={}):
+
     if is_mongo_uri(db_address):
         mongo_dump_uri(db_address, username, password, dump_options)
         return
@@ -1198,9 +1212,21 @@ def mongo_dump(db_address,
     if server:
         mongo_dump_server(server, database, username, password, dump_options)
         return
+    else:
+        cluster = lookup_cluster(id)
+        if cluster:
+            mongo_dump_cluster(cluster, database, username, password,
+                               dump_options)
+            return
 
         # Unknown destination
     raise MongoctlException("Unknown db address '%s'" % db_address)
+
+###############################################################################
+def mongo_dump_db_path(dbpath, dump_options={}):
+
+    do_mongo_dump(dbpath=dbpath,
+                  dump_options=dump_options)
 
 ###############################################################################
 def mongo_dump_uri(uri,
@@ -1218,7 +1244,12 @@ def mongo_dump_uri(uri,
         if not host:
             raise MongoctlException("URI '%s' is missing a host." % uri)
 
-        do_mongo_dump(host, port,  database, username, password, dump_options)
+        do_mongo_dump(host=host,
+                      port=port,
+                      database=database,
+                      username=username,
+                      password=password,
+                      dump_options=dump_options)
 
     except errors.ConfigurationError, e:
         raise MongoctlException("Malformed URI '%s'. %s" % (uri, e))
@@ -1240,17 +1271,39 @@ def mongo_dump_server(server,
         username = None
         password = None
 
-    do_mongo_dump(server.get_connection_host_address(),
-                  server.get_port(),
-                  database,
-                  username,
-                  password,
-                  server.get_mongo_version(),
-                  dump_options)
+    do_mongo_dump(host=server.get_connection_host_address(),
+                  port=server.get_port(),
+                  database=database,
+                  username=username,
+                  password=password,
+                  server_version=server.get_mongo_version(),
+                  dump_options=dump_options)
 
 ###############################################################################
-def do_mongo_dump(host,
-                  port,
+def mongo_dump_cluster(cluster,
+                       database=None,
+                       username=None,
+                       password=None,
+                       dump_options={}):
+    validate_cluster(cluster)
+    log_info("Locating primary server for cluster '%s'..." % cluster.get_id())
+    primary_member = cluster.get_primary_member()
+    if primary_member:
+        primary_server = primary_member.get_server()
+        log_info("dumping primary server '%s'" % primary_server.get_id())
+        mongo_dump_server(primary_server,
+                         database=database,
+                         username=username,
+                         password=password,
+                         dump_options=dump_options)
+    else:
+        raise MongoctlException("No primary server found for cluster '%s'" %
+                                cluster.get_id())
+
+###############################################################################
+def do_mongo_dump(host=None,
+                  port=None,
+                  dbpath=None,
                   database=None,
                   username=None,
                   password=None,
@@ -1259,11 +1312,16 @@ def do_mongo_dump(host,
 
 
     # create dump command with host and port
-    dump_cmd = [get_mongo_dump_executable(server_version),
-                "--host",
-                host,
-                "--port",
-                str(port)]
+    dump_cmd = [get_mongo_dump_executable(server_version)]
+
+    if host:
+        dump_cmd.extend(["--host", host])
+    if port:
+        dump_cmd.extend(["--port", str(port)])
+
+    # dbpath
+    if dbpath:
+        dump_cmd.extend(["--dbpath", dbpath])
 
     # database
     if database:
@@ -4810,7 +4868,6 @@ SUPPORTED_MONGO_SHELL_OPTIONS = [
 ]
 
 SUPPORTED_MONGO_DUMP_OPTIONS = [
-    "dbpath",
     "directoryperdb",
     "journal",
     "collection",
