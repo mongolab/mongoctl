@@ -936,7 +936,7 @@ MONGOCTL_PARSER_DEF = {
             "prog": "dump",
             "group": "clientCommands",
             "shortDescription" : "Export MongoDB data to BSON files (using mongodump)",
-            "description" : "Runs a mongodump  to the specified database. If a\n"
+            "description" : "Runs a mongodump  to the specified database address or dbpath. If a\n"
                             "cluster is specified command will run the dump against "
                             "the primary server.\n\n"
                             "<db-address> can be one of:\n"
@@ -947,9 +947,12 @@ MONGOCTL_PARSER_DEF = {
             "args": [
                     {
                     "name": "dbAddress",
-                    "type" : "positional",
-                    "nargs": "?",
-                    "displayName": "<db-address>",
+                    "displayName": "DB_ADDRESS",
+                    "type" : "optional",
+                    "cmd_arg": [
+                        "--db-address"
+                    ],
+                    "nargs": 1,
                     "help": "database addresses supported by mongoctl."
                             " Check docs for more details."
                 },

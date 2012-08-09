@@ -324,7 +324,9 @@ def dump_command(parsed_options):
 
     if ((db_address is None and dbpath is None) or
         (db_address is not None and dbpath is not None)):
-        raise MongoctlException("Please specify either dbAddress or dbpath")
+        msg = ("Not enough arguments. Please specify either --db-address "
+               "or --dbpath. For more information, see 'mongoctl dump -h'")
+        raise MongoctlException(msg)
 
     dump_options = extract_mongo_dump_options(parsed_options)
     if db_address:
