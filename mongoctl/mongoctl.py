@@ -3945,8 +3945,6 @@ class Server(DocumentWrapper):
         password = None
 
 
-        auth_success = False
-
         if login_user:
             username = login_user["username"]
             if get_document_property(login_user, "password"):
@@ -3957,24 +3955,19 @@ class Server(DocumentWrapper):
                     password = read_password("Enter password for user '%s' for"
                                              " database '%s'" % (username,
                                                                  dbname))
-        # have three attempts to authenticate
-        for i in range(0,3):
-            if login_user is None:
-                username = read_input("Enter username for database '%s': " %
-                                      dbname)
-                password = read_password()
 
-            # if auth success then exit loop and memoize login
-            auth_success = db.authenticate(username,password)
-            if auth_success:
-                self.set_login_user(dbname, username, password)
-                break
-            else:
-                log_error("Invalid login!")
-                login_user = None
+        else:
+            username = read_input("Enter username for database '%s': " %
+                                  dbname)
+            password = read_password()
 
-        # keep track of is authed on our own because pymongo does not do that
-        db.__dict__['is_authed'] = auth_success
+        # if auth success then exit loop and memoize login
+        auth_success = db.authenticate(username, password)
+        if auth_success:
+            self.set_login_user(dbname, username, password)
+            # keep track of is authed on our own because pymongo
+            # does not do that
+            db.__dict__['is_authed'] = auth_success
         return auth_success
 
 
