@@ -1665,11 +1665,11 @@ def lookup_server(server_id):
 
     server = None
     # lookup server from the db repo first
-    if server is None and consulting_db_repository():
+    if consulting_db_repository():
         server = db_lookup_server(server_id)
 
     # if server is not found then try from file repo
-    if has_file_repository():
+    if server is None and has_file_repository():
         server = config_lookup_server(server_id)
 
 
@@ -1722,7 +1722,7 @@ def lookup_all_servers():
         all_servers.extend(db_lookup_all_servers())
 
     if has_file_repository():
-        all_servers = list(get_configured_servers().values())
+        all_servers.extend(list(get_configured_servers().values()))
 
     return all_servers
 
@@ -1752,11 +1752,11 @@ def lookup_cluster(cluster_id):
     cluster = None
     # lookup cluster from the db repo first
 
-    if cluster is None and consulting_db_repository():
+    if consulting_db_repository():
         cluster = db_lookup_cluster(cluster_id)
 
     # if cluster is not found then try from file repo
-    if has_file_repository():
+    if cluster is None and has_file_repository():
         cluster = config_lookup_cluster(cluster_id)
 
     return cluster
@@ -1787,7 +1787,7 @@ def lookup_all_clusters():
         all_clusters.extend(db_lookup_all_clusters())
 
     if has_file_repository():
-        all_clusters = list(get_configured_clusters().values())
+        all_clusters.extend(list(get_configured_clusters().values()))
 
     return all_clusters
 
@@ -1851,11 +1851,11 @@ def lookup_cluster_by_server(server):
     cluster = None
 
     ## Look for the cluster in db repo
-    if cluster is None and consulting_db_repository():
+    if consulting_db_repository():
         cluster = db_lookup_cluster_by_server(server)
 
     ## If nothing is found then look in file repo
-    if has_file_repository():
+    if cluster is None and has_file_repository():
         cluster = config_lookup_cluster_by_server(server)
 
 
