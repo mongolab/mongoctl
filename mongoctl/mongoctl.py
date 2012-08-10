@@ -104,6 +104,8 @@ DEFAULT_DBPATH='/data/db'
 # db connection timeout, 10 seconds
 CONN_TIMEOUT = 10000
 
+MAX_SHUTDOWN_WAIT = 10
+
 # OS resource limits to impose on the 'mongod' process (see setrlimit(2))
 PROCESS_LIMITS = [
     # Many TCP/IP connections to mongod ==> many threads to handle them ==>
@@ -826,7 +828,7 @@ def mongo_stop_server(server, pid, force=False):
         log_info("Will now wait for server '%s' to stop." % server.get_id())
         # Check that the server has stopped
         stop_pred = server_stopped_predicate(server, pid)
-        wait_for(stop_pred,timeout=3)
+        wait_for(stop_pred,timeout=MAX_SHUTDOWN_WAIT)
 
         if not stop_pred():
             log_error("Shutdown command failed...")
@@ -866,7 +868,7 @@ def kill_stop_server(server, pid):
 
     log_info("Will now wait for server '%s' (pid=%s) to die." %
              (server.get_id(), pid))
-    wait_for(pid_dead_predicate(pid), timeout=3)
+    wait_for(pid_dead_predicate(pid), timeout=MAX_SHUTDOWN_WAIT)
 
     if is_pid_alive(pid):
         log_error("Failed to kill server process with -1 (HUP).")
@@ -876,7 +878,7 @@ def kill_stop_server(server, pid):
 
         log_info("Will now wait for server '%s' (pid=%s) to die." %
                  (server.get_id(), pid))
-        wait_for(pid_dead_predicate(pid), timeout=3)
+        wait_for(pid_dead_predicate(pid), timeout=MAX_SHUTDOWN_WAIT)
 
     if not is_pid_alive(pid):
         log_info("Forcefully-stopped server '%s'." % server.get_id())
