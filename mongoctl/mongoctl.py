@@ -494,12 +494,8 @@ def do_start_server(server, options_override=None, rs_add=False):
                                 " same port %s" %
                                 (server.get_id(), server.get_port()))
 
-    is_my_repo = is_mongoctl_repo_db(server)
-    if is_my_repo:
-        # Prevent consulting db repo until it's started AND prepared.
-        am_bootstrapping(sez_i=True)
-    else:
-        log_server_activity(server, "start")
+
+    log_server_activity(server, "start")
 
     mongod_pid = start_server_process(server,options_override)
 
@@ -514,11 +510,6 @@ def do_start_server(server, options_override=None, rs_add=False):
         if shall_we_terminate(mongod_pid):
             return
 
-    if is_my_repo:
-        # The db repo is now open for business.
-        # If seeded, we can now start ignoring the seeds in the file repo.
-        am_bootstrapping(sez_i=False)
-        log_server_activity(server, "start")
 
     # Note: The following block has to be the last block
     # because mongod_process.communicate() will not return unless you
@@ -1671,13 +1662,14 @@ def lookup_server(server_id):
     validate_repositories()
 
     server = None
-    # lookup server from the config first
-    if consulting_file_repository():
+    # lookup server from the db repo first
+    if server is None and consulting_db_repository():
+        server = db_lookup_server(server_id)
+
+    # if server is not found then try from file repo
+    if has_file_repository():
         server = config_lookup_server(server_id)
 
-    # if server is not found then try from db
-    if server is None and has_db_repository():
-        server = db_lookup_server(server_id)
 
     return server
 
@@ -1723,10 +1715,12 @@ def lookup_all_servers():
     validate_repositories()
 
     all_servers = []
-    if consulting_file_repository():
-        all_servers = list(get_configured_servers().values())
-    if has_db_repository():
+
+    if consulting_db_repository():
         all_servers.extend(db_lookup_all_servers())
+
+    if has_file_repository():
+        all_servers = list(get_configured_servers().values())
 
     return all_servers
 
@@ -1754,13 +1748,14 @@ def lookup_and_validate_cluster(cluster_id):
 def lookup_cluster(cluster_id):
     validate_repositories()
     cluster = None
-    # lookup cluster from the config first
-    if consulting_file_repository():
-        cluster = config_lookup_cluster(cluster_id)
+    # lookup cluster from the db repo first
 
-    # if cluster is not found then try from db
-    if cluster is None and has_db_repository():
+    if cluster is None and consulting_db_repository():
         cluster = db_lookup_cluster(cluster_id)
+
+    # if cluster is not found then try from file repo
+    if has_file_repository():
+        cluster = config_lookup_cluster(cluster_id)
 
     return cluster
 
@@ -1786,10 +1781,11 @@ def lookup_all_clusters():
     validate_repositories()
     all_clusters = []
 
-    if consulting_file_repository():
-        all_clusters = list(get_configured_clusters().values())
-    if has_db_repository():
+    if consulting_db_repository():
         all_clusters.extend(db_lookup_all_clusters())
+
+    if has_file_repository():
+        all_clusters = list(get_configured_clusters().values())
 
     return all_clusters
 
@@ -1852,16 +1848,14 @@ def lookup_cluster_by_server(server):
     validate_repositories()
     cluster = None
 
-    ## look for the cluster in config
-    if consulting_file_repository():
+    ## Look for the cluster in db repo
+    if cluster is None and consulting_db_repository():
+        cluster = db_lookup_cluster_by_server(server)
+
+    ## If nothing is found then look in file repo
+    if has_file_repository():
         cluster = config_lookup_cluster_by_server(server)
 
-    ## If nothing found then look in db
-    ##   (but not if server is the Mothership;
-    ##    for now, its cluster gotta be in da file repository. -- TODO XXX &c.)
-    if (cluster is None and has_db_repository() and
-        not is_mongoctl_repo_db(server)):
-        cluster = db_lookup_cluster_by_server(server)
 
     return cluster
 
@@ -2214,16 +2208,14 @@ def is_valid_mongo_exe(path):
 def get_mongod_executable(server_version):
     mongod_exe = get_mongo_executable(server_version,
                                       'mongod',
-                                       version_check_pref=VERSION_PREF_EXACT,
-                                       prompt_install=True)
+                                       version_check_pref=VERSION_PREF_EXACT)
     return mongod_exe.path
 
 ###############################################################################
 def get_mongo_shell_executable(server_version):
     shell_exe = get_mongo_executable(server_version,
                                      'mongo',
-                                     version_check_pref=VERSION_PREF_MAJOR_GE,
-                                     prompt_install=True)
+                                     version_check_pref=VERSION_PREF_MAJOR_GE)
     return shell_exe.path
 
 ###############################################################################
@@ -2231,8 +2223,7 @@ def get_mongo_dump_executable(server_version):
     dump_exe = get_mongo_executable(server_version,
                                     'mongodump',
                                     version_check_pref=
-                                    VERSION_PREF_EXACT_OR_MINOR,
-                                    prompt_install=True)
+                                    VERSION_PREF_EXACT_OR_MINOR)
     # Warn the user if it is not an exact match (minor match)
     if server_version and version_obj(server_version) != dump_exe.version:
         log_warning("Using mongodump '%s' that does not exactly match"
@@ -2308,8 +2299,6 @@ def prepare_server(server):
         setup_server_local_users(server)
     else:
         setup_server_users(server)
-    if am_bootstrapping():
-        ensure_minimal_bootstrap(server)
 
 ###############################################################################
 def mk_server_dir(server):
@@ -2513,7 +2502,7 @@ def log_server_activity(server, activity):
 
 ###############################################################################
 def is_logging_activity():
-    return (has_db_repository() and
+    return (consulting_db_repository() and
             get_mongoctl_config_val("logServerActivity" , False))
 
 ###############################################################################
@@ -2525,84 +2514,8 @@ def has_file_repository():
     return get_file_repository_conf() is not None
 
 ###############################################################################
-# Bootstrapping the DB Repository off of the File Repository
-#
-# If configured with "seedDatabaseRepository" : true , then the file repository
-# is only consulted long enough to start the database repository.
-# We assume (for now) that the only place to be seeding the db repository from
-# is the file repository, and so once seeded we only consult the latter.
-#
-# This seems a little overcomplicated, but then ... bootstrapping is tricky.
-
-def consulting_file_repository():
-    return has_file_repository() and not has_seeded_repository()
-
-def is_seeding_repository():
-    """returns True iff config indicates file repo intended to seed db repo"""
-    return (has_db_repository() and
-            get_mongoctl_config_val("seedDatabaseRepository", default=False))
-
-def has_seeded_repository():
-    """returns True iff we believe that seeding is complete & available"""
-    if not is_seeding_repository() or am_bootstrapping():
-        return False
-
-    global __db_repo_seeded__
-    if not __db_repo_seeded__ :
-        log_verbose("Hmmm ... I wonder if db repo is up & seeded?")
-        __db_repo_seeded__ = _does_db_repo_appear_seeded()
-        if not __db_repo_seeded__ :
-            log_verbose("Cannot confirm this here db repo is up & seeded.")
-    return __db_repo_seeded__
-
-def _does_db_repo_appear_seeded():
-    """returns True iff we see seeded db repo is online & ready for action."""
-    global __db_repo_checking_seeded_
-    if __db_repo_checking_seeded_ :
-        # if we're asking a second time, let's not blow out the stack, eh?
-        return False
-    try:
-        __db_repo_checking_seeded_ = True # that's what we're doing, yo.
-        return (is_seeding_repository() and
-                get_mongoctl_database() is not None)
-    except:
-        return False
-    finally:
-        __db_repo_checking_seeded_ = False
-
-def am_bootstrapping(sez_i=None):
-    """This is basically a flag set during startup of the repo db server."""
-    global __db_repo_starting__
-    if sez_i is None:
-        return __db_repo_starting__
-    else:
-        __db_repo_starting__ = sez_i
-
-def ensure_minimal_bootstrap(server):
-    """
-    Make sure db repo has a document representing the mongoctl db server
-    that is to serve the db repo after handoff.
-    If necessary, insert the one we've been using from the file repo.
-    """
-    if db_lookup_server(server.get_id()) is None:
-        try:
-            log_verbose("Bootstrapping db repo server record from file...")
-            get_mongoctl_server_db_collection().insert(server.get_document(),
-                                                       safe=True)
-        except Exception, e:
-            log_error("Unable to ensure bootstrap of db repository!  %s" % e)
-
-
-###############################################################################
-# Global variables used to govern the mechanics of db repo startup & seeding
-#
-# Global variable: True ==> file repo contents presumed represented in db repo
-__db_repo_seeded__ = False
-# Global variable: True ==> checking on seeded repo (prevent inf. recursion)
-__db_repo_checking_seeded_ = False
-# Global variable: True ==> bootstrapping the db repo
-__db_repo_starting__ = False
-
+def consulting_db_repository():
+    return has_db_repository() and is_db_repository_online()
 
 ###############################################################################
 def validate_repositories():
@@ -2611,15 +2524,6 @@ def validate_repositories():
         raise MongoctlException("Invalid 'mongoctl.config': No fileRepository"
                                 " or databaseRepository configured. At least"
                                 " one repository has to be configured.")
-
-    # ensure that if db repo is a server then must have file repo
-    if (has_db_repository() and
-        is_db_repository_via_server_id() and
-        not has_file_repository()):
-        msg = ("Invalid 'mongoctl.config': You must have a fileRepository"
-               " configured because databaseRepository is configured via a "
-               "server id.")
-        raise MongoctlException(msg)
 
 ###############################################################################
 # Global variable: mongoctl's mongodb object
@@ -2639,39 +2543,32 @@ def get_mongoctl_database():
 
     log_verbose("Connecting to mongoctl db...")
     try:
-        if is_db_repository_via_server_id():
-            (conn, dbname) = _db_repo_connect_byref()
-        else:
-            (conn, dbname) = _db_repo_connect_byuri()
+
+        (conn, dbname) = _db_repo_connect()
 
         __mongoctl_db__ = conn[dbname]
-
         return __mongoctl_db__
     except Exception, e:
-        raise MongoctlException(
-            "Could not establish a database"\
-            " connection to mongoctl's configuration database: %s" % (e))
+        __mongoctl_db__ = "OFFLINE"
+        log_warning("\n*************\n"
+                    "Will not be using database repository for configurations"
+                    " at this time!"
+                    "\nREASON: Could not establish a database"
+                    " connection to mongoctl's database repository."
+                    "\nCAUSE: %s."
+                    "\n*************" % e)
 
-def is_db_repository_via_server_id():
-    return (has_db_repository() and
-            "server_id" in get_database_repository_conf())
+###############################################################################
+def is_db_repository_online():
+    mongoctl_db = get_mongoctl_database()
+    return mongoctl_db and mongoctl_db != "OFFLINE"
 
-def is_mongoctl_repo_db(server):
-    return (is_db_repository_via_server_id() and
-            (server.get_id() == get_database_repository_conf()["server_id"]))
-
-def _db_repo_connect_byuri():
+###############################################################################
+def _db_repo_connect():
     db_conf = get_database_repository_conf()
     uri = db_conf["databaseURI"]
     conn = pymongo.Connection(uri)
     dbname = pymongo.uri_parser.parse_uri(uri)['database']
-    return conn, dbname
-
-def _db_repo_connect_byref():
-    db_conf = get_database_repository_conf()
-    svr = lookup_server(db_conf["server_id"])
-    dbname = db_conf["db"]
-    conn = svr.get_authenticate_db(dbname).connection
     return conn, dbname
 
 ###############################################################################
@@ -2771,13 +2668,6 @@ def get_generate_key_file(server):
         # set the permissions required by mongod
         os.chmod(key_file_path,stat.S_IRUSR)
     return key_file_path
-###############################################################################
-def is_auto_auth_server(id):
-    return id in get_aut_auth_servers()
-
-###############################################################################
-def get_aut_auth_servers():
-    return get_mongoctl_config_val("autoAuthServers", default=[])
 
 ###############################################################################
 # Configuration Functions
@@ -3620,11 +3510,6 @@ class Server(DocumentWrapper):
 
         if not login_user:
             login_user = get_global_login_user(self, dbname)
-
-        if not login_user and is_auto_auth_server(self.get_id()):
-            db_seed_users = self.get_db_seed_users(dbname)
-            if db_seed_users:
-                login_user = db_seed_users[0]
 
         return login_user
 
