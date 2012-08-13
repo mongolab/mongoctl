@@ -1722,7 +1722,7 @@ def lookup_all_servers():
         all_servers.extend(db_lookup_all_servers())
 
     if has_file_repository():
-        all_servers.extend(list(get_configured_servers().values()))
+        all_servers.extend(get_configured_servers().values())
 
     return all_servers
 
@@ -1787,7 +1787,7 @@ def lookup_all_clusters():
         all_clusters.extend(db_lookup_all_clusters())
 
     if has_file_repository():
-        all_clusters.extend(list(get_configured_clusters().values()))
+        all_clusters.extend(get_configured_clusters().values())
 
     return all_clusters
 
