@@ -404,6 +404,8 @@ def list_clusters_command(parsed_options):
         log_info("No clusters configured");
         return
 
+    # sort clusters by id
+    clusters = sorted(clusters, key=lambda c: c.get_id())
     bar = "-"*80
     print bar
     formatter = "%-25s %-40s %s"
@@ -1709,11 +1711,6 @@ def db_lookup_server(server_id):
         return None
 
 ###############################################################################
-def db_lookup_servers_by_host(host_id):
-    server_collection = get_mongoctl_server_db_collection()
-    return new_server_list(server_collection.find({"host.$id": host_id}))
-
-###############################################################################
 ## Looks up the server from config file
 def config_lookup_server(server_id):
     servers = get_configured_servers()
@@ -1724,21 +1721,22 @@ def config_lookup_server(server_id):
 def lookup_all_servers():
     validate_repositories()
 
-    all_servers = []
+    all_servers = {}
 
     if consulting_db_repository():
-        all_servers.extend(db_lookup_all_servers())
+        all_servers = db_lookup_all_servers()
 
     if has_file_repository():
-        all_servers.extend(get_configured_servers().values())
+        file_repo_servers = get_configured_servers()
+        all_servers = dict(file_repo_servers.items() + all_servers.items())
 
-    return all_servers
+    return all_servers.values()
 
 ###############################################################################
 # returns servers saved in the db collection of servers
 def db_lookup_all_servers():
     servers = get_mongoctl_server_db_collection()
-    return new_server_list(servers.find())
+    return new_servers_dict(servers.find())
 
 ###############################################################################
 # Cluster lookup functions
@@ -1789,21 +1787,22 @@ def db_lookup_cluster(cluster_id):
 # returns all clusters configured in both DB and config file
 def lookup_all_clusters():
     validate_repositories()
-    all_clusters = []
+    all_clusters = {}
 
     if consulting_db_repository():
-        all_clusters.extend(db_lookup_all_clusters())
+        all_clusters = db_lookup_all_clusters()
 
     if has_file_repository():
-        all_clusters.extend(get_configured_clusters().values())
+        all_clusters = dict(get_configured_clusters().items() +
+                            all_clusters.items())
 
-    return all_clusters
+    return all_clusters.values()
 
 ###############################################################################
-# returns clusters saved in the db collection of servers
+# returns a dictionary of (cluster_id, cluster) looked up from DB
 def db_lookup_all_clusters():
     clusters = get_mongoctl_cluster_db_collection()
-    return new_replicaset_cluster_list(clusters.find())
+    return new_replicaset_clusters_dict(clusters.find())
 
 ###############################################################################
 # Lookup by server id
@@ -4610,16 +4609,20 @@ def new_host_member_wrapper_server(address):
     return Server(server_doc)
 
 ###############################################################################
-def new_server_list(docs_iteratable):
-    return map(new_server, docs_iteratable)
+def new_servers_dict(docs):
+    dict = {}
+    map(lambda doc: dict.update({doc['_id']: new_server(doc)}), docs)
+    return dict
 
 ###############################################################################
 def new_cluster(cluster_doc):
     return ReplicaSetCluster(cluster_doc)
 
 ###############################################################################
-def new_replicaset_cluster_list(docs_iteratable):
-    return map(new_cluster, docs_iteratable)
+def new_replicaset_clusters_dict(docs):
+    dict = {}
+    map(lambda doc: dict.update({doc['_id']: new_cluster(doc)}), docs)
+    return dict
 
 ###############################################################################
 def new_replicaset_cluster_member(cluster_mem_doc):
