@@ -914,14 +914,22 @@ def resync_secondary(server_id):
     validate_local_op(server, "resync-secondary")
 
     log_info("Checking if server '%s' is secondary..." % server_id)
-    # check if server is a replica primary
-
-    if not server.is_online():
+    # get the server status
+    status = server.get_status(admin=True)
+    if not status['connection']:
         msg = ("Server '%s' does not seem to be running. For more details,"
                " run 'mongoctl status %s'" % (server_id, server_id))
         raise MongoctlException(msg)
+    elif 'error' in status:
+        msg = ("There was an error while connecting to server '%s'. For more details,"
+               " run 'mongoctl status %s'" % (server_id, server_id))
+        raise MongoctlException(msg)
 
-    if not is_replica_secondary(server):
+    rs_state = None
+    if 'selfReplicaSetStatusSummary' in status:
+        rs_state = status['selfReplicaSetStatusSummary']['stateStr']
+
+    if rs_state not in ['SECONDARY', 'RECOVERING']:
         msg = ("Server '%s' is not a secondary member or cannot be determined"
                " as secondary. For more details, run 'mongoctl status %s'" %
                (server_id, server_id))
@@ -3946,6 +3954,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
 
         if master_result:
             return get_document_property(self.is_master_command(), "secondary")
+
     ###########################################################################
     def is_master_command(self):
         try:
