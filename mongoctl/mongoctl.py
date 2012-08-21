@@ -923,8 +923,9 @@ def resync_secondary(server_id):
                " run 'mongoctl status %s'" % (server_id, server_id))
         raise MongoctlException(msg)
     elif 'error' in status:
-        msg = ("There was an error while connecting to server '%s'. For more details,"
-               " run 'mongoctl status %s'" % (server_id, server_id))
+        msg = ("There was an error while connecting to server '%s' (error:%s)."
+               " For more details, run 'mongoctl status %s'" %
+               (server_id, status['error'], server_id))
         raise MongoctlException(msg)
 
     rs_state = None
@@ -933,8 +934,8 @@ def resync_secondary(server_id):
 
     if rs_state not in ['SECONDARY', 'RECOVERING']:
         msg = ("Server '%s' is not a secondary member or cannot be determined"
-               " as secondary. For more details, run 'mongoctl status %s'" %
-               (server_id, server_id))
+               " as secondary (stateStr='%s'. For more details, run 'mongoctl"
+               " status %s'" % (server_id, rs_state, server_id))
         raise MongoctlException(msg)
 
     do_stop_server(server)
