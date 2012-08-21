@@ -1,0 +1,2 @@
+# This is needed for configs to be includes in sdist (when running "python setup.py sdist")
+recursive-include mongoctl *.config

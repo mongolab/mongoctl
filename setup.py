@@ -50,7 +50,7 @@ SAMPLE_CONF_FILE_NAMES = ["mongoctl.config",
 def get_sample_conf_dir():
     this_dir = os.path.dirname(
         inspect.getfile(inspect.currentframe()))
-    return os.path.join(this_dir, "sample_conf")
+    return os.path.join(this_dir, "mongoctl/sample_conf")
 
 ###############################################################################
 
@@ -114,7 +114,7 @@ def mongoctl_post_install():
 ###############################################################################
 setup(
     name='mongoctl',
-    version='0.3.0',
+    version='0.3.1',
     author='MongoLab team',
     author_email='team@mongolab.com',
     description='MongoDB command line utility',
@@ -125,11 +125,13 @@ setup(
     packages=['mongoctl',
               'mongoctl/tests',
               'mongoctl/tests/testing_conf',
-              'mongoctl/minify_json'],
+              'mongoctl/minify_json',
+              'mongoctl/sample_conf'],
+
     package_data = {'mongoctl.tests.testing_conf':
-                        ['mongoctl.config',
-                         'servers.config',
-                         'clusters.config']},
+                        ['*.config'],
+                    'mongoctl.sample_conf':
+                        ['*.config']},
     test_suite="mongoctl.tests.test_suite",
     include_package_data=True,
     scripts=['bin/mongoctl'],
