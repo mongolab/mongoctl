@@ -946,15 +946,12 @@ MONGOCTL_PARSER_DEF = {
             "function": "mongoctl.mongoctl.dump_command",
             "args": [
                     {
-                    "name": "dbAddress",
-                    "displayName": "DB_ADDRESS",
-                    "type" : "optional",
-                    "cmd_arg": [
-                        "--db-address"
-                    ],
+                    "name": "target",
+                    "displayName": "TARGET",
+                    "type" : "positional",
                     "nargs": 1,
-                    "help": "database addresses supported by mongoctl."
-                            " Check docs for more details."
+                    "help": "database addresses or dbpath. Check docs for"
+                            " more details."
                 },
                     {
                     "name": "username",
@@ -985,21 +982,6 @@ MONGOCTL_PARSER_DEF = {
                     ],
                     "nargs": 0
                 },
-
-                    {
-                    "name": "dbpath",
-                    "type" : "optional",
-                    "displayName": "DBPATH",
-                    "help": "directly access mongod database files in the given "
-                            "path, instead of connecting to a mongod  server -"
-                            " needs to lock the data directory, so cannot be used "
-                            "if a mongod is currently accessing the same path ",
-                    "cmd_arg": [
-                        "--dbpath"
-                    ],
-                    "nargs": 1
-                },
-
                     {
                     "name": "directoryperdb",
                     "type" : "optional",

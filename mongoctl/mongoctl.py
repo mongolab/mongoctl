@@ -320,24 +320,27 @@ def connect_command(parsed_options):
 ###############################################################################
 def dump_command(parsed_options):
 
-    # validate arguments
-    db_address = parsed_options.dbAddress
-    dbpath = parsed_options.dbpath
+    # get and validate dump target
+    target = parsed_options.target
 
-    if ((db_address is None and dbpath is None) or
-        (db_address is not None and dbpath is not None)):
-        msg = ("Not enough arguments. Please specify either --db-address "
-               "or --dbpath. For more information, see 'mongoctl dump -h'")
-        raise MongoctlException(msg)
+    is_addr = is_db_address(target)
+    is_path = is_dbpath(target)
 
+    if is_addr and is_path:
+        raise MongoctlException("Ambiguous target value '%s'. Your target is "
+                                "a db address and a dbpath." % target)
+    elif not (is_addr or is_path):
+        raise MongoctlException("Invalid target value '%s'. Target has to be"
+                                " a valid db address or dbpath." % target)
     dump_options = extract_mongo_dump_options(parsed_options)
-    if db_address:
-        mongo_dump_db_address(db_address,
+
+    if is_addr:
+        mongo_dump_db_address(target,
                               username=parsed_options.username,
                               password=parsed_options.password,
                               dump_options=dump_options)
     else:
-        mongo_dump_db_path(parsed_options.dbpath,
+        mongo_dump_db_path(target,
                            dump_options=dump_options)
 
 ###############################################################################
@@ -1667,6 +1670,37 @@ def validate_local_op(server, op):
         log_verbose("Server address validation passed. "
                     "Server '%s' address '%s' is local on this "
                     "machine !" % (server.get_id(), server.get_host_address()))
+
+###############################################################################
+def is_server_or_cluster_db_address(value):
+    """
+    checks if the specified value is in the form of
+    [server or cluster id][/database]
+    """
+    # check if value is an id string
+    id_path = value.split("/")
+    id = id_path[0]
+    return len(id_path) <= 2 and (lookup_server(id) or lookup_cluster(id))
+
+###############################################################################
+def is_db_address(value):
+    """
+    Checks if the specified value is a valid mongoctl database address
+    """
+    return value and (is_mongo_uri(value) or
+                      is_server_or_cluster_db_address(value))
+
+
+###############################################################################
+def is_dbpath(value):
+    """
+    Checks if the specified value is a dbpath. dbpath could be an absolute
+    file path, relative path or a file uri
+    """
+    # remove the file uri prefix if its there
+
+    value = value.replace("file://", "")
+    return os.path.exists(value)
 
 ###############################################################################
 # Server lookup functions
