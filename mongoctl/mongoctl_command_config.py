@@ -1210,8 +1210,10 @@ MONGOCTL_PARSER_DEF = {
         },
 
         #### install ####
+        # TODO: Remove and replace by install-mongodb
             {
             "prog": "install",
+            "hidden": True,
             "group": "adminCommands",
             "shortDescription" : "install MongoDB",
             "description" : "install MongoDB",
@@ -1227,8 +1229,44 @@ MONGOCTL_PARSER_DEF = {
             ]
         },
         #### uninstall ####
+        # TODO: Remove and replace by uninstall-mongodb
             {
             "prog": "uninstall",
+            "hidden": True,
+            "group": "adminCommands",
+            "shortDescription" : "uninstall MongoDB",
+            "description" : "uninstall MongoDB",
+            "function": "mongoctl.mongoctl.uninstall_command",
+            "args": [
+                    {
+                    "name": "version",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "displayName": "VERSION",
+                    "help": "MongoDB version to uninstall"
+                }
+            ]
+        },
+        #### install-mongodb ####
+            {
+            "prog": "install-mongodb",
+            "group": "adminCommands",
+            "shortDescription" : "install MongoDB",
+            "description" : "install MongoDB",
+            "function": "mongoctl.mongoctl.install_command",
+            "args": [
+                    {
+                    "name": "version",
+                    "type" : "positional",
+                    "nargs": "?",
+                    "displayName": "VERSION",
+                    "help": "MongoDB version to install"
+                }
+            ]
+        },
+        #### uninstall-mongodb ####
+            {
+            "prog": "uninstall-mongodb",
             "group": "adminCommands",
             "shortDescription" : "uninstall MongoDB",
             "description" : "uninstall MongoDB",
