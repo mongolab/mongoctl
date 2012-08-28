@@ -327,8 +327,12 @@ def dump_command(parsed_options):
     is_path = is_dbpath(target)
 
     if is_addr and is_path:
-        raise MongoctlException("Ambiguous target value '%s'. Your target is "
-                                "a db address and a dbpath." % target)
+        msg = ("Ambiguous target value '%s'. Your target matches both a dbpath"
+               " and a db address. Use prefix 'file://', 'cluster://' or"
+               " 'server://' to make it more specific" % target)
+
+        raise MongoctlException(msg)
+
     elif not (is_addr or is_path):
         raise MongoctlException("Invalid target value '%s'. Target has to be"
                                 " a valid db address or dbpath." % target)
@@ -340,7 +344,8 @@ def dump_command(parsed_options):
                               password=parsed_options.password,
                               dump_options=dump_options)
     else:
-        mongo_dump_db_path(target,
+        dbpath = resolve_path(target)
+        mongo_dump_db_path(dbpath,
                            dump_options=dump_options)
 
 ###############################################################################
@@ -1697,9 +1702,8 @@ def is_dbpath(value):
     Checks if the specified value is a dbpath. dbpath could be an absolute
     file path, relative path or a file uri
     """
-    # remove the file uri prefix if its there
 
-    value = value.replace("file://", "")
+    value = resolve_path(value)
     return os.path.exists(value)
 
 ###############################################################################
@@ -2921,6 +2925,9 @@ def dir_exists(path):
 
 ###############################################################################
 def resolve_path(path):
+    # handle file uris
+    path = path.replace("file://", "")
+
     # expand vars
     path =  os.path.expandvars(os.path.expanduser(path))
     # Turn relative paths to absolute
