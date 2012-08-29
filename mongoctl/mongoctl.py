@@ -345,8 +345,42 @@ def dump_command(parsed_options):
                               dump_options=dump_options)
     else:
         dbpath = resolve_path(target)
-        mongo_dump_db_path(dbpath,
-                           dump_options=dump_options)
+        mongo_dump_db_path(dbpath, dump_options=dump_options)
+
+###############################################################################
+# restore command
+###############################################################################
+def restore_command(parsed_options):
+
+    # get and validate source/destination
+    source = parsed_options.source
+    destination = parsed_options.destination
+
+    is_addr = is_db_address(destination)
+    is_path = is_dbpath(destination)
+
+    if is_addr and is_path:
+        msg = ("Ambiguous destination value '%s'. Your destination matches"
+               " both a dbpath and a db address. Use prefix 'file://',"
+               " 'cluster://' or 'server://' to make it more specific" %
+               destination)
+
+        raise MongoctlException(msg)
+
+    elif not (is_addr or is_path):
+        raise MongoctlException("Invalid destination value '%s'. Destination has to be"
+                                " a valid db address or dbpath." % target)
+    restore_options = extract_mongo_restore_options(parsed_options)
+
+    if is_addr:
+        mongo_restore_db_address(destination,
+                                 source,
+                                 username=parsed_options.username,
+                                 password=parsed_options.password,
+                                 restore_options=restore_options)
+    else:
+        dbpath = resolve_path(destination)
+        mongo_restore_db_path(dbpath, source, restore_options=restore_options)
 
 ###############################################################################
 # tail log command
@@ -1365,6 +1399,171 @@ def do_mongo_dump(host=None,
     dump_process.communicate()
 
 ###############################################################################
+# mongo_restore
+###############################################################################
+def mongo_restore_db_address(db_address,
+                             source,
+                             username=None,
+                             password=None,
+                             restore_options={}):
+
+    if is_mongo_uri(db_address):
+        mongo_restore_uri(db_address, source, username, password,
+                          restore_options)
+        return
+
+    # db_address is an id string
+    id_path = db_address.split("/")
+    id = id_path[0]
+    database = id_path[1] if len(id_path) == 2 else None
+
+    server = lookup_server(id)
+    if server:
+        mongo_restore_server(server, source, database=database,
+                             username=username, password=password,
+                             restore_options=restore_options)
+        return
+    else:
+        cluster = lookup_cluster(id)
+        if cluster:
+            mongo_restore_cluster(cluster, source, database=database,
+                                  username=username, password=password,
+                                  restore_options=restore_options)
+            return
+
+    raise MongoctlException("Unknown db address '%s'" % db_address)
+
+###############################################################################
+def mongo_restore_db_path(dbpath, source, restore_options={}):
+    do_mongo_restore(source, dbpath=dbpath, restore_options=restore_options)
+
+###############################################################################
+def mongo_restore_uri(uri, source,
+                      username=None,
+                      password=None,
+                      restore_options={}):
+    try:
+        uri_obj = uri_parser.parse_uri(uri)
+        node = uri_obj["nodelist"][0]
+        host = node[0]
+        port = node[1]
+        database = uri_obj["database"]
+        username = username if username else uri_obj["username"]
+        password = password if password else uri_obj["password"]
+        if not host:
+            raise MongoctlException("URI '%s' is missing a host." % uri)
+
+        do_mongo_restore(source,
+                         host=host,
+                         port=port,
+                         database=database,
+                         username=username,
+                         password=password,
+                         restore_options=restore_options)
+
+    except errors.ConfigurationError, e:
+        raise MongoctlException("Malformed URI '%s'. %s" % (uri, e))
+
+###############################################################################
+def mongo_restore_server(server, source,
+                         database=None,
+                         username=None,
+                         password=None,
+                         restore_options={}):
+    validate_server(server)
+
+    # if no db specified then make sure we have access to admin db if needed
+    if not database and server.needs_to_auth("admin"):
+        username,password = server.login_and_get_user("admin")
+    elif database and server.needs_to_auth(database):
+        username,password = server.login_and_get_user(database)
+    else: # no need to pass credentials here
+        username = None
+        password = None
+
+    do_mongo_restore(source,
+                     host=server.get_connection_host_address(),
+                     port=server.get_port(),
+                     database=database,
+                     username=username,
+                     password=password,
+                     server_version=server.get_mongo_version(),
+                     restore_options=restore_options)
+
+###############################################################################
+def mongo_restore_cluster(cluster, source,
+                          database=None,
+                          username=None,
+                          password=None,
+                          restore_options={}):
+    validate_cluster(cluster)
+    log_info("Locating primary server for cluster '%s'..." % cluster.get_id())
+    primary_member = cluster.get_primary_member()
+    if primary_member:
+        primary_server = primary_member.get_server()
+        log_info("Restoring primary server '%s'" % primary_server.get_id())
+        mongo_restore_server(primary_server, source,
+                          database=database,
+                          username=username,
+                          password=password,
+                          restore_options=restore_options)
+    else:
+        raise MongoctlException("No primary server found for cluster '%s'" %
+                                cluster.get_id())
+
+###############################################################################
+def do_mongo_restore(source,
+                     host=None,
+                     port=None,
+                     dbpath=None,
+                     database=None,
+                     username=None,
+                     password=None,
+                     server_version=None,
+                     restore_options={}):
+
+
+    # create restore command with host and port
+    restore_cmd = [get_mongo_restore_executable(server_version)]
+
+    if host:
+        restore_cmd.extend(["--host", host])
+    if port:
+        restore_cmd.extend(["--port", str(port)])
+
+    # dbpath
+    if dbpath:
+        restore_cmd.extend(["--dbpath", dbpath])
+
+    # database
+    if database:
+        restore_cmd.extend(["-d", database])
+
+    # username and password
+    if username:
+        restore_cmd.extend(["-u", username, "-p"])
+        if password:
+            restore_cmd.append(password)
+
+    # append shell options
+    if restore_options:
+        restore_cmd.extend(options_to_command_args(restore_options))
+
+    # pass source arg
+    restore_cmd.append(source)
+
+    cmd_display =  restore_cmd[:]
+    # mask password
+    if username and password:
+        cmd_display[cmd_display.index("-p") + 1] =  "****"
+
+    # execute!
+    log_info("Executing command: \n%s" % " ".join(cmd_display))
+    restore_process = create_subprocess(restore_cmd)
+
+    restore_process.communicate()
+
+###############################################################################
 def is_mongo_uri(str):
     return str and str.startswith("mongodb://")
 
@@ -2278,6 +2477,20 @@ def get_mongo_dump_executable(server_version):
                     "server version '%s'" % (dump_exe.version, server_version))
 
     return dump_exe.path
+
+###############################################################################
+def get_mongo_restore_executable(server_version):
+    restore_exe = get_mongo_executable(server_version,
+                                       'mongorestore',
+                                       version_check_pref=
+                                        VERSION_PREF_EXACT_OR_MINOR)
+    # Warn the user if it is not an exact match (minor match)
+    if server_version and version_obj(server_version) != restore_exe.version:
+        log_warning("Using mongorestore '%s' that does not exactly match"
+                    "server version '%s'" % (restore_exe.version,
+                                             server_version))
+
+    return restore_exe.path
 
 ###############################################################################
 def get_mongo_home_exe(mongo_home, executable_name):
@@ -4720,6 +4933,11 @@ def extract_mongo_dump_options(parsed_args):
                                      SUPPORTED_MONGO_DUMP_OPTIONS)
 
 ###############################################################################
+def extract_mongo_restore_options(parsed_args):
+    return extract_mongo_exe_options(parsed_args,
+        SUPPORTED_MONGO_RESTORE_OPTIONS)
+
+###############################################################################
 def extract_mongo_exe_options(parsed_args, supported_options):
     options_extract = {}
 
@@ -4812,9 +5030,22 @@ SUPPORTED_MONGO_DUMP_OPTIONS = [
     "oplog",
     "repair",
     "forceTableScan",
-    "ipv6"
-    ]
+    "ipv6",
+    "verbose"
+]
 
+SUPPORTED_MONGO_RESTORE_OPTIONS = [
+    "directoryperdb",
+    "journal",
+    "collection",
+    "ipv6",
+    "filter",
+    "objcheck",
+    "drop",
+    "oplogReplay",
+    "keepIndexVersion",
+    "verbose"
+]
 
 ###############################################################################
 ########################                   ####################################

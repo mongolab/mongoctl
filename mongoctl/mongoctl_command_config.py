@@ -950,7 +950,7 @@ MONGOCTL_PARSER_DEF = {
                     "displayName": "TARGET",
                     "type" : "positional",
                     "nargs": 1,
-                    "help": "database addresses or dbpath. Check docs for"
+                    "help": "database addresse or dbpath. Check docs for"
                             " more details."
                 },
                     {
@@ -1006,7 +1006,7 @@ MONGOCTL_PARSER_DEF = {
                     "name": "collection",
                     "type" : "optional",
                     "displayName": "COLLECTION",
-                    "help": "if dbpath specified, each db is in a separate directory",
+                    "help": "collection to use (some commands)",
                     "cmd_arg": [
                         "-c",
                         "--collection"
@@ -1078,6 +1078,159 @@ MONGOCTL_PARSER_DEF = {
             ]
         },
 
+        #### restore ####
+            {
+            "prog": "restore",
+            "group": "clientCommands",
+            "shortDescription" : "Restore MongoDB (using mongorestore0",
+            "description" : "Runs a mongorestore from specified file or directory"
+                            " to database address or dbpath. If a\n"
+                            "cluster is specified command will restore against "
+                            "the primary server.\n\n"
+                            "<db-address> can be one of:\n"
+                            "   (a) a mongodb URI (e.g. mongodb://localhost:27017[/mydb])\n"
+                            "   (b) <server-id>[/<db>]\n"
+                            "   (c) <cluster-id>[/<db>]\n",
+            "function": "mongoctl.mongoctl.restore_command",
+            "args": [
+                    {
+                    "name": "destination",
+                    "displayName": "DESTINATION",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "help": "database address or dbpath. Check docs for"
+                            " more details."
+                },
+
+                    {
+                    "name": "source",
+                    "displayName": "SOURCE FILE OR DIR",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "help": "directory or filename to restore from"
+                },
+                    {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                    {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
+                },
+
+                    {
+                    "name": "verbose",
+                    "type" : "optional",
+                    "help": 'increase verbosity',
+                    "cmd_arg": [
+                        "-v",
+                        "--verbose"
+                    ],
+                    "nargs": 0
+                },
+                    {
+                    "name": "directoryperdb",
+                    "type" : "optional",
+                    "help": "if dbpath specified, each db is in a separate directory",
+                    "cmd_arg": [
+                        "--directoryperdb"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "journal",
+                    "type" : "optional",
+                    "help": "enable journaling",
+                    "cmd_arg": [
+                        "--journal"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "collection",
+                    "type" : "optional",
+                    "displayName": "COLLECTION",
+                    "help": " collection to use (some commands)",
+                    "cmd_arg": [
+                        "-c",
+                        "--collection"
+                    ],
+                    "nargs": 1
+                },
+
+
+                    {
+                    "name": "objcheck",
+                    "type" : "optional",
+                    "help": "validate object before inserting",
+                    "cmd_arg": [
+                        "--objectcheck"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "filter",
+                    "type" : "optional",
+                    "displayName": "FILTER",
+                    "help": "filter to apply before inserting",
+                    "cmd_arg": [
+                        "--filter"
+                    ],
+                    "nargs": 1
+                },
+
+                    {
+                    "name": "drop",
+                    "type" : "optional",
+                    "help": " drop each collection before import",
+                    "cmd_arg": [
+                        "--drop"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "oplogReplay",
+                    "type" : "optional",
+                    "help": "replay oplog for point-in-time restore",
+                    "cmd_arg": [
+                        "--oplogReplay"
+                    ],
+                    "nargs": 0
+                },
+
+                    {
+                    "name": "keepIndexVersion",
+                    "type" : "optional",
+                    "help": " don't upgrade indexes to newest version",
+                    "cmd_arg": [
+                        "--keepIndexVersion"
+                    ],
+                    "nargs": 0
+                },
+                    {
+                    "name": "ipv6",
+                    "type" : "optional",
+                    "cmd_arg":  "--ipv6",
+                    "nargs": 0,
+                    "help": "enable IPv6 support (disabled by default)"
+                }
+
+            ]
+        },
         #### resync-secondary ####
             {
             "prog": "resync-secondary",
