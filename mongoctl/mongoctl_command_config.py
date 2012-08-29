@@ -1104,7 +1104,7 @@ MONGOCTL_PARSER_DEF = {
 
                     {
                     "name": "source",
-                    "displayName": "SOURCE FILE OR DIR",
+                    "displayName": "SOURCE",
                     "type" : "positional",
                     "nargs": 1,
                     "help": "directory or filename to restore from"
