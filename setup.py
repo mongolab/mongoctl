@@ -114,7 +114,7 @@ def mongoctl_post_install():
 ###############################################################################
 setup(
     name='mongoctl',
-    version='0.3.1',
+    version='0.3.2',
     author='MongoLab team',
     author_email='team@mongolab.com',
     description='MongoDB command line utility',
@@ -139,11 +139,8 @@ setup(
     license='MIT',
     install_requires=[
         'dargparse',
-        'dampier-pymongo==2.1.1',
-        'verlib==0.1'],
-    dependency_links=[
-        "https://github.com/dampier/mongo-python-driver/tarball/master#egg=dampier-pymongo-2.1.1"
-    ]
+        'pymongo==2.3',
+        'verlib==0.1']
 
 
 )
