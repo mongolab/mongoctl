@@ -1082,7 +1082,7 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "restore",
             "group": "clientCommands",
-            "shortDescription" : "Restore MongoDB (using mongorestore0",
+            "shortDescription" : "Restore MongoDB (using mongorestore)",
             "description" : "Runs a mongorestore from specified file or directory"
                             " to database address or dbpath. If a\n"
                             "cluster is specified command will restore against "
