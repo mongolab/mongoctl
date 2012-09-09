@@ -1137,13 +1137,12 @@ def open_mongo_shell_to_server(server,
         else:
             database = "admin"
 
-    if server.needs_to_auth(database):
-        # authenticate, if auth fails then an exception will be raised
-        server.get_authenticate_db(database)
-        # get the username/password from login user
-        login_user = server.get_login_user(database)
-        username = login_user["username"]
-        password = login_user["password"]
+    if username or server.needs_to_auth(database):
+        # authenticate and grab a working username/password
+        username, password = server.get_working_login(database, username,
+                                                      password)
+
+
 
     do_open_mongo_shell_to(server.get_connection_address(),
                            database,
@@ -1310,14 +1309,11 @@ def mongo_dump_server(server,
                       dump_options={}):
     validate_server(server)
 
-    # if no db specified then make sure we have access to admin db if needed
-    if not database and server.needs_to_auth("admin"):
-        username,password = server.login_and_get_user("admin")
-    elif database and server.needs_to_auth(database):
-        username,password = server.login_and_get_user(database)
-    else: # no need to pass credentials here
-        username = None
-        password = None
+    auth_db = database or "admin"
+    # authenticate if username is specified or if we need to
+    if username or server.needs_to_auth(auth_db):
+        username,password = server.get_working_login(auth_db, username,
+                                                     password)
 
     do_mongo_dump(host=server.get_connection_host_address(),
                   port=server.get_port(),
@@ -1472,14 +1468,11 @@ def mongo_restore_server(server, source,
                          restore_options={}):
     validate_server(server)
 
-    # if no db specified then make sure we have access to admin db if needed
-    if not database and server.needs_to_auth("admin"):
-        username,password = server.login_and_get_user("admin")
-    elif database and server.needs_to_auth(database):
-        username,password = server.login_and_get_user(database)
-    else: # no need to pass credentials here
-        username = None
-        password = None
+    auth_db = database or "admin"
+    # authenticate if username is specified or if we need to
+    if username or server.needs_to_auth(auth_db):
+        username,password = server.get_working_login(auth_db, username,
+                                                     password)
 
     do_mongo_restore(source,
                      host=server.get_connection_host_address(),
@@ -2671,7 +2664,7 @@ def setup_server_db_users(server, dbname, db_users):
         log_verbose("Not seeding users for database '%s'" % dbname)
         return 0
 
-    db = server.get_authenticate_db(dbname)
+    db = server.get_db(dbname)
 
     try:
         any_new_user_added = setup_db_users(server, db, db_users)
@@ -3515,20 +3508,10 @@ def parse_global_login_user_arg(parsed_args):
     password = namespace_get_property(parsed_args, "password")
     server_id = namespace_get_property(parsed_args,SERVER_ID_PARAM)
 
-    if username:
-        if parsed_args.is_arg_specified("-p"):
-            if not password:
-                password = read_password()
-            # we only validate login if -p is specified
-            #server = lookup_and_validate_server(server_id)
-            #if not server.is_valid_admin_login(username, password):
-             #   raise MongoctlException("Login failed.")
-
-
-        global __global_login_user__
-        __global_login_user__['serverId'] = server_id
-        __global_login_user__['username'] = username
-        __global_login_user__['password'] = password
+    global __global_login_user__
+    __global_login_user__['serverId'] = server_id
+    __global_login_user__['username'] = username
+    __global_login_user__['password'] = password
 
 ###############################################################################
 ########################                   ####################################
@@ -3775,6 +3758,11 @@ class Server(DocumentWrapper):
         if not login_user:
             login_user = get_global_login_user(self, dbname)
 
+        # if dbname is local and we cant find anything yet
+        # THEN assume that local credentials == admin credentials
+        if not login_user and dbname == "local":
+            login_user = self.get_login_user("admin")
+
         return login_user
 
     ###########################################################################
@@ -3834,68 +3822,115 @@ class Server(DocumentWrapper):
     ###########################################################################
     def db_command(self, cmd, dbname):
 
-        if not self.is_auth() or not self.command_needs_auth(cmd):
-            return self.get_db(dbname).command(cmd)
-        else:
-            return self.get_authenticate_db(dbname).command(cmd)
+        need_auth = self.command_needs_auth(dbname, cmd)
+        db = self.get_db(dbname, no_auth=not need_auth)
+        return db.command(cmd)
 
     ###########################################################################
-    def command_needs_auth(self, cmd):
+    def command_needs_auth(self, dbname, cmd):
         if 'shutdown' in cmd and self.is_arbiter_server():
             return False
 
-        return self.is_auth()
+        return self.needs_to_auth(dbname)
 
     ###########################################################################
-    def get_authenticate_db(self, dbname):
-        auth_success = False
-        db = self.get_db(dbname)
+    def get_db(self, dbname, no_auth=False, username=None, password=None):
 
-        # check if we already authed
-        if db.__dict__['is_authed']:
-            return db
+        conn = self.get_db_connection()
+        db = conn[dbname]
 
         # If the DB doesn't need to be authenticated to (or at least yet)
         # then don't authenticate. this piece of code is important for the case
         # where you are connecting to the DB on local host where --auth is on
         # but there are no admin users yet
-        if not self.needs_to_auth(dbname):
+        if no_auth:
             return db
 
+        if (not username and
+            (not self.needs_to_auth(dbname))):
+            return db
+
+        if username:
+            self.set_login_user(dbname, username, password)
+
         login_user = self.get_login_user(dbname)
-        if not login_user and dbname != "admin":
+        # if there is no login user for this database then use admin db
+        if not login_user and dbname not in ["admin", "local"]:
             # if this passes then we are authed!
             admin_db = self.get_admin_db()
             return admin_db.connection[dbname]
 
-        auth_success = self.authenticate_db(db, dbname)
+        self.authenticate_db(db, dbname)
+        return db
+
+
+    ###########################################################################
+    def authenticate_db(self, db, dbname):
+        """
+        Returns True if we manage to auth to the given db, else False.
+        """
+        login_user = self.get_login_user(dbname)
+        username = None
+        password = None
+
+
+        auth_success = False
+
+        if login_user:
+            username = login_user["username"]
+            if "password" in login_user:
+                password = login_user["password"]
+
+        # have three attempts to authenticate
+        no_tries = 0
+
+        while not auth_success and no_tries < 3:
+            if not username:
+                username = read_input("Enter username for database '%s': " %
+                                      dbname)
+            if not password:
+                password = self.get_password_from_seed_users(dbname, username)
+                if not password:
+                    password = read_password("Enter password for user '%s\%s'"%
+                                             (dbname, username))
+
+            # if auth success then exit loop and memoize login
+            auth_success = db.authenticate(username, password)
+            if auth_success:
+                break
+            else:
+                log_error("Invalid login!")
+                username = None
+                password = None
+
+            no_tries += 1
+
         if auth_success:
-            return db
+            self.set_login_user(dbname, username, password)
         else:
             raise MongoctlException("Failed to authenticate"
                                     " to %s db" % dbname)
+
     ###########################################################################
-    def login_and_get_user(self, database):
-        self.get_authenticate_db(database)
+    def get_working_login(self, database, username=None, password=None):
+        """
+            authenticate to the specified database starting with specified
+            username/password (if present), try to return a successful login
+            within 3 attempts
+        """
+        login_user = None
+
+
+        #  this will authenticate and update login user
+        self.get_db(database, username=username, password=password)
+
         login_user = self.get_login_user(database)
-        username = login_user["username"]
-        password = login_user["password"]
+
+        if login_user:
+            username = login_user["username"]
+            password = (login_user["password"] if "password" in login_user
+                                               else None)
         return username, password
-
-    ###########################################################################
-    def is_valid_admin_login(self, username, password):
-        admin_db = self.get_db("admin")
-        return admin_db.authenticate(username, password)
-
-    ###########################################################################
-    def get_db(self, dbname):
-        conn = self.get_db_connection()
-        db = conn[dbname]
-
-        if 'is_authed' not in db.__dict__:
-            db.__dict__['is_authed'] = False
-
-        return db
 
     ###########################################################################
     def is_online(self):
@@ -3942,13 +3977,10 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_admin_db(self):
-        if self.is_auth():
-            return self.get_authenticate_db("admin")
-        else:
-            return self.get_db("admin")
+        return self.get_db("admin")
 
     ###########################################################################
-    def needs_to_auth(self, dbname="admin"):
+    def needs_to_auth(self, dbname):
         # If the server is NOT local, then this depends on auth
         if not self.is_online_locally():
             return self.is_auth()
@@ -3971,19 +4003,10 @@ class Server(DocumentWrapper):
         status = {}
         ## check if the server is online
         try:
-            self.new_db_connection()
+            self.get_db_connection()
             status['connection'] = True
 
-            can_admin = True
-            auth_db = "local" if self.is_arbiter_server() else "admin"
-            if (self.is_auth() and
-                self.needs_to_auth(auth_db) and
-                not self.has_auth_to(auth_db)):
-                status['error'] = "Cannot authenticate to '%s' db" % auth_db
-                self.sever_db_connection()   # better luck next time!
-                can_admin = False
-
-            if admin and can_admin:
+            if admin:
                 server_summary = self.get_server_status_summary()
                 status["serverStatusSummary"] = server_summary
                 rs_summary = self.get_rs_status_summary()
@@ -3992,11 +4015,9 @@ class Server(DocumentWrapper):
 
 
         except (RuntimeError, Exception),e:
+            self.sever_db_connection()   # better luck next time!
             status['connection'] = False
-            if type(e) == MongoctlException:
-                status['error'] = "%s" % e.cause
-            else:
-                status['error'] = "%s" % e
+            status['error'] = "%s" % e
             if "timed out" in status['error']:
                 status['timedOut'] = True
         return status
@@ -4081,51 +4102,9 @@ class Server(DocumentWrapper):
             raise MongoctlException(error_msg,cause=e)
 
     ###########################################################################
-    def has_auth_to(self,dbname):
-        db = self.get_db(dbname)
-        auth_success = self.authenticate_db(db, dbname)
-        return auth_success
-
-    ###########################################################################
-    def authenticate_db(self, db, dbname):
-        """
-        Returns True if we manage to auth to the given db, else False.
-        """
-        login_user = self.get_login_user(dbname)
-        username = None
-        password = None
-
-
-        if login_user:
-            username = login_user["username"]
-            if get_document_property(login_user, "password"):
-                password = login_user["password"]
-            else:
-                password = self.get_password_from_seed_users(dbname, username)
-                if not password:
-                    password = read_password("Enter password for user '%s' for"
-                                             " database '%s'" % (username,
-                                                                 dbname))
-
-        else:
-            username = read_input("Enter username for database '%s': " %
-                                  dbname)
-            password = read_password()
-
-        # if auth success then exit loop and memoize login
-        auth_success = db.authenticate(username, password)
-        if auth_success:
-            self.set_login_user(dbname, username, password)
-            # keep track of is authed on our own because pymongo
-            # does not do that
-            db.__dict__['is_authed'] = auth_success
-        return auth_success
-
-
-    ###########################################################################
     def get_rs_config(self):
         try:
-            return self.get_authenticate_db('local')['system.replset'].find_one()
+            return self.get_db('local')['system.replset'].find_one()
         except (Exception,RuntimeError), e:
             if type(e) == MongoctlException:
                 raise e
