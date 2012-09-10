@@ -4251,6 +4251,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
 
         # set the tags property of the member config if there are any
         if tags:
+            log_verbose("Member '%s' tags : %s" % (member_conf['host'], tags))
             member_conf['tags'] = tags
 
     ###########################################################################
@@ -4600,6 +4601,7 @@ class ReplicaSetCluster(DocumentWrapper):
         rs_reconfig_cmd = \
             self.get_replicaset_reconfig_db_command(add_server=add_server,
                                                     force=force)
+        desired_config = rs_reconfig_cmd['replSetReconfig']
 
         try:
             log_info("Executing the following command on server '%s':"
@@ -4613,6 +4615,16 @@ class ReplicaSetCluster(DocumentWrapper):
 
             # Probably need to reconnect.  May not be primary any more.
             realized_config = self.read_rs_config()
+            if realized_config['version'] != desired_config['version']:
+                log_verbose("Really? Config version unchanged? "
+                            "Let me double-check that ...")
+                def got_the_memo():
+                    return (self.read_rs_config()['version'] == 
+                            desired_config['version'])
+                if not wait_for(got_the_memo, timeout=45, sleep_duration=5):
+                    raise Exception("New config version not detected!")
+                # Finally! Resample. 
+                realized_config = self.read_rs_config()
             log_info("New replica set configuration:\n %s" %
                      document_pretty_string(realized_config))
 
