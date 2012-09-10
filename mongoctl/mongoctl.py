@@ -4621,8 +4621,11 @@ class ReplicaSetCluster(DocumentWrapper):
                 log_verbose("Really? Config version unchanged? "
                             "Let me double-check that ...")
                 def got_the_memo():
-                    return (self.read_rs_config()['version'] == 
-                            desired_config['version'])
+                    version_diff = (self.read_rs_config()['version'] -
+                                    desired_config['version'])
+                    return ((version_diff == 0) or
+                            # force => mongo adds large random # to 'version'.
+                            (force and version_diff >= 0))
                 if not wait_for(got_the_memo, timeout=45, sleep_duration=5):
                     raise Exception("New config version not detected!")
                 # Finally! Resample. 
