@@ -34,12 +34,14 @@ Options:
 
 Commands:
   Admin Commands:
-    install                   - install MongoDB
-    uninstall                 - uninstall MongoDB
+    install-mongodb           - install MongoDB
+    uninstall-mongodb         - uninstall MongoDB
     list-versions             - list all available MongoDB installations on this machine
 
   Client Commands:
     connect                   - open a mongo shell connection to a server
+    dump                      - Export MongoDB data to BSON files (using mongodump)
+    restore                   - Restore MongoDB (using mongorestore)
 
   Server Commands:
     start                     - start a server
@@ -48,11 +50,16 @@ Commands:
     status                    - retrieve status of server
     list-servers              - show list of configured servers
     show-server               - show server's configuration
+    tail-log                  - tails a server's log file
+    resync-secondary          - Resyncs a secondary member
 
   Cluster Commands:
     configure-cluster         - initiate or reconfigure a cluster
     list-clusters             - show list of configured clusters
     show-cluster              - show cluster's configuration
+
+  Miscellaneous:
+    print-uri                 - prints connection URI for a server or cluster
 
 See 'mongoctl <command> --help' for more help on a specific command.
 ```

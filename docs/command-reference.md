@@ -19,12 +19,14 @@ Options:
 
 Commands:
   Admin Commands:
-    install                   - install MongoDB
-    uninstall                 - uninstall MongoDB
+    install-mongodb           - install MongoDB
+    uninstall-mongodb         - uninstall MongoDB
     list-versions             - list all available MongoDB installations on this machine
 
   Client Commands:
     connect                   - open a mongo shell connection to a server
+    dump                      - Export MongoDB data to BSON files (using mongodump)
+    restore                   - Restore MongoDB (using mongorestore)
 
   Server Commands:
     start                     - start a server
@@ -33,11 +35,16 @@ Commands:
     status                    - retrieve status of server
     list-servers              - show list of configured servers
     show-server               - show server's configuration
+    tail-log                  - tails a server's log file
+    resync-secondary          - Resyncs a secondary member
 
   Cluster Commands:
     configure-cluster         - initiate or reconfigure a cluster
     list-clusters             - show list of configured clusters
     show-cluster              - show cluster's configuration
+
+  Miscellaneous:
+    print-uri                 - prints connection URI for a server or cluster
 
 See 'mongoctl <command> --help' for more help on a specific command.
 ```
@@ -45,9 +52,9 @@ See 'mongoctl <command> --help' for more help on a specific command.
 Admin commands
 ---------------
 
-##### install
+##### install-mongodb
 ```
-Usage: install <version>
+Usage: install-mongodb <version>
 
 Install the specified version of MongoDB
 
@@ -55,7 +62,7 @@ Options:
   -h, --help  show this help message and exit
 ```
 
-##### uninstall
+##### uninstall-mongodb
 ```
 Usage: uninstall <version>
 
@@ -101,6 +108,78 @@ Options:
   --eval EVAL    evaluate javascript
   --verbose      increase verbosity
   --ipv6         enable IPv6 support (disabled by default)
+```
+
+#### dump
+
+```
+Usage: dump [<options>] TARGET
+
+Runs a mongodump  to the specified database address or dbpath. If a
+cluster is specified command will run the dump against the primary server.
+
+<db-address> can be one of:
+   (a) a mongodb URI (e.g. mongodb://localhost:27017[/mydb])
+   (b) <server-id>[/<db>]
+   (c) <cluster-id>[/<db>]
+
+
+Arguments:
+  TARGET  database addresse or dbpath. Check docs for more details.
+
+Options:
+  -h, --help            show this help message and exit
+  -u USERNAME           username
+  -p [PASSWORD]         password
+  -v, --verbose         increase verbosity
+  --directoryperdb      if dbpath specified, each db is in a separate
+                        directory
+  --journal             enable journaling
+  -c COLLECTION, --collection COLLECTION
+                        collection to use (some commands)
+  -o DIR, --out DIR     output directory or '-' for stdout
+  -q QUERY, --query QUERY
+                        json query
+  --oplog               Use oplog for point-in-time snapshotting
+  --repair              try to recover a crashed database
+  --forceTableScan      force a table scan (do not use $snapshot)
+  --ipv6                enable IPv6 support (disabled by default)
+```
+
+##### restore
+
+```
+Usage: restore [<options>] DESTINATION SOURCE
+
+Runs a mongorestore from specified file or directory to database address or dbpath. If a
+cluster is specified command will restore against the primary server.
+
+<db-address> can be one of:
+   (a) a mongodb URI (e.g. mongodb://localhost:27017[/mydb])
+   (b) <server-id>[/<db>]
+   (c) <cluster-id>[/<db>]
+
+
+Arguments:
+  DESTINATION  database address or dbpath. Check docs for more details.
+  SOURCE       directory or filename to restore from
+
+Options:
+  -h, --help            show this help message and exit
+  -u USERNAME           username
+  -p [PASSWORD]         password
+  -v, --verbose         increase verbosity
+  --directoryperdb      if dbpath specified, each db is in a separate
+                        directory
+  --journal             enable journaling
+  -c COLLECTION, --collection COLLECTION
+                        collection to use (some commands)
+  --objectcheck         validate object before inserting
+  --filter FILTER       filter to apply before inserting
+  --drop                drop each collection before import
+  --oplogReplay         replay oplog for point-in-time restore
+  --keepIndexVersion    don't upgrade indexes to newest version
+  --ipv6                enable IPv6 support (disabled by default)
 ```
 
 Server commands
@@ -285,6 +364,40 @@ Options:
   -h, --help  show this help message and exit
 ```
 
+##### tail-log
+
+```
+Usage: tail-log [<options>] SERVER_ID
+
+Tails server's log file. Works only on local host
+
+Arguments:
+  SERVER_ID  a valid server id
+
+Options:
+  -h, --help      show this help message and exit
+  --assume-local  Assumes that the server is running on local host. This will
+                  skip local address/dns check
+```
+
+##### resync-secondary
+
+```
+Usage: resync-secondary [<options>] SERVER_ID
+
+Resyncs a secondary member
+
+Arguments:
+  SERVER_ID  a valid server id
+
+Options:
+  -h, --help      show this help message and exit
+  --assume-local  Assumes that the server is running on local host. This will
+                  skip local address/dns check
+  -u USERNAME     admin username
+  -p [PASSWORD]   admin password
+```
+
 Cluster commands
 -----------------
 
@@ -329,3 +442,19 @@ Options:
   -p [PASSWORD]  admin password
 ```
 
+Miscellaneous commands
+-----------------
+
+##### print-uri
+```
+Usage: print-uri [<options>] SERVER or CLUSTER ID
+
+Prints MongoDB connection URI of the specified server or clurter
+
+Arguments:
+  SERVER or CLUSTER ID  Server or cluster id
+
+Options:
+  -h, --help      show this help message and exit
+  -d DB, --db DB  database name
+```

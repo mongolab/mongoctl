@@ -731,8 +731,8 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "status",
             "group": "serverCommands",
-            "shortDescription" : "retrieve status of server or a cluster",
-            "description" : "Retrieves the status of a server or a cluster.",
+            "shortDescription" : "retrieve status of server",
+            "description" : "Retrieves the status of a server",
             "function": "mongoctl.mongoctl.status_command",
             "args":[
                     {   "name": "id",
@@ -771,8 +771,8 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "list-servers",
             "group": "serverCommands",
-            "shortDescription" : "list all server configurations",
-            "description" : "List all server configurations.",
+            "shortDescription" : "show list of configured servers",
+            "description" : "Show list of configured servers.",
             "function": "mongoctl.mongoctl.list_servers_command"
         },
         #### show-server ####
@@ -1339,8 +1339,8 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "list-clusters",
             "group": "clusterCommands",
-            "shortDescription" : "list all cluster configurations",
-            "description" : "List all cluster configurations",
+            "shortDescription" : "show list of configured clusters",
+            "description" : "Show list of configured servers",
             "function": "mongoctl.mongoctl.list_clusters_command"
         },
 

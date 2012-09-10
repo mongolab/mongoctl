@@ -2,8 +2,8 @@ Managing MongoDB installations
 --------------------
 
 ```mongoctl``` allows you to manage multiple versions of MongoDB. You can install (and uninstall) different versions using the 
-[```mongoctl install```](command-reference.md#install) and 
-[```mongoctl uninstall```](command-reference.md#uninstall) commands respecively. At any time you can see what versions 
+[```mongoctl install-mongodb```](command-reference.md#install-mongodb) and
+[```mongoctl uninstall-mongodb```](command-reference.md#uninstall-mongodb) commands respecively. At any time you can see what versions
 of MongoDB are currently installed using [```mongoctl list-versions```](command-reference.md#list-versions).
 
 #### Configuring the location of MongoDB installations
@@ -23,7 +23,7 @@ VERSION              LOCATION
 ```
 
 ```
-% mongoctl install 2.0.5
+% mongoctl install-mongodb 2.0.5
 
 Running install for osx 64bit to mongoDBInstallations=/Users/abdul/mongodb
 Downloading http://fastdl.mongodb.org/osx/mongodb-osx-x86_64-2.0.5.tgz ...
@@ -66,7 +66,7 @@ VERSION              LOCATION
 ```
 
 ```
-% mongoctl uninstall 2.0.4
+% mongoctl uninstall-mongodb 2.0.4
 
 Found MongoDB '2.0.4' in '/Users/abdul/mongodb/mongodb-osx-x86_64-2.0.4'
 Proceed uninstall? [y/n] y
