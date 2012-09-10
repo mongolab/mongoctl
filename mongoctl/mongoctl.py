@@ -545,10 +545,11 @@ def do_start_server(server, options_override=None, rs_add=False):
 
     mongod_pid = start_server_process(server,options_override)
 
-    maybe_config_server_repl_set(server, rs_add=rs_add)
-
     try:
+
+        # prepare the server
         prepare_server(server)
+        maybe_config_server_repl_set(server, rs_add=rs_add)
     except Exception,e:
         log_error("Unable to fully prepare server '%s'. Cause: %s \n"
                   "Stop server now if more preparation is desired..." %
@@ -2543,15 +2544,16 @@ def version_obj(version_str):
 
 ###############################################################################
 def prepare_server(server):
-    log_info("Preparing server '%s' for use as configured..." % server.get_id())
-
-    """ if the server is a cluster member then only setup local user because
-        the rest of the users will be setup at cluster init time by the
-        setup_cluster_users method
     """
-    if is_cluster_member(server):
-        setup_server_local_users(server)
-    else:
+     Contains post start server operations
+    """
+    log_info("Preparing server '%s' for use as configured..." %
+             server.get_id())
+
+    # setup the local users
+    setup_server_local_users(server)
+
+    if not is_cluster_member(server):
         setup_server_users(server)
 
 ###############################################################################
