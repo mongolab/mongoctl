@@ -4008,7 +4008,8 @@ class Server(DocumentWrapper):
             self.get_db_connection()
             status['connection'] = True
 
-            if admin:
+            # grab status summary if it was specified + if i am not an arbiter
+            if admin and not self.is_arbiter_server():
                 server_summary = self.get_server_status_summary()
                 status["serverStatusSummary"] = server_summary
                 rs_summary = self.get_rs_status_summary()
