@@ -3576,6 +3576,7 @@ class Server(DocumentWrapper):
         self.__db_connection__ = None
         self.__seed_users__ = None
         self.__login_users__ = {}
+        self.__mongo_version__ = None
 
     ###########################################################################
     # Properties
@@ -3693,7 +3694,20 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_mongo_version(self):
-        return self.get_property("mongoVersion")
+        """
+        Gets mongo version of the server if it is running. Otherwise return
+         version configured in mongoVersion property
+        """
+        if self.__mongo_version__:
+            return self.__mongo_version__
+
+        if self.is_online():
+            mongo_version = self.get_db_connection().server_info()['version']
+        else:
+            mongo_version = self.get_property("mongoVersion")
+
+        self.__mongo_version__ = mongo_version
+        return self.__mongo_version__
 
     ###########################################################################
     def get_mongo_version_obj(self):
