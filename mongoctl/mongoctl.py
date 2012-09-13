@@ -2695,7 +2695,7 @@ def setup_server_admin_users(server):
     log_verbose("Checking setup for admin users...")
     count_new_users = 0
     try:
-        admin_db = server.get_admin_db()
+        admin_db = server.get_db("admin")
 
         # potentially create the 1st admin user
         count_new_users += setup_db_users(server, admin_db, admin_users[0:1])
@@ -2705,7 +2705,7 @@ def setup_server_admin_users(server):
         #       only localhost cxn gets a magic pass.
         # AFTER adding 1st admin user, authentication is required;
         #      so, to be sure we now have authenticated cxn, re-pull admin db:
-        admin_db = server.get_admin_db()
+        admin_db = server.get_db("admin")
 
         # create the rest of the users
         count_new_users += setup_db_users(server, admin_db, admin_users[1:])
@@ -2718,14 +2718,21 @@ def setup_server_admin_users(server):
 ###############################################################################
 def setup_server_local_users(server):
 
-    if not should_seed_db_users(server, "local"):
+    seed_local_users = False
+    try:
+        local_db = server.get_db("local", retry=False)
+        if not local_db['system.users'].find_one():
+            seed_local_users = True
+    except Exception, e:
+        pass
+
+    if not seed_local_users:
         log_verbose("Not seeding users for database 'local'")
         return 0
 
 
     try:
         local_users = server.get_db_seed_users("local")
-        local_db = server.get_db("local")
         if local_users:
             return setup_db_users(server, local_db, local_users)
         else:
@@ -3850,7 +3857,8 @@ class Server(DocumentWrapper):
         return self.needs_to_auth(dbname)
 
     ###########################################################################
-    def get_db(self, dbname, no_auth=False, username=None, password=None):
+    def get_db(self, dbname, no_auth=False, username=None, password=None,
+               retry=True):
 
         conn = self.get_db_connection()
         db = conn[dbname]
@@ -3873,15 +3881,23 @@ class Server(DocumentWrapper):
         # if there is no login user for this database then use admin db
         if not login_user and dbname not in ["admin", "local"]:
             # if this passes then we are authed!
-            admin_db = self.get_admin_db()
+            admin_db = self.get_db("admin", retry=retry)
             return admin_db.connection[dbname]
 
-        self.authenticate_db(db, dbname)
-        return db
+        auth_success = self.authenticate_db(db, dbname, retry=retry)
 
+        # If auth failed then give it a try by auth into admin db
+        if not auth_success and dbname != "admin":
+            admin_db = self.get_db("admin", retry=retry)
+            return admin_db.connection[dbname]
+
+        if auth_success:
+            return db
+        else:
+            raise MongoctlException("Failed to authenticate to %s db" % dbname)
 
     ###########################################################################
-    def authenticate_db(self, db, dbname):
+    def authenticate_db(self, db, dbname, retry=True):
         """
         Returns True if we manage to auth to the given db, else False.
         """
@@ -3912,7 +3928,7 @@ class Server(DocumentWrapper):
 
             # if auth success then exit loop and memoize login
             auth_success = db.authenticate(username, password)
-            if auth_success:
+            if auth_success or not retry:
                 break
             else:
                 log_error("Invalid login!")
@@ -3923,9 +3939,8 @@ class Server(DocumentWrapper):
 
         if auth_success:
             self.set_login_user(dbname, username, password)
-        else:
-            raise MongoctlException("Failed to authenticate"
-                                    " to %s db" % dbname)
+
+        return auth_success
 
     ###########################################################################
     def get_working_login(self, database, username=None, password=None):
@@ -3990,10 +4005,6 @@ class Server(DocumentWrapper):
                       " Cause: %s" %
                       (self.get_host_address(), self.get_id(), e))
         return False
-
-    ###########################################################################
-    def get_admin_db(self):
-        return self.get_db("admin")
 
     ###########################################################################
     def needs_to_auth(self, dbname):
