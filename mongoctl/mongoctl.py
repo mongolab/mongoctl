@@ -2658,7 +2658,9 @@ def setup_db_users(server, db, db_users):
         except errors.OperationFailure, ofe:
             # This is a workaround for PYTHON-407. i.e. catching a harmless
             # error that is raised after adding the first
-            if ofe.message.find("need to login") < 0:
+            if "login" in str(ofe):
+                pass
+            else:
                 raise ofe
 
     return count_new_users
