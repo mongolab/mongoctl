@@ -1312,11 +1312,11 @@ def mongo_dump_server(server,
 
     auth_db = database or "admin"
     # auto complete password if possible
-    if username or server.needs_to_auth(auth_db):
+    if username:
+        if not password and database:
+            password = server.lookup_password(database, username)
         if not password:
-            password = server.lookup_password(auth_db, username)
-            if not password:
-                password = server.lookup_password("admin", username)
+            password = server.lookup_password("admin", username)
 
 
     do_mongo_dump(host=server.get_connection_host_address(),
@@ -1472,12 +1472,11 @@ def mongo_restore_server(server, source,
                          restore_options={}):
     validate_server(server)
 
-    auth_db = database or "admin"
     # auto complete password if possible
-    if username or server.needs_to_auth(auth_db):
+    if username:
+        if not password and database:
+            password = server.lookup_password(database, username)
         if not password:
-            password = server.lookup_password(auth_db, username)
-            if not password:
                 password = server.lookup_password("admin", username)
 
     do_mongo_restore(source,
