@@ -1311,10 +1311,13 @@ def mongo_dump_server(server,
     validate_server(server)
 
     auth_db = database or "admin"
-    # authenticate if username is specified or if we need to
+    # auto complete password if possible
     if username or server.needs_to_auth(auth_db):
-        username,password = server.get_working_login(auth_db, username,
-                                                     password)
+        if not password:
+            password = server.lookup_password(auth_db, username)
+            if not password:
+                password = server.lookup_password("admin", username)
+
 
     do_mongo_dump(host=server.get_connection_host_address(),
                   port=server.get_port(),
@@ -1470,10 +1473,12 @@ def mongo_restore_server(server, source,
     validate_server(server)
 
     auth_db = database or "admin"
-    # authenticate if username is specified or if we need to
+    # auto complete password if possible
     if username or server.needs_to_auth(auth_db):
-        username,password = server.get_working_login(auth_db, username,
-                                                     password)
+        if not password:
+            password = server.lookup_password(auth_db, username)
+            if not password:
+                password = server.lookup_password("admin", username)
 
     do_mongo_restore(source,
                      host=server.get_connection_host_address(),
@@ -3798,7 +3803,7 @@ class Server(DocumentWrapper):
         return login_user
 
     ###########################################################################
-    def get_password_from_seed_users(self, dbname, username):
+    def lookup_password(self, dbname, username):
         # look in seed users
         db_seed_users = self.get_db_seed_users(dbname)
         if db_seed_users:
@@ -3930,7 +3935,7 @@ class Server(DocumentWrapper):
                 username = read_input("Enter username for database '%s': " %
                                       dbname)
             if not password:
-                password = self.get_password_from_seed_users(dbname, username)
+                password = self.lookup_password(dbname, username)
                 if not password:
                     password = read_password("Enter password for user '%s\%s'"%
                                              (dbname, username))
