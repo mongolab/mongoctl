@@ -54,9 +54,11 @@ class AuthReplicasetTest(MongoctlTestBase):
         self.mongoctl_assert_cmd("configure-cluster AuthReplicasetTestCluster"
                                  " -u abdulito")
 
-        print "Sleeping for 2 seconds..."
+        print ("Sleeping for 15 seconds. Hopefully credentials would "
+              "be replicated by then. If not then authentication will fail and"
+              " passwords will be prompted and then the test will fail...")
         # sleep for a couple of seconds
-        time.sleep(2)
+        time.sleep(15)
 
         ## Stop all servers
         self.assert_stop_server("auth_arbiter_test_server")
