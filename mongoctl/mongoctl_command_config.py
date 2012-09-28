@@ -954,6 +954,16 @@ MONGOCTL_PARSER_DEF = {
                             " more details."
                 },
                     {
+                    "name": "useBestSecondary",
+                    "type" : "optional",
+                    "help": "Only for clusters. Dump from the best secondary "
+                            "(passive / least repl lag)",
+                    "cmd_arg": [
+                        "--use-best-secondary"
+                    ],
+                    "nargs": 0
+                },
+                    {
                     "name": "username",
                     "type" : "optional",
                     "help": "username",

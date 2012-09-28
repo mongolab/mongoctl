@@ -322,7 +322,7 @@ def dump_command(parsed_options):
 
     # get and validate dump target
     target = parsed_options.target
-
+    use_best_secondary = parsed_options.useBestSecondary
     is_addr = is_db_address(target)
     is_path = is_dbpath(target)
 
@@ -342,6 +342,7 @@ def dump_command(parsed_options):
         mongo_dump_db_address(target,
                               username=parsed_options.username,
                               password=parsed_options.password,
+                              use_best_secondary=use_best_secondary,
                               dump_options=dump_options)
     else:
         dbpath = resolve_path(target)
@@ -1245,6 +1246,7 @@ def do_open_mongo_shell_to(address,
 def mongo_dump_db_address(db_address,
                           username=None,
                           password=None,
+                          use_best_secondary=False,
                           dump_options={}):
 
     if is_mongo_uri(db_address):
@@ -1264,7 +1266,7 @@ def mongo_dump_db_address(db_address,
         cluster = lookup_cluster(id)
         if cluster:
             mongo_dump_cluster(cluster, database, username, password,
-                               dump_options)
+                               use_best_secondary, dump_options)
             return
 
         # Unknown destination
@@ -1332,20 +1334,62 @@ def mongo_dump_cluster(cluster,
                        database=None,
                        username=None,
                        password=None,
+                       use_best_secondary=False,
                        dump_options={}):
     validate_cluster(cluster)
+
+    if use_best_secondary:
+        mongo_dump_cluster_best_secondary(cluster=cluster,
+                                          database=database,
+                                          username=username,
+                                          password=password,
+                                          dump_options=dump_options)
+    else:
+        mongo_dump_cluster_primary(cluster=cluster,
+                                   database=database,
+                                   username=username,
+                                   password=password,
+                                   dump_options=dump_options)
+###############################################################################
+def mongo_dump_cluster_primary(cluster,
+                               database=None,
+                               username=None,
+                               password=None,
+                               dump_options={}):
     log_info("Locating primary server for cluster '%s'..." % cluster.get_id())
     primary_member = cluster.get_primary_member()
     if primary_member:
         primary_server = primary_member.get_server()
         log_info("dumping primary server '%s'" % primary_server.get_id())
         mongo_dump_server(primary_server,
-                         database=database,
-                         username=username,
-                         password=password,
-                         dump_options=dump_options)
+            database=database,
+            username=username,
+            password=password,
+            dump_options=dump_options)
     else:
         raise MongoctlException("No primary server found for cluster '%s'" %
+                                cluster.get_id())
+
+
+###############################################################################
+def mongo_dump_cluster_best_secondary(cluster,
+                                      database=None,
+                                      username=None,
+                                      password=None,
+                                      dump_options={}):
+
+
+    log_info("Finding best secondary server for cluster '%s'..." %
+             cluster.get_id())
+    best_secondary = cluster.get_dump_best_secondary()
+    if best_secondary:
+        server = best_secondary.get_server()
+
+        log_info("Found secondary server '%s'. Dumping..." % server.get_id())
+        mongo_dump_server(server, database=database, username=username,
+                          password=password, dump_options=dump_options)
+    else:
+        raise MongoctlException("No secondary server found for cluster '%s'" %
                                 cluster.get_id())
 
 ###############################################################################
@@ -4210,6 +4254,10 @@ class ReplicaSetClusterMember(DocumentWrapper):
         return self.get_property("arbiterOnly") == True
 
     ###########################################################################
+    def is_passive(self):
+        return self.get_priority() == 0
+
+    ###########################################################################
     def get_priority(self):
         return self.get_property("priority")
 
@@ -4242,6 +4290,15 @@ class ReplicaSetClusterMember(DocumentWrapper):
             log_verbose("isMaster command failed on server '%s'. Cause %s" %
                         (self.get_server().get_id(), e))
             return False
+    ###########################################################################
+    def get_repl_lag(self, master_status):
+        """Given two 'members' elements from rs.status(),
+         return lag between their optimes (in secs)."""
+        member_status = self.get_server().get_member_rs_status()
+        lag_in_seconds = abs((member_status['optimeDate'] -
+                              master_status['optimeDate']).total_seconds())
+
+        return lag_in_seconds
 
     ###########################################################################
     def can_become_primary(self):
@@ -4504,6 +4561,44 @@ class ReplicaSetCluster(DocumentWrapper):
                member.get_server() is not None and
                member.get_server().is_online_locally()):
                 return member
+
+    ###########################################################################
+    def get_dump_best_secondary(self):
+        """
+        Returns the best secondary member to be used for dumping
+        best = passives with least lags, if no passives then least lag
+        """
+        secondary_lag_tuples = []
+
+        primary_member = self.get_primary_member()
+        if not primary_member:
+            raise MongoctlException("Unable to determine primary member for"
+                                    " cluster '%s'" % self.get_id())
+
+        master_status = primary_member.get_server().get_member_rs_status()
+        for member in self.get_members():
+            if member.is_secondary_member():
+                repl_lag = member.get_repl_lag(master_status)
+                secondary_lag_tuples.append((member,repl_lag))
+
+        def best_secondary_comp(x, y):
+            x_mem, x_lag = x
+            y_mem, y_lag = y
+            if x_mem.is_passive():
+                if y_mem.is_passive():
+                    return x_lag - y_lag
+                else:
+                    return -1
+            elif y_mem.is_passive():
+                return 1
+            else:
+                return x_lag - y_lag
+
+        if secondary_lag_tuples:
+            secondary_lag_tuples.sort(best_secondary_comp)
+            return secondary_lag_tuples[0][0]
+
+
 
     ###########################################################################
     def is_replicaset_initialized(self):
