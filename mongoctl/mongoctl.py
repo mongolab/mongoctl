@@ -1791,6 +1791,12 @@ def extract_archive(archive_name):
 ###############################################################################
 # HELPER functions
 ###############################################################################
+def timedelta_total_seconds(td):
+    """
+    Equivalent python 2.7+ timedelta.total_seconds()
+     This was added for python 2.6 compatibilty
+    """
+    return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 1e6) / 1e6
 
 ###############################################################################
 def prompt_execute_task(message, task_function):
@@ -4295,8 +4301,9 @@ class ReplicaSetClusterMember(DocumentWrapper):
         """Given two 'members' elements from rs.status(),
          return lag between their optimes (in secs)."""
         member_status = self.get_server().get_member_rs_status()
-        lag_in_seconds = abs((member_status['optimeDate'] -
-                              master_status['optimeDate']).total_seconds())
+        lag_in_seconds = abs(timedelta_total_seconds(
+                                member_status['optimeDate'] -
+                                master_status['optimeDate']))
 
         return lag_in_seconds
 
