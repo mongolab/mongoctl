@@ -1182,23 +1182,29 @@ def open_mongo_shell_to_uri(uri,
                             password=None,
                             shell_options={},
                             js_files=[]):
-    try:
-        uri_obj = uri_parser.parse_uri(uri)
-        node = uri_obj["nodelist"][0]
-        host = node[0]
-        port = node[1]
-        database = uri_obj["database"]
-        username = username if username else uri_obj["username"]
-        password = password if password else uri_obj["password"]
-        if not host:
-            raise MongoctlException("URI '%s' is missing a host." % uri)
 
-        address = "%s:%s" % (host, port)
-        do_open_mongo_shell_to(address, database, username, password,
-                               shell_options, js_files)
+    uri_obj = parse_mongo_uri(uri)
+    database = uri_obj["database"]
+    username = username if username else uri_obj["username"]
+    password = password if password else uri_obj["password"]
 
-    except errors.ConfigurationError, e:
-        raise MongoctlException("Malformed URI '%s'. %s" % (uri, e))
+
+    server_or_cluster = build_server_or_cluster_from_uri(uri)
+
+    if type(server_or_cluster) == Server:
+        open_mongo_shell_to_server(server_or_cluster,
+                                   database=database,
+                                   username=username,
+                                   password=password,
+                                   shell_options=shell_options,
+                                   js_files=js_files)
+    else:
+        open_mongo_shell_to_cluster(server_or_cluster,
+                                    database=database,
+                                    username=username,
+                                    password=password,
+                                    shell_options=shell_options,
+                                    js_files=js_files)
 
 ###############################################################################
 def do_open_mongo_shell_to(address,
@@ -1250,7 +1256,9 @@ def mongo_dump_db_address(db_address,
                           dump_options={}):
 
     if is_mongo_uri(db_address):
-        mongo_dump_uri(db_address, username, password, dump_options)
+        mongo_dump_uri(uri=db_address, username=username, password=password,
+                       use_best_secondary=use_best_secondary,
+                       dump_options=dump_options)
         return
 
     # db_address is an id string
@@ -1260,13 +1268,16 @@ def mongo_dump_db_address(db_address,
 
     server = lookup_server(id)
     if server:
-        mongo_dump_server(server, database, username, password, dump_options)
+        mongo_dump_server(server, database=database, username=username,
+                          password=password, dump_options=dump_options)
         return
     else:
         cluster = lookup_cluster(id)
         if cluster:
-            mongo_dump_cluster(cluster, database, username, password,
-                               use_best_secondary, dump_options)
+            mongo_dump_cluster(cluster, database=database, username=username,
+                               password=password,
+                               use_best_secondary=use_best_secondary,
+                               dump_options=dump_options)
             return
 
         # Unknown destination
@@ -1282,27 +1293,29 @@ def mongo_dump_db_path(dbpath, dump_options={}):
 def mongo_dump_uri(uri,
                    username=None,
                    password=None,
+                   use_best_secondary=False,
                    dump_options={}):
-    try:
-        uri_obj = uri_parser.parse_uri(uri)
-        node = uri_obj["nodelist"][0]
-        host = node[0]
-        port = node[1]
-        database = uri_obj["database"]
-        username = username if username else uri_obj["username"]
-        password = password if password else uri_obj["password"]
-        if not host:
-            raise MongoctlException("URI '%s' is missing a host." % uri)
 
-        do_mongo_dump(host=host,
-                      port=port,
-                      database=database,
-                      username=username,
-                      password=password,
-                      dump_options=dump_options)
+    uri_obj = parse_mongo_uri(uri)
+    database = uri_obj["database"]
+    username = username if username else uri_obj["username"]
+    password = password if password else uri_obj["password"]
 
-    except errors.ConfigurationError, e:
-        raise MongoctlException("Malformed URI '%s'. %s" % (uri, e))
+    server_or_cluster = build_server_or_cluster_from_uri(uri)
+
+    if type(server_or_cluster) == Server:
+        mongo_dump_server(server_or_cluster,
+                          database=database,
+                          username=username,
+                          password=password,
+                          dump_options=dump_options)
+    else:
+        mongo_dump_cluster(server_or_cluster,
+                           database=database,
+                           username=username,
+                           password=password,
+                           use_best_secondary=use_best_secondary,
+                           dump_options=dump_options)
 
 ###############################################################################
 def mongo_dump_server(server,
@@ -1486,27 +1499,22 @@ def mongo_restore_uri(uri, source,
                       username=None,
                       password=None,
                       restore_options={}):
-    try:
-        uri_obj = uri_parser.parse_uri(uri)
-        node = uri_obj["nodelist"][0]
-        host = node[0]
-        port = node[1]
-        database = uri_obj["database"]
-        username = username if username else uri_obj["username"]
-        password = password if password else uri_obj["password"]
-        if not host:
-            raise MongoctlException("URI '%s' is missing a host." % uri)
 
-        do_mongo_restore(source,
-                         host=host,
-                         port=port,
-                         database=database,
-                         username=username,
-                         password=password,
-                         restore_options=restore_options)
+    uri_obj = parse_mongo_uri(uri)
+    database = uri_obj["database"]
+    username = username if username else uri_obj["username"]
+    password = password if password else uri_obj["password"]
 
-    except errors.ConfigurationError, e:
-        raise MongoctlException("Malformed URI '%s'. %s" % (uri, e))
+    server_or_cluster = build_server_or_cluster_from_uri(uri)
+
+    if type(server_or_cluster) == Server:
+        mongo_restore_server(server_or_cluster, source, database=database,
+                             username=username, password=password,
+                             restore_options=restore_options)
+    else:
+        mongo_restore_cluster(server_or_cluster, source, database=database,
+                              username=username, password=password,
+                              restore_options=restore_options)
 
 ###############################################################################
 def mongo_restore_server(server, source,
@@ -1608,6 +1616,29 @@ def do_mongo_restore(source,
 ###############################################################################
 def is_mongo_uri(str):
     return str and str.startswith("mongodb://")
+
+###############################################################################
+def is_cluster_mongo_uri(mongo_uri):
+    return len(parse_mongo_uri(mongo_uri)["nodelist"]) > 1
+
+###############################################################################
+def parse_mongo_uri(uri):
+    try:
+        uri_obj = uri_parser.parse_uri(uri)
+        # validate uri
+        nodes = uri_obj["nodelist"]
+        for node in nodes:
+            host = node[0]
+            if not host:
+                raise MongoctlException("URI '%s' is missing a host." % uri)
+
+        return uri_obj
+    except errors.ConfigurationError, e:
+        raise MongoctlException("Malformed URI '%s'. %s" % (uri, e))
+
+    except Exception, e:
+        raise MongoctlException("Unable to parse mongo uri '%s'."
+                                " Cause: %s" % (e, uri))
 
 ###############################################################################
 # install_mongodb
@@ -2894,7 +2925,7 @@ def _db_repo_connect():
     db_conf = get_database_repository_conf()
     uri = db_conf["databaseURI"]
     conn = pymongo.Connection(uri)
-    dbname = pymongo.uri_parser.parse_uri(uri)['database']
+    dbname = parse_mongo_uri(uri)['database']
     return conn, dbname
 
 ###############################################################################
@@ -3595,7 +3626,7 @@ def parse_global_login_user_arg(parsed_args):
 ###############################################################################
 # Document Wrapper Class
 ###############################################################################
-class DocumentWrapper:
+class DocumentWrapper(object):
 
     ###########################################################################
     # Constructor
@@ -4245,7 +4276,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
                 if type(server_doc) is bson.DBRef:
                     self.__server__ =  lookup_server(server_doc.id)
             elif host is not None:
-                self.__server__ = new_host_member_wrapper_server(host)
+                self.__server__ = build_server_from_address(host)
 
         return self.__server__
 
@@ -4988,7 +5019,7 @@ def new_server(server_doc):
     return Server(server_doc)
 
 ###############################################################################
-def new_host_member_wrapper_server(address):
+def build_server_from_address(address):
     if not is_valid_member_address(address):
         return None
 
@@ -4999,6 +5030,65 @@ def new_host_member_wrapper_server(address):
                       "port": port
                   }}
     return Server(server_doc)
+
+###############################################################################
+def build_server_from_uri(uri):
+    uri_obj = parse_mongo_uri(uri)
+    node = uri_obj["nodelist"][0]
+    host = node[0]
+    port = node[1]
+
+    database = uri_obj["database"] or "admin"
+    username = uri_obj["username"]
+    password = uri_obj["password"]
+
+    address = "%s:%s" % (host, port)
+    server = build_server_from_address(address)
+
+    # set login user if specified
+    if username:
+        server.set_login_user(database, username, password)
+
+    return server
+
+###############################################################################
+def build_cluster_from_uri(uri):
+    uri_obj = parse_mongo_uri(uri)
+    database = uri_obj["database"] or "admin"
+    username = uri_obj["username"]
+    password = uri_obj["password"]
+
+    nodes = uri_obj["nodelist"]
+    cluster_doc = {
+        "_id": uri
+    }
+    member_doc_list = []
+
+    for node in nodes:
+        host = node[0]
+        port = node[1]
+        member_doc = {
+            "host": "%s:%s" % (host, port)
+        }
+        member_doc_list.append(member_doc)
+
+    cluster_doc["members"] = member_doc_list
+
+    cluster = new_cluster(cluster_doc)
+
+    # set login user if specified
+    if username:
+        for member in cluster.get_members():
+            member.get_server().set_login_user(database, username, password)
+
+    return cluster
+
+###############################################################################
+def build_server_or_cluster_from_uri(uri):
+    if is_cluster_mongo_uri(uri):
+        return build_cluster_from_uri(uri)
+    else:
+        return build_server_from_uri(uri)
 
 ###############################################################################
 def new_servers_dict(docs):
