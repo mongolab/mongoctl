@@ -40,8 +40,8 @@ Commands:
 
   Client Commands:
     connect                   - open a mongo shell connection to a server
-    dump                      - Export MongoDB data to BSON files (using mongodump)
-    restore                   - Restore MongoDB (using mongorestore)
+    dump                      - export MongoDB data to BSON files (using mongodump)
+    restore                   - restore MongoDB (using mongorestore)
 
   Server Commands:
     start                     - start a server
