@@ -4102,10 +4102,11 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def needs_to_auth(self, dbname):
-        # If the server is NOT local, then this depends on auth
-        if not self.is_online_locally():
-            return self.is_auth()
-
+        """
+        Determines if the server needs to authenticate to the database.
+        NOTE: we stopped depending on is_auth() since its only a configuration
+        and may not be accurate
+        """
         try:
             conn = self.new_db_connection()
             db = conn[dbname]
@@ -4332,6 +4333,12 @@ class ReplicaSetClusterMember(DocumentWrapper):
         """Given two 'members' elements from rs.status(),
          return lag between their optimes (in secs)."""
         member_status = self.get_server().get_member_rs_status()
+
+        if not member_status:
+            raise MongoctlException("Unable to determine replicaset status for"
+                                    " member '%s'" %
+                                    self.get_server().get_id())
+
         lag_in_seconds = abs(timedelta_total_seconds(
                                 member_status['optimeDate'] -
                                 master_status['optimeDate']))
@@ -4614,6 +4621,12 @@ class ReplicaSetCluster(DocumentWrapper):
                                     " cluster '%s'" % self.get_id())
 
         master_status = primary_member.get_server().get_member_rs_status()
+
+        if not master_status:
+            raise MongoctlException("Unable to determine replicaset status for"
+                                    " primary member '%s'" %
+                                    primary_member.get_server().get_id())
+
         for member in self.get_members():
             if member.is_secondary_member():
                 repl_lag = member.get_repl_lag(master_status)
