@@ -323,7 +323,7 @@ def dump_command(parsed_options):
     # get and validate dump target
     target = parsed_options.target
     use_best_secondary = parsed_options.useBestSecondary
-    max_repl_lag = parsed_options.maxReplLag
+    #max_repl_lag = parsed_options.maxReplLag
     is_addr = is_db_address(target)
     is_path = is_dbpath(target)
 
@@ -344,7 +344,7 @@ def dump_command(parsed_options):
                               username=parsed_options.username,
                               password=parsed_options.password,
                               use_best_secondary=use_best_secondary,
-                              max_repl_lag=max_repl_lag,
+                              max_repl_lag=None,
                               dump_options=dump_options)
     else:
         dbpath = resolve_path(target)
@@ -1398,7 +1398,7 @@ def mongo_dump_cluster_best_secondary(cluster,
                                       password=None,
                                       dump_options={}):
 
-    max_repl_lag = max_repl_lag or 3600
+    #max_repl_lag = max_repl_lag or 3600
     log_info("Finding best secondary server for cluster '%s' with replication"
              " lag less than max (%s seconds)..." %
              (cluster.get_id(), max_repl_lag))
