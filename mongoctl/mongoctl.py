@@ -323,6 +323,7 @@ def dump_command(parsed_options):
     # get and validate dump target
     target = parsed_options.target
     use_best_secondary = parsed_options.useBestSecondary
+    max_repl_lag = parsed_options.maxReplLag
     is_addr = is_db_address(target)
     is_path = is_dbpath(target)
 
@@ -343,6 +344,7 @@ def dump_command(parsed_options):
                               username=parsed_options.username,
                               password=parsed_options.password,
                               use_best_secondary=use_best_secondary,
+                              max_repl_lag=max_repl_lag,
                               dump_options=dump_options)
     else:
         dbpath = resolve_path(target)
@@ -1253,6 +1255,7 @@ def mongo_dump_db_address(db_address,
                           username=None,
                           password=None,
                           use_best_secondary=False,
+                          max_repl_lag=None,
                           dump_options={}):
 
     if is_mongo_uri(db_address):
@@ -1277,6 +1280,7 @@ def mongo_dump_db_address(db_address,
             mongo_dump_cluster(cluster, database=database, username=username,
                                password=password,
                                use_best_secondary=use_best_secondary,
+                               max_repl_lag=max_repl_lag,
                                dump_options=dump_options)
             return
 
@@ -1348,11 +1352,13 @@ def mongo_dump_cluster(cluster,
                        username=None,
                        password=None,
                        use_best_secondary=False,
+                       max_repl_lag=False,
                        dump_options={}):
     validate_cluster(cluster)
 
     if use_best_secondary:
         mongo_dump_cluster_best_secondary(cluster=cluster,
+                                          max_repl_lag=max_repl_lag,
                                           database=database,
                                           username=username,
                                           password=password,
@@ -1386,15 +1392,17 @@ def mongo_dump_cluster_primary(cluster,
 
 ###############################################################################
 def mongo_dump_cluster_best_secondary(cluster,
+                                      max_repl_lag=None,
                                       database=None,
                                       username=None,
                                       password=None,
                                       dump_options={}):
 
-
-    log_info("Finding best secondary server for cluster '%s'..." %
-             cluster.get_id())
-    best_secondary = cluster.get_dump_best_secondary()
+    max_repl_lag = max_repl_lag or 3600
+    log_info("Finding best secondary server for cluster '%s' with replication"
+             " lag less than max (%s seconds)..." %
+             (cluster.get_id(), max_repl_lag))
+    best_secondary = cluster.get_dump_best_secondary(max_repl_lag=max_repl_lag)
     if best_secondary:
         server = best_secondary.get_server()
 
@@ -4608,7 +4616,7 @@ class ReplicaSetCluster(DocumentWrapper):
                 return member
 
     ###########################################################################
-    def get_dump_best_secondary(self):
+    def get_dump_best_secondary(self, max_repl_lag=None):
         """
         Returns the best secondary member to be used for dumping
         best = passives with least lags, if no passives then least lag
@@ -4630,6 +4638,12 @@ class ReplicaSetCluster(DocumentWrapper):
         for member in self.get_members():
             if member.is_secondary_member():
                 repl_lag = member.get_repl_lag(master_status)
+                if max_repl_lag and  repl_lag > max_repl_lag:
+                    log_info("Excluding member '%s' because it's repl lag "
+                             "(in seconds)%s is more than max %s. " %
+                             (member.get_server().get_id(),
+                              repl_lag, max_repl_lag))
+                    continue
                 secondary_lag_tuples.append((member,repl_lag))
 
         def best_secondary_comp(x, y):
@@ -4648,8 +4662,6 @@ class ReplicaSetCluster(DocumentWrapper):
         if secondary_lag_tuples:
             secondary_lag_tuples.sort(best_secondary_comp)
             return secondary_lag_tuples[0][0]
-
-
 
     ###########################################################################
     def is_replicaset_initialized(self):

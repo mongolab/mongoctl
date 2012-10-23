@@ -964,6 +964,17 @@ MONGOCTL_PARSER_DEF = {
                     "nargs": 0
                 },
                     {
+                    "name": "maxReplLag",
+                    "type" : "optional",
+                    "help": "Used only with --use-best-secondary. Select "
+                            "members whose repl lag is less than than "
+                            "specified max ",
+                    "cmd_arg": [
+                        "--max-repl-lag"
+                    ],
+                    "nargs": 1
+                },
+                    {
                     "name": "username",
                     "type" : "optional",
                     "help": "username",
