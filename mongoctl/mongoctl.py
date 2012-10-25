@@ -4314,7 +4314,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
         master_result = self.is_master_command()
 
         if master_result:
-            return get_document_property(self.is_master_command(), "ismaster")
+            return get_document_property(master_result, "ismaster")
 
     ###########################################################################
     def is_secondary_member(self):
