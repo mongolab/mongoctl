@@ -4118,9 +4118,7 @@ class Server(DocumentWrapper):
         try:
             conn = self.new_db_connection()
             db = conn[dbname]
-            coll_names = db.collection_names()
-            if dbname == "admin" and coll_names is not None:
-                return "system.users" in coll_names
+            db.collection_names()
             return False
         except (RuntimeError,Exception), e:
             if "master has changed" in str(e):
