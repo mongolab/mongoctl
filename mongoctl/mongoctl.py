@@ -3616,6 +3616,10 @@ def get_global_login_user(server, dbname):
 ###############################################################################
 def parse_global_login_user_arg(parsed_args):
     username = namespace_get_property(parsed_args, "username")
+
+    # if -u or --username  was not specified then nothing to do
+    if not username:
+        return
     password = namespace_get_property(parsed_args, "password")
     server_id = namespace_get_property(parsed_args,SERVER_ID_PARAM)
 
