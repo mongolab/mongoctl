@@ -1244,9 +1244,7 @@ def do_open_mongo_shell_to(address,
 
 
     log_info("Executing command: \n%s" % " ".join(cmd_display))
-    connect_process = create_subprocess(connect_cmd)
-
-    connect_process.communicate()
+    call_command(connect_cmd, bubble_exit_code=True)
 
 ###############################################################################
 # mongo_dump
@@ -1459,9 +1457,7 @@ def do_mongo_dump(host=None,
 
 
     log_info("Executing command: \n%s" % " ".join(cmd_display))
-    dump_process = create_subprocess(dump_cmd)
-
-    dump_process.communicate()
+    call_command(dump_cmd, bubble_exit_code=True)
 
 ###############################################################################
 # mongo_restore
@@ -1617,9 +1613,7 @@ def do_mongo_restore(source,
 
     # execute!
     log_info("Executing command: \n%s" % " ".join(cmd_display))
-    restore_process = create_subprocess(restore_cmd)
-
-    restore_process.communicate()
+    call_command(restore_cmd, bubble_exit_code=True)
 
 ###############################################################################
 def is_mongo_uri(str):
@@ -1816,8 +1810,9 @@ def download(url):
                "' command in your path in order to proceed.")
         raise MongoctlException(msg)
 
-    execute_command(download_cmd, call=True)
+    call_command(download_cmd)
 
+###############################################################################
 def extract_archive(archive_name):
     log_info("Extracting %s..." % archive_name)
     if not which("tar"):
@@ -1826,7 +1821,8 @@ def extract_archive(archive_name):
         raise MongoctlException(msg)
 
     tar_cmd = ['tar', 'xvf', archive_name]
-    execute_command(tar_cmd, call=True)
+    call_command(tar_cmd)
+
 ###############################################################################
 # HELPER functions
 ###############################################################################
@@ -3253,11 +3249,20 @@ def resolve_path(path):
 ###############################################################################
 # sub-processing functions
 ###############################################################################
-def execute_command(command, call=False):
-    if call:
+def call_command(command, bubble_exit_code=False):
+    try:
         return subprocess.check_call(command)
+    except subprocess.CalledProcessError, e:
+        if bubble_exit_code:
+            exit(e.returncode)
+        else:
+            raise e
+
+###############################################################################
+def execute_command(command):
+
     # Python 2.7+ : Use the new method because i think its better
-    elif  hasattr(subprocess, 'check_output'):
+    if  hasattr(subprocess, 'check_output'):
         return subprocess.check_output(command,stderr=subprocess.STDOUT)
     else: # Python 2.6 compatible, check_output is not available in 2.6
         return subprocess.Popen(command,
