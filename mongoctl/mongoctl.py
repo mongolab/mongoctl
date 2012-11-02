@@ -170,7 +170,7 @@ def do_main(args):
     set_interactive_mode(not non_interactive)
 
     if not is_interactive_mode():
-        log_verbose("Running with non-interactive mode")
+        log_verbose("Running with noninteractive mode")
 
     # set global prompt value
     yes_all = parsed_args.yesToEverything
@@ -1845,7 +1845,7 @@ def prompt_execute_task(message, task_function):
 ###############################################################################
 def prompt_confirm(message):
 
-    # return False if non-interactive or --no was specified
+    # return False if noninteractive or --no was specified
     if (not is_interactive_mode() or
         is_say_no_to_everything()):
         return False
@@ -1871,13 +1871,37 @@ def prompt_confirm(message):
             return True
         else:
             return False
+
 ###############################################################################
-def read_input(message, allow_null=True):
+def read_input(message):
+    # If we are running in a noninteractive mode then fail
+    if not is_interactive_mode():
+        msg = ("Error while trying to prompt you for '%s'. Prompting is not "
+               "allowed when running with --noninteractive mode. Please pass"
+               " enough arguments to bypass prompting or run without "
+               "--noninteractive" % message)
+        raise MongoctlException(msg)
+
     print >> sys.stderr, message,
     return raw_input()
 
 ###############################################################################
-def read_password(message='', allow_null=True):
+def read_username(dbname):
+    # If we are running in a noninteractive mode then fail
+    if not is_interactive_mode():
+        msg = ("mongoctl needs username in order to proceed. Please pass the"
+               " username using the -u option or run without --noninteractive")
+        raise MongoctlException(msg)
+
+    return read_input("Enter username for database '%s': " % dbname)
+
+###############################################################################
+def read_password(message=''):
+    if not is_interactive_mode():
+        msg = ("mongoctl needs password in order to proceed. Please pass the"
+               " password using the -p option or run without --noninteractive")
+        raise MongoctlException(msg)
+
     print >> sys.stderr, message
     return getpass.getpass()
 
@@ -4029,8 +4053,7 @@ class Server(DocumentWrapper):
 
         while not auth_success and no_tries < 3:
             if not username:
-                username = read_input("Enter username for database '%s': " %
-                                      dbname)
+                username = read_username(dbname)
             if not password:
                 password = self.lookup_password(dbname, username)
                 if not password:
