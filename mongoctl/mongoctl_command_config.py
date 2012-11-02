@@ -950,7 +950,7 @@ MONGOCTL_PARSER_DEF = {
                     "displayName": "TARGET",
                     "type" : "positional",
                     "nargs": 1,
-                    "help": "database addresse or dbpath. Check docs for"
+                    "help": "database address or dbpath. Check docs for"
                             " more details."
                 },
                     {
