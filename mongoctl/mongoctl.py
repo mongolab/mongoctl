@@ -2759,25 +2759,33 @@ def setup_db_users(server, db, db_users):
         password = get_document_property(user, 'password')
         if not password:
             password = read_seed_password(db.name, username)
-        try:
 
-            db.add_user(username, password)
-            # if there is no login user for this db then set it to this new one
-            db_login_user = server.get_login_user(db.name)
-            if not db_login_user:
-                server.set_login_user(db.name, username, password)
-            # inc new users
-            count_new_users += 1
-        except errors.OperationFailure, ofe:
-            # This is a workaround for PYTHON-407. i.e. catching a harmless
-            # error that is raised after adding the first
-            if "login" in str(ofe):
-                pass
-            else:
-                raise ofe
+        _mongo_add_user(db, username, password)
+        # if there is no login user for this db then set it to this new one
+        db_login_user = server.get_login_user(db.name)
+        if not db_login_user:
+            server.set_login_user(db.name, username, password)
+        # inc new users
+        count_new_users += 1
 
     return count_new_users
 
+###############################################################################
+def _mongo_add_user(db, username, password):
+    """
+        Adds a the specified user to the database and workaround some
+        mongo issues
+    """
+    try:
+
+        db.add_user(username, password)
+    except errors.OperationFailure, ofe:
+        # This is a workaround for PYTHON-407. i.e. catching a harmless
+        # error that is raised after adding the first
+        if "login" in str(ofe):
+            pass
+        else:
+            raise ofe
 
 ###############################################################################
 def setup_server_db_users(server, dbname, db_users):
