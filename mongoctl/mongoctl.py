@@ -4001,7 +4001,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_db(self, dbname, no_auth=False, username=None, password=None,
-               retry=True):
+                             retry=True, never_auth_with_admin=False):
 
         conn = self.get_db_connection()
         db = conn[dbname]
@@ -4021,16 +4021,23 @@ class Server(DocumentWrapper):
             self.set_login_user(dbname, username, password)
 
         login_user = self.get_login_user(dbname)
-        # if there is no login user for this database then use admin db
-        if not login_user and dbname not in ["admin", "local"]:
+
+        # if there is no login user for this database then use admin db unless
+        # it was specified not to
+        if (not never_auth_with_admin and
+            not login_user and
+            dbname not in ["admin", "local"]):
             # if this passes then we are authed!
             admin_db = self.get_db("admin", retry=retry)
             return admin_db.connection[dbname]
 
         auth_success = self.authenticate_db(db, dbname, retry=retry)
 
-        # If auth failed then give it a try by auth into admin db
-        if not auth_success and dbname != "admin":
+        # If auth failed then give it a try by auth into admin db unless it
+        # was specified not to
+        if (not never_auth_with_admin and
+            not auth_success
+            and dbname != "admin"):
             admin_db = self.get_db("admin", retry=retry)
             return admin_db.connection[dbname]
 
@@ -4095,7 +4102,8 @@ class Server(DocumentWrapper):
 
 
         #  this will authenticate and update login user
-        self.get_db(database, username=username, password=password)
+        self.get_db(database, username=username, password=password,
+                              never_auth_with_admin=True)
 
         login_user = self.get_login_user(database)
 
