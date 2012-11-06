@@ -53,7 +53,7 @@ import getpass
 from dargparse import dargparse
 from pymongo import Connection
 from pymongo import uri_parser
-
+from pymongo import helpers
 from pymongo import errors
 from bson import json_util
 from bson.son import SON
@@ -2771,14 +2771,33 @@ def setup_db_users(server, db, db_users):
     return count_new_users
 
 ###############################################################################
-def _mongo_add_user(db, username, password):
+def _mongo_add_user(db, username, password, read_only=False):
     """
         Adds a the specified user to the database and workaround some
         mongo issues
+        IMPORTANT NOTE: We manually save users to the db.system.users collection
+        instead of using pymongo db.add_user( ) because of the following
+        2.2.0+ bug https://jira.mongodb.org/browse/SERVER-7547
+
+
     """
     try:
 
-        db.add_user(username, password)
+
+        pwd = helpers._password_digest(username, password)
+        q = {"user": username}
+        u = {
+             "pwd": pwd,
+             "readOnly": read_only
+        }
+        user_doc = db.system.users.find_and_modify(q, u)
+        if not user_doc:
+            db.system.users.save({
+                "_id": bson.objectid.ObjectId(),
+                "user": username,
+                "pwd": pwd,
+                "readOnly": read_only
+            })
     except errors.OperationFailure, ofe:
         # This is a workaround for PYTHON-407. i.e. catching a harmless
         # error that is raised after adding the first
