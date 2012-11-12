@@ -22,12 +22,32 @@ class MongoUriWrapper:
 
     ###########################################################################
     @property
-    def uri(self):
+    def raw_uri(self):
         return self._get_uri()
     ###########################################################################
     @property
     def masked_uri(self):
         return self._get_uri(mask=True)
+
+    ###########################################################################
+    @property
+    def database(self):
+        return self._uri_obj["database"]
+
+    ###########################################################################
+    @property
+    def node_list(self):
+        return self._uri_obj["nodelist"]
+
+    ###########################################################################
+    @property
+    def username(self):
+        return self._uri_obj["username"]
+
+    ###########################################################################
+    @property
+    def password(self):
+        return self._uri_obj["password"]
 
     ###########################################################################
     def __str__(self):
@@ -36,9 +56,9 @@ class MongoUriWrapper:
     ###########################################################################
     def _get_uri(self, mask=False):
         # build db string
-        db = self._uri_obj["database"] or ""
-        username = self._uri_obj["username"]
-        password = "****" if mask else self._uri_obj["password"]
+        db = self.database or ""
+        username = self.username
+        password = "****" if mask else self.password
 
         # build credentials string
         if username:
@@ -48,7 +68,7 @@ class MongoUriWrapper:
 
         # build hosts string
         addresses = []
-        for node in self._uri_obj["nodelist"]:
+        for node in self.node_list:
             address = "%s:%s" % (node[0], node[1])
             addresses.append(address)
 
