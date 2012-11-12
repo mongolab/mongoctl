@@ -49,6 +49,7 @@ import urllib
 import urlparse
 import signal
 import getpass
+import mongo_uri_tools
 
 from dargparse import dargparse
 from pymongo import Connection
@@ -5150,7 +5151,7 @@ def build_cluster_from_uri(uri):
 
     nodes = uri_obj["nodelist"]
     cluster_doc = {
-        "_id": uri
+        "_id": mongo_uri_tools.mask_mongo_uri(uri)
     }
     member_doc_list = []
 
