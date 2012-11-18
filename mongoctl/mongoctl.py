@@ -2684,7 +2684,6 @@ def mk_server_dir(server):
 
 ###############################################################################
 def setup_server_users(server):
-
     """
     Seeds all users returned by get_seed_users() IF there are no users seed yet
     i.e. system.users collection is empty
@@ -2692,7 +2691,6 @@ def setup_server_users(server):
     """if not should_seed_users(server):
         log_verbose("Not seeding users for server '%s'" % server.get_id())
         return"""
-
 
     log_info("Checking if there are any users that need to be added for "
                 "server '%s'..." % server.get_id())
@@ -2830,6 +2828,20 @@ def setup_server_db_users(server, dbname, db_users):
             "\n Cause: %s" % (dbname, server.get_id(), e))
 
 ###############################################################################
+def prepend_global_admin_user(other_users, server):
+    """
+    When making lists of administrative users -- e.g., seeding a new server --  
+    it's useful to put the credentials supplied on the command line at the head
+    of the queue.
+    """
+    cred0 = get_global_login_user(server, "admin")
+    if cred0["username"] and cred0["password"]:
+        log_verbose("Seeding : CRED0 to the front of the line!")
+        return [cred0] + other_users if other_users else [cred0]
+    else:
+        return other_users
+
+###############################################################################
 def setup_server_admin_users(server):
 
     if not should_seed_db_users(server, "admin"):
@@ -2837,8 +2849,10 @@ def setup_server_admin_users(server):
         return 0
 
     admin_users = server.get_admin_users()
-    if(admin_users is None or
-       len(admin_users) < 1):
+    if server.is_auth():
+        admin_users = prepend_global_admin_user(admin_users, server)
+
+    if (admin_users is None or len(admin_users) < 1):
         log_verbose("No users configured for admin DB...")
         return 0
 
@@ -2880,9 +2894,11 @@ def setup_server_local_users(server):
         log_verbose("Not seeding users for database 'local'")
         return 0
 
-
     try:
         local_users = server.get_db_seed_users("local")
+        if server.is_auth():
+            local_users = prepend_global_admin_user(local_users, server)
+
         if local_users:
             return setup_db_users(server, local_db, local_users)
         else:
