@@ -373,7 +373,7 @@ def restore_command(parsed_options):
 
     elif not (is_addr or is_path):
         raise MongoctlException("Invalid destination value '%s'. Destination has to be"
-                                " a valid db address or dbpath." % target)
+                                " a valid db address or dbpath." % destination)
     restore_options = extract_mongo_restore_options(parsed_options)
 
     if is_addr:
