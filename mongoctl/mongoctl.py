@@ -33,6 +33,7 @@ import sys
 import traceback
 import pymongo
 import os
+import pwd
 import re
 import time
 import json
@@ -3310,10 +3311,28 @@ def resolve_path(path):
     path = path.replace("file://", "")
 
     # expand vars
-    path =  os.path.expandvars(os.path.expanduser(path))
+    path =  os.path.expandvars(custom_expanduser(path))
     # Turn relative paths to absolute
     path = os.path.abspath(path)
     return path
+
+###############################################################################
+def custom_expanduser(path):
+    if path.startswith("~"):
+        login = get_current_login()
+        home_dir = os.path.expanduser( "~%s" % login)
+        path = path.replace("~", home_dir, 1)
+
+    return path
+
+###############################################################################
+def get_current_login():
+    try:
+        pwuid = pwd.getpwuid(os.geteuid())
+        return pwuid.pw_name
+    except Exception, e:
+        raise Exception("Error while trying to get current os login. %s" % e)
+
 ###############################################################################
 # sub-processing functions
 ###############################################################################
