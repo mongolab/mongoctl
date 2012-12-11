@@ -1240,9 +1240,12 @@ def do_open_mongo_shell_to(address,
         connect_cmd.extend(js_files)
 
     cmd_display =  connect_cmd[:]
-    # mask password
-    if username and password:
-        cmd_display[5] =  "****"
+    # mask user/password
+    if username:
+        cmd_display[cmd_display.index("-u") + 1] =  "****"
+        if password:
+            cmd_display[cmd_display.index("-p") + 1] =  "****"
+
 
 
     log_info("Executing command: \n%s" % " ".join(cmd_display))
@@ -1452,9 +1455,11 @@ def do_mongo_dump(host=None,
 
 
     cmd_display =  dump_cmd[:]
-    # mask password
-    if username and password:
-        cmd_display[cmd_display.index("-p") + 1] =  "****"
+    # mask user/password
+    if username:
+        cmd_display[cmd_display.index("-u") + 1] =  "****"
+        if password:
+            cmd_display[cmd_display.index("-p") + 1] =  "****"
 
 
 
@@ -1609,9 +1614,11 @@ def do_mongo_restore(source,
     restore_cmd.append(source)
 
     cmd_display =  restore_cmd[:]
-    # mask password
-    if username and password:
-        cmd_display[cmd_display.index("-p") + 1] =  "****"
+    # mask user/password
+    if username:
+        cmd_display[cmd_display.index("-u") + 1] =  "****"
+        if password:
+            cmd_display[cmd_display.index("-p") + 1] =  "****"
 
     # execute!
     log_info("Executing command: \n%s" % " ".join(cmd_display))
