@@ -1669,7 +1669,7 @@ def do_install_mongodb(os_name, bits, version):
 
     if version is None:
         version = fetch_latest_stable_version()
-        log_info("Installing latest stable MongoDB version '%s'" % version)
+        log_info("Installing latest stable MongoDB version '%s'..." % version)
     # validate version string
     elif not is_valid_version(version):
         raise MongoctlException("Invalid version '%s'. Please provide a"
@@ -1683,7 +1683,7 @@ def do_install_mongodb(os_name, bits, version):
     platform_spec = get_validate_platform_spec(os_name, bits)
 
     log_info("Running install for %s %sbit to "
-             "mongoDBInstallationsDirectory=%s" % (os_name, bits,
+             "mongoDBInstallationsDirectory (%s)..." % (os_name, bits,
                                                   mongodb_installs_dir))
 
 
@@ -1691,7 +1691,7 @@ def do_install_mongodb(os_name, bits, version):
 
     if mongo_installation is not None: # no-op
         log_info("You already have MongoDB %s installed ('%s'). "
-                 "Nothing to do..." % (version, mongo_installation))
+                 "Nothing to do." % (version, mongo_installation))
         return mongo_installation
 
     archive_name = "mongodb-%s-%s.tgz" % (platform_spec, version)
@@ -4322,12 +4322,14 @@ class Server(DocumentWrapper):
     def get_mongo_uri_template(self, db=None):
         if not db:
             if self.is_auth():
-                db = "admin"
+                db = "/[dbname]"
             else:
-                db = "[dbname]"
+                db = ""
+        else:
+            db = "/" + db
 
         creds = "[dbuser]:[dbpass]@" if self.is_auth() else ""
-        return "mongodb://%s%s/%s" % (creds, self.get_address_display(), db)
+        return "mongodb://%s%s%s" % (creds, self.get_address_display(), db)
 
     ###########################################################################
     def make_db_connection(self, address):
@@ -5122,9 +5124,11 @@ class ReplicaSetCluster(DocumentWrapper):
 
         if not db:
             if self.get_repl_key():
-                db = "admin"
+                db = "/[dbname]"
             else:
-                db = "[dbname]"
+                db = ""
+        else:
+            db = "/" + db
 
         server_uri_templates = []
         for member in self.get_members():
@@ -5132,7 +5136,7 @@ class ReplicaSetCluster(DocumentWrapper):
             server_uri_templates.append(server.get_address_display())
 
         creds = "[dbuser]:[dbpass]@" if self.get_repl_key() else ""
-        return ("mongodb://%s%s/%s" % (creds, ",".join(server_uri_templates),
+        return ("mongodb://%s%s%s" % (creds, ",".join(server_uri_templates),
                                        db))
 
 ###############################################################################
