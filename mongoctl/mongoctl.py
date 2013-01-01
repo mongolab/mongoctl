@@ -1382,14 +1382,14 @@ def mongo_dump_cluster_primary(cluster,
     primary_member = cluster.get_primary_member()
     if primary_member:
         primary_server = primary_member.get_server()
-        log_info("dumping primary server '%s'" % primary_server.get_id())
+        log_info("Dumping current primary '%s'..." % primary_server.get_id())
         mongo_dump_server(primary_server,
             database=database,
             username=username,
             password=password,
             dump_options=dump_options)
     else:
-        raise MongoctlException("No primary server found for cluster '%s'" %
+        raise MongoctlException("No primary found for cluster '%s'" %
                                 cluster.get_id())
 
 
