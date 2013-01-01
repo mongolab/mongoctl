@@ -2781,11 +2781,13 @@ def setup_db_users(server, db, db_users):
 def _mongo_add_user(db, username, password, read_only=False):
     """
         Adds a the specified user to the database and workaround some
-        mongo issues
+        mongo issues.
+        If user already exists, updates the password and readOnly flag
+        to the indicated values.
+
         IMPORTANT NOTE: We manually save users to the db.system.users collection
         instead of using pymongo db.add_user( ) because of the following
         2.2.0+ bug https://jira.mongodb.org/browse/SERVER-7547
-
 
     """
     try:
@@ -2793,10 +2795,9 @@ def _mongo_add_user(db, username, password, read_only=False):
 
         pwd = helpers._password_digest(username, password)
         q = {"user": username}
-        u = {
-             "pwd": pwd,
-             "readOnly": read_only
-        }
+        u = {"$set": { "pwd": pwd,
+                       "readOnly": read_only
+        }}
         user_doc = db.system.users.find_and_modify(q, u)
         if not user_doc:
             db.system.users.save({
