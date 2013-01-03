@@ -1248,7 +1248,7 @@ def do_open_mongo_shell_to(address,
 
 
 
-    log_info("Executing command: \n%s" % " ".join(cmd_display))
+    log_verbose("Executing command: \n%s" % " ".join(cmd_display))
     call_command(connect_cmd, bubble_exit_code=True)
 
 ###############################################################################
@@ -1463,7 +1463,7 @@ def do_mongo_dump(host=None,
 
 
 
-    log_info("Executing command: \n%s" % " ".join(cmd_display))
+    log_verbose("Executing command: \n%s" % " ".join(cmd_display))
     call_command(dump_cmd, bubble_exit_code=True)
 
 ###############################################################################
@@ -1621,7 +1621,7 @@ def do_mongo_restore(source,
             cmd_display[cmd_display.index("-p") + 1] =  "****"
 
     # execute!
-    log_info("Executing command: \n%s" % " ".join(cmd_display))
+    log_verbose("Executing command: \n%s" % " ".join(cmd_display))
     call_command(restore_cmd, bubble_exit_code=True)
 
 ###############################################################################
@@ -2339,7 +2339,7 @@ def get_mongo_executable(server_version,
                                              version_check_pref=
                                              version_check_pref)
         if selected_exe is not None:
-            log_info("Using %s at '%s' version '%s'..." %
+            log_verbose("Using %s at '%s' version '%s'..." %
                      (executable_name,
                       selected_exe.path,
                       selected_exe.version))
