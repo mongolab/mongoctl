@@ -4339,7 +4339,7 @@ class Server(DocumentWrapper):
                 socketTimeoutMS=CONN_TIMEOUT,
                 connectTimeoutMS=CONN_TIMEOUT)
         except Exception,e:
-            error_msg = "Cannot connect to %s . Cause: %s" %\
+            error_msg = "Cannot connect to '%s'. Cause: %s" %\
                         (address , e)
             raise MongoctlException(error_msg,cause=e)
 
