@@ -4920,8 +4920,8 @@ class ReplicaSetCluster(DocumentWrapper):
 
             cmd_server.disconnecting_db_command(rs_reconfig_cmd, "admin")
 
-            log_info("Re-configuration for replica set cluster '%s' ran"
-                     " successfully!" % self.get_id())
+            log_info("Re-configuration command for replica set cluster '%s' issued"
+                     " successfully." % self.get_id())
 
             # Probably need to reconnect.  May not be primary any more.
             realized_config = self.read_rs_config()
