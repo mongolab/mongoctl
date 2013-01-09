@@ -559,8 +559,9 @@ def do_start_server(server, options_override=None, rs_add=False):
         log_error("Unable to fully prepare server '%s'. Cause: %s \n"
                   "Stop server now if more preparation is desired..." %
                   (server.get_id(), e))
-        if shall_we_terminate(mongod_pid):
-            return
+        shall_we_terminate(mongod_pid)
+        exit(1)
+
 
 
     # Note: The following block has to be the last block
