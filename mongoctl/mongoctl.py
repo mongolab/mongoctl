@@ -687,7 +687,9 @@ def start_server_process(server,options_override=None):
              "*************\n")
 
     if not is_online:
-        raise MongoctlException("Unable to start server '%s'" %
+        raise MongoctlException("Timed out waiting for server '%s' to start. "
+                                "Please tail the log file to monitor further "
+                                "progress." %
                                 server.get_id())
 
     log_info("Server '%s' started successfully! (pid=%s)\n" %
