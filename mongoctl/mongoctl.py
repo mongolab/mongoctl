@@ -259,7 +259,11 @@ def status_command(parsed_options):
         cluster = lookup_cluster(id)
         if cluster:
             log_info("Status for cluster '%s':" % id)
-            status = {"status": "TBD"}
+            primary_server = cluster.get_primary_member().get_server()
+            current_primary_address = primary_server.get_member_rs_status()['name']
+            status = {"currentPrimaryAddress": current_primary_address,
+                      "replSetConf": primary_server.get_rs_config(), 
+                      "replLag": {"bestInSec": "TBD", "worstInMin": "TBD"}}
         else:
             raise MongoctlException("Cannot find a server or a cluster with"
                                     " id '%s'" % id)
