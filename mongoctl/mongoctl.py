@@ -260,10 +260,13 @@ def status_command(parsed_options):
         if cluster:
             log_info("Status for cluster '%s':" % id)
             primary_server = cluster.get_primary_member().get_server()
-            current_primary_address = primary_server.get_member_rs_status()['name']
-            status = {"currentPrimaryAddress": current_primary_address,
-                      "replSetConf": primary_server.get_rs_config(), 
-                      "replLag": {"bestInSec": "TBD", "worstInMin": "TBD"}}
+            primary_server_address = primary_server.get_member_rs_status()['name']
+            status = { 
+                "currentPrimary": { 
+                    "address": primary_server_address,
+                    "serverStatusSummary": primary_server.get_server_status_summary() },
+                "replicaSetConfig": primary_server.get_rs_config(), 
+                "replicationLag": {"bestInSec": "TBD", "worstInMin": "TBD"} }
         else:
             raise MongoctlException("Cannot find a server or a cluster with"
                                     " id '%s'" % id)
@@ -4274,14 +4277,9 @@ class Server(DocumentWrapper):
         server_status = self.db_command(SON([('serverStatus', 1)]),"admin")
         server_summary  = {
             "host": server_status['host'],
+            "connections": server_status['connections'],
             "version": server_status['version']
         }
-        if ("repl" in server_status and
-            "ismaster" in server_status["repl"]):
-            server_summary["repl"] = {
-                "ismaster": server_status["repl"]["ismaster"]
-            }
-
         return server_summary
 
     ###########################################################################
