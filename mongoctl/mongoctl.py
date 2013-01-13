@@ -266,7 +266,17 @@ def status_command(parsed_options):
                     "address": primary_server_address,
                     "serverStatusSummary": primary_server.get_server_status_summary() },
                 "replicaSetConfig": primary_server.get_rs_config(), 
-                "replicationLag": {"bestInSec": "TBD", "worstInMin": "TBD"} }
+                "replicationLag": {
+                    "secondary1.x.com:27017": {
+                        "lagInSec": "TBD",
+                        "description": "TBD"
+                        },
+                    "secondary2.x.com:27017": {
+                        "lagInSec": "TBD",
+                        "description": "TBD"
+                        }
+                    }}
+
         else:
             raise MongoctlException("Cannot find a server or a cluster with"
                                     " id '%s'" % id)
