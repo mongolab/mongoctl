@@ -250,7 +250,6 @@ def status_command(parsed_options):
     # status json and parse it if it needs
 
     id = parsed_options.id
-    status = None
     server  = lookup_server(id)
     if server:
         log_info("Status for server '%s':" % id)
@@ -259,24 +258,7 @@ def status_command(parsed_options):
         cluster = lookup_cluster(id)
         if cluster:
             log_info("Status for cluster '%s':" % id)
-            primary_server = cluster.get_primary_member().get_server()
-            primary_server_address = primary_server.get_member_rs_status()['name']
-            status = { 
-                "currentPrimary": { 
-                    "address": primary_server_address,
-                    "serverStatusSummary": primary_server.get_server_status_summary() },
-                "replicaSetConfig": primary_server.get_rs_config(), 
-                "replicationLag": {
-                    "secondary1.x.com:27017": {
-                        "lagInSec": "TBD",
-                        "description": "TBD"
-                        },
-                    "secondary2.x.com:27017": {
-                        "lagInSec": "TBD",
-                        "description": "TBD"
-                        }
-                    }}
-
+            status = cluster.get_status()
         else:
             raise MongoctlException("Cannot find a server or a cluster with"
                                     " id '%s'" % id)
@@ -4740,6 +4722,29 @@ class ReplicaSetCluster(DocumentWrapper):
                member.get_server() is not None and
                member.get_server().is_online_locally()):
                 return member
+
+    ###########################################################################
+    def get_status(self):
+        primary_server = self.get_primary_member().get_server()
+        primary_server_address = primary_server.get_member_rs_status()['name']
+        return {
+            "currentPrimary": {
+                "address": primary_server_address,
+                "serverStatusSummary":
+                    primary_server.get_server_status_summary()
+            },
+            "replicaSetConfig": primary_server.get_rs_config(),
+            "replicationLag": {
+                "secondary1.x.com:27017": {
+                    "lagInSec": "TBD",
+                    "description": "TBD"
+                },
+                "secondary2.x.com:27017": {
+                    "lagInSec": "TBD",
+                    "description": "TBD"
+                }
+            }
+        }
 
     ###########################################################################
     def get_dump_best_secondary(self, max_repl_lag=None):
