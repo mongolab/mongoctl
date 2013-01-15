@@ -4353,18 +4353,28 @@ class Server(DocumentWrapper):
                 return None
 
     ###########################################################################
-    def get_member_rs_status(self):
+    def get_rs_status(self):
         try:
             rs_status_cmd = SON([('replSetGetStatus', 1)])
             rs_status =  self.db_command(rs_status_cmd, 'admin')
-            for member in rs_status['members']:
-                if 'self' in member and member['self']:
-                    return member
+            return rs_status
         except (Exception,RuntimeError), e:
             log_verbose("Cannot get rs status from server '%s'. cause: %s" %
                         (self.get_id(), e))
             return None
 
+    ###########################################################################
+    def get_member_rs_status(self):
+        rs_status =  self.get_rs_status()
+        if rs_status:
+            try:
+                for member in rs_status['members']:
+                    if 'self' in member and member['self']:
+                        return member
+            except (Exception,RuntimeError), e:
+                log_verbose("Cannot get member rs status from server '%s'. cause: %s" %
+                            (self.get_id(), e))
+                return None
 
 ###############################################################################
 # ReplicaSet Cluster Member Class
@@ -4727,23 +4737,30 @@ class ReplicaSetCluster(DocumentWrapper):
     def get_status(self):
         primary_server = self.get_primary_member().get_server()
         primary_server_address = primary_server.get_member_rs_status()['name']
+
+        rs_status_members = primary_server.get_rs_status()['members']
+        other_members = []
+        for m in rs_status_members:
+            if not m.get("self", False):
+                address = m.get("name")
+                member = {
+                    "address": address,
+                    "stateStr": m.get("stateStr")
+                    }
+                if m.get("stateStr", None) == "SECONDARY":
+                    member['replLag'] = {
+                        "value": "TBD",
+                        "description": "TBD (e.g. 1 hr)"
+                        }
+                other_members.append(member)
         return {
-            "currentPrimary": {
+            "primary": {
                 "address": primary_server_address,
                 "serverStatusSummary":
                     primary_server.get_server_status_summary()
             },
-            "replicaSetConfig": primary_server.get_rs_config(),
-            "replicationLag": {
-                "secondary1.x.com:27017": {
-                    "lagInSec": "TBD",
-                    "description": "TBD"
-                },
-                "secondary2.x.com:27017": {
-                    "lagInSec": "TBD",
-                    "description": "TBD"
-                }
-            }
+            #"replSetConfig": primary_server.get_rs_config(),
+            "otherMembers": other_members
         }
 
     ###########################################################################
