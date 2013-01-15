@@ -2846,7 +2846,7 @@ def prepend_global_admin_user(other_users, server):
     of the queue.
     """
     cred0 = get_global_login_user(server, "admin")
-    if cred0["username"] and cred0["password"]:
+    if cred0 and cred0["username"] and cred0["password"]:
         log_verbose("Seeding : CRED0 to the front of the line!")
         return [cred0] + other_users if other_users else [cred0]
     else:
