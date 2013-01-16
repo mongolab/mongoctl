@@ -2781,40 +2781,7 @@ def setup_db_users(server, db, db_users):
 
 ###############################################################################
 def _mongo_add_user(db, username, password, read_only=False):
-    """
-        Adds a the specified user to the database and workaround some
-        mongo issues.
-        If user already exists, updates the password and readOnly flag
-        to the indicated values.
-
-        IMPORTANT NOTE: We manually save users to the db.system.users collection
-        instead of using pymongo db.add_user( ) because of the following
-        2.2.0+ bug https://jira.mongodb.org/browse/SERVER-7547
-
-    """
-    try:
-
-
-        pwd = helpers._password_digest(username, password)
-        q = {"user": username}
-        u = {"$set": { "pwd": pwd,
-                       "readOnly": read_only
-        }}
-        user_doc = db.system.users.find_and_modify(q, u)
-        if not user_doc:
-            db.system.users.save({
-                "_id": bson.objectid.ObjectId(),
-                "user": username,
-                "pwd": pwd,
-                "readOnly": read_only
-            })
-    except errors.OperationFailure, ofe:
-        # This is a workaround for PYTHON-407. i.e. catching a harmless
-        # error that is raised after adding the first
-        if "login" in str(ofe):
-            pass
-        else:
-            raise ofe
+    db.add_user(username, password, read_only)
 
 ###############################################################################
 def setup_server_db_users(server, dbname, db_users):
@@ -4457,6 +4424,13 @@ class ReplicaSetClusterMember(DocumentWrapper):
             log_verbose("isMaster command failed on server '%s'. Cause %s" %
                         (self.get_server().get_id(), e))
             return False
+
+    ###########################################################################
+    def read_replicaset_name(self):
+        master_result = self.is_master_command()
+        if master_result:
+            return "setName" in master_result and master_result["setName"]
+
     ###########################################################################
     def get_repl_lag(self, master_status):
         """Given two 'members' elements from rs.status(),
@@ -4816,7 +4790,16 @@ class ReplicaSetCluster(DocumentWrapper):
 
     ###########################################################################
     def is_replicaset_initialized(self):
-        return self.read_rs_config() is not None
+        """
+        iterate on all members you get a member with a non-null
+        read_replicaset_name()
+        """
+
+        for member in self.get_members():
+            if member.read_replicaset_name():
+                return True
+
+        return False
 
     ###########################################################################
     def initialize_replicaset(self, suggested_primary_server=None):

@@ -139,7 +139,7 @@ setup(
     license='MIT',
     install_requires=[
         'dargparse',
-        'pymongo==2.3',
+        'pymongo==2.4.1',
         'verlib==0.1']
 
 
