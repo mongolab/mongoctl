@@ -4059,6 +4059,9 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def command_needs_auth(self, dbname, cmd):
+        # isMaster command does not need auth
+        if "isMaster" in cmd or "ismaster" in cmd:
+            return False
         if 'shutdown' in cmd and self.is_arbiter_server():
             return False
 
