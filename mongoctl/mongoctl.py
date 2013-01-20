@@ -4733,6 +4733,7 @@ class ReplicaSetCluster(DocumentWrapper):
         return {
             "primary": {
                 "address": primary_server_address,
+                "stateStr": "PRIMARY",
                 "serverStatusSummary":
                     primary_server.get_server_status_summary()
             },
