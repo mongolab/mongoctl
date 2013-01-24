@@ -2781,7 +2781,17 @@ def setup_db_users(server, db, db_users):
 
 ###############################################################################
 def _mongo_add_user(db, username, password, read_only=False):
-    db.add_user(username, password, read_only)
+    try:
+
+        db.add_user(username, password, read_only)
+    except errors.OperationFailure, ofe:
+        # This is a workaround for PYTHON-407. i.e. catching a harmless
+        # error that is raised after adding the first
+        if "login" in str(ofe):
+            pass
+        else:
+            raise ofe
+
 
 ###############################################################################
 def setup_server_db_users(server, dbname, db_users):
