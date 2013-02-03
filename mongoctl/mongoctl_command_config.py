@@ -630,6 +630,14 @@ MONGOCTL_PARSER_DEF = {
                             " but default will switch"
                 },
 
+                    {
+                    "name": "setParameter",
+                    "type" : "optional",
+                    "cmd_arg":  "--setParameter",
+                    "nargs": 1,
+                    "help": "Set a configurable parameter"
+                }
+
                 ]
         },
         #### stop ####

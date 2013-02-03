@@ -5407,7 +5407,8 @@ SUPPORTED_MONGOD_OPTIONS = [
     "replSet",
     "configsvr",
     "shardsvr",
-    "noMoveParanoia"
+    "noMoveParanoia",
+    "setParameter"
 ]
 
 
