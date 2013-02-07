@@ -2349,7 +2349,7 @@ def get_mongo_executable(server_version,
 
     ## ok nothing found at all. wtf case
     msg = ("Unable to find a compatible '%s' executable "
-           "for version %s. You may need to run 'mongoctl install-db %s' to install it.\n\n"
+           "for version %s. You may need to run 'mongoctl install-mongodb %s' to install it.\n\n"
            "Here is your enviroment:\n\n"
            "$PATH=%s\n\n"
            "$MONGO_HOME=%s\n\n"
