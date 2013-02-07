@@ -2349,12 +2349,12 @@ def get_mongo_executable(server_version,
 
     ## ok nothing found at all. wtf case
     msg = ("Unable to find a compatible '%s' executable "
-           "for version %s \n."
+           "for version %s. You may need to run 'mongoctl install-db %s' to install it.\n\n"
            "Here is your enviroment:\n\n"
            "$PATH=%s\n\n"
            "$MONGO_HOME=%s\n\n"
            "mongoDBInstallationsDirectory=%s (in mongoctl.config)" %
-           (executable_name, ver_disp,
+           (executable_name, ver_disp, ver_disp,
             os.getenv("PATH"),
             mongo_home,
             mongo_installs_dir))
