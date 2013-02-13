@@ -861,7 +861,7 @@ def do_stop_server(server, force=False):
 ###############################################################################
 def step_down_if_needed(server, force):
     ## if server is a primary replica member then step down
-    if is_replica_primary(server):
+    if server.is_primary():
         if force:
             step_server_down(server, force)
         else:
@@ -2227,24 +2227,6 @@ def lookup_cluster_by_server(server):
 ###############################################################################
 def is_cluster_member(server):
     return lookup_cluster_by_server(server) is not None
-
-###############################################################################
-def is_replica_primary(server):
-    cluster =  lookup_cluster_by_server(server)
-    if cluster is not None:
-        member = cluster.get_member_for(server)
-        return member.is_primary_member()
-
-    return False
-
-###############################################################################
-def is_replica_secondary(server):
-    cluster =  lookup_cluster_by_server(server)
-    if cluster is not None:
-        member = cluster.get_member_for(server)
-        return member.is_secondary_member()
-
-    return False
 
 ###############################################################################
 # MONGOD Start Command functions
@@ -4214,7 +4196,8 @@ class Server(DocumentWrapper):
             db.collection_names()
             return False
         except (RuntimeError,Exception), e:
-            if "master has changed" in str(e):
+            if ("master has changed" in str(e) or
+                ("not master" in str(e) and not self.is_secondary())):
                 return False
             else:
                 return True
@@ -4356,6 +4339,54 @@ class Server(DocumentWrapper):
                             (self.get_id(), e))
                 return None
 
+    ###########################################################################
+    def is_primary(self):
+        master_result = self.is_master_command()
+
+        if master_result:
+            return get_document_property(master_result, "ismaster")
+
+    ###########################################################################
+    def is_secondary(self):
+        master_result = self.is_master_command()
+
+        if master_result:
+            return get_document_property(master_result, "secondary")
+
+    ###########################################################################
+    def is_master_command(self):
+        try:
+            if self.is_online():
+                result = self.db_command({"isMaster" : 1}, "admin")
+                return result
+
+        except(Exception, RuntimeError),e:
+            log_verbose("isMaster command failed on server '%s'. Cause %s" %
+                        (self.get_id(), e))
+
+    ###########################################################################
+    def read_replicaset_name(self):
+        master_result = self.is_master_command()
+        if master_result:
+            return "setName" in master_result and master_result["setName"]
+
+    ###########################################################################
+    def get_repl_lag(self, master_status):
+        """Given two 'members' elements from rs.status(),
+         return lag between their optimes (in secs)."""
+        member_status = self.get_member_rs_status()
+
+        if not member_status:
+            raise MongoctlException("Unable to determine replicaset status for"
+                                    " member '%s'" %
+                                    self.get_id())
+
+        lag_in_seconds = abs(timedelta_total_seconds(
+            member_status['optimeDate'] -
+            master_status['optimeDate']))
+
+        return lag_in_seconds
+
 ###############################################################################
 # ReplicaSet Cluster Member Class
 ###############################################################################
@@ -4408,57 +4439,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
     ###########################################################################
     # Interface Methods
     ###########################################################################
-    def is_primary_member(self):
-        master_result = self.is_master_command()
 
-        if master_result:
-            return get_document_property(master_result, "ismaster")
-
-    ###########################################################################
-    def is_secondary_member(self):
-        master_result = self.is_master_command()
-
-        if master_result:
-            return get_document_property(master_result, "secondary")
-
-    ###########################################################################
-    def is_master_command(self):
-        try:
-            if self.is_valid() and self.get_server().is_administrable():
-                result = self.get_server().db_command({"isMaster" : 1},
-                    "admin")
-                return result
-            else:
-                return False
-        except(Exception, RuntimeError),e:
-            log_verbose("isMaster command failed on server '%s'. Cause %s" %
-                        (self.get_server().get_id(), e))
-            return False
-
-    ###########################################################################
-    def read_replicaset_name(self):
-        master_result = self.is_master_command()
-        if master_result:
-            return "setName" in master_result and master_result["setName"]
-
-    ###########################################################################
-    def get_repl_lag(self, master_status):
-        """Given two 'members' elements from rs.status(),
-         return lag between their optimes (in secs)."""
-        member_status = self.get_server().get_member_rs_status()
-
-        if not member_status:
-            raise MongoctlException("Unable to determine replicaset status for"
-                                    " member '%s'" %
-                                    self.get_server().get_id())
-
-        lag_in_seconds = abs(timedelta_total_seconds(
-                                member_status['optimeDate'] -
-                                master_status['optimeDate']))
-
-        return lag_in_seconds
-
-    ###########################################################################
     def can_become_primary(self):
         return not self.is_arbiter() and self.get_priority() != 0
 
@@ -4707,7 +4688,7 @@ class ReplicaSetCluster(DocumentWrapper):
 
     def get_primary_member(self):
         for member in self.get_members():
-            if member.is_primary_member():
+            if member.get_server().is_primary():
                 return member
 
         return None
@@ -4772,8 +4753,8 @@ class ReplicaSetCluster(DocumentWrapper):
                                     primary_member.get_server().get_id())
 
         for member in self.get_members():
-            if member.is_secondary_member():
-                repl_lag = member.get_repl_lag(master_status)
+            if member.get_server().is_secondary():
+                repl_lag = member.get_server().get_repl_lag(master_status)
                 if max_repl_lag and  repl_lag > max_repl_lag:
                     log_info("Excluding member '%s' because it's repl lag "
                              "(in seconds)%s is more than max %s. " %
@@ -4807,7 +4788,7 @@ class ReplicaSetCluster(DocumentWrapper):
         """
 
         for member in self.get_members():
-            if member.read_replicaset_name():
+            if member.get_server().read_replicaset_name():
                 return True
 
         return False
@@ -4861,8 +4842,7 @@ class ReplicaSetCluster(DocumentWrapper):
             ## Wait for the server to become primary though (at MongoDB's end)
 
             def is_primary_for_real():
-                pm = self.get_member_for(primary_server)
-                return pm.is_primary_member()
+                return primary_server.is_primary()
 
             log_info("Will now wait for the intended primary server to "
                      "become primary.")
