@@ -2769,7 +2769,7 @@ def setup_db_users(server, db, db_users):
     return count_new_users
 
 ###############################################################################
-def _mongo_add_user(db, username, password, read_only=False):
+def _mongo_add_user(db, username, password, read_only=False, num_tries=1):
     try:
 
         db.add_user(username, password, read_only)
@@ -2780,6 +2780,15 @@ def _mongo_add_user(db, username, password, read_only=False):
             pass
         else:
             raise ofe
+    except errors.AutoReconnect, ar:
+        if num_tries < 3:
+            log_warning("_mongo_add_user: Caught a AutoReconnect error. "
+                        "retrying...")
+            _mongo_add_user(db, username, password, read_only=read_only,
+                            num_tries=num_tries+1)
+        else:
+            raise
+
 
 
 ###############################################################################
