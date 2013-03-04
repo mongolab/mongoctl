@@ -108,13 +108,13 @@ To run mongoctl's test suite, execute the following command:
 Documentation
 ----------
 
-* [Quick-start guide](/mongolab/mongoctl/blob/master/docs/quick-start.md)
-* [Configuring mongoctl](/mongolab/mongoctl/blob/master/docs/configuring-mongoctl.md)
-* [Managing MongoDB installations](/mongolab/mongoctl/blob/master/docs/managing-installations.md)
-* [Managing servers](/mongolab/mongoctl/blob/master/docs/managing-servers.md)
-* [Managing clusters](/mongolab/mongoctl/blob/master/docs/managing-clusters.md)
-* [Connecting to servers with the mongo shell](/mongolab/mongoctl/blob/master/docs/connecting.md)
-* [Command reference](/mongolab/mongoctl/blob/master/docs/command-reference.md)
+* [Quick-start guide](docs/quick-start.md)
+* [Configuring mongoctl](docs/configuring-mongoctl.md)
+* [Managing MongoDB installations](docs/managing-installations.md)
+* [Managing servers](docs/managing-servers.md)
+* [Managing clusters](docs/managing-clusters.md)
+* [Connecting to servers with the mongo shell](docs/connecting.md)
+* [Command reference](docs/command-reference.md)
 
 
 
