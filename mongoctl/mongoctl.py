@@ -1817,17 +1817,18 @@ def get_validate_platform_spec(os_name, bits):
 def download(url):
     log_info("Downloading %s..." % url)
 
-    download_cmd = None
-
     if which("curl"):
-        download_cmd = ['curl', '-O', url]
+        download_cmd = ['curl', '-O']
+        if not is_interactive_mode():
+            download_cmd.append('-Ss')
     elif which("wget"):
-        download_cmd = ['wget', url]
+        download_cmd = ['wget']
     else:
         msg = ("Cannot download file.You need to have 'curl' or 'wget"
                "' command in your path in order to proceed.")
         raise MongoctlException(msg)
 
+    download_cmd.append(url)
     call_command(download_cmd)
 
 ###############################################################################
