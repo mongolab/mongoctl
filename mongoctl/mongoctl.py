@@ -2609,6 +2609,8 @@ def mongo_exe_version(mongo_exe):
     try:
         re_expr = "v?((([0-9]+)\.([0-9]+)\.([0-9]+))([^, ]*))"
         vers_spew = execute_command([mongo_exe, "--version"])
+        # only take first line of spew
+        vers_spew = vers_spew.split('\n')[0]
         vers_grep = re.findall(re_expr, vers_spew)
         full_version = vers_grep[-1][0]
         result = version_obj(full_version)
