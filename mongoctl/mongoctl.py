@@ -225,7 +225,8 @@ def start_command(parsed_options):
     else:
         start_server(parsed_options.server,
                      options_override=options_override,
-                     rs_add=parsed_options.rsAdd)
+                     rs_add=parsed_options.rsAdd,
+                     install_compatible=parsed_options.installCompatible)
 
 ###############################################################################
 # stop command
@@ -515,17 +516,20 @@ def list_versions_command(parsed_options):
 ###############################################################################
 # start server
 ###############################################################################
-def start_server(server_id, options_override=None, rs_add=False):
+def start_server(server_id, options_override=None, rs_add=False,
+                 install_compatible=False):
     do_start_server(lookup_and_validate_server(server_id),
                     options_override=options_override,
-                    rs_add=rs_add)
+                    rs_add=rs_add,
+                    install_compatible=install_compatible)
 
 ###############################################################################
 __mongod_pid__ = None
 __current_server__ = None
 
 ###############################################################################
-def do_start_server(server, options_override=None, rs_add=False):
+def do_start_server(server, options_override=None, rs_add=False,
+                            install_compatible=False):
     # ensure that the start was issued locally. Fail otherwise
     validate_local_op(server, "start")
 
@@ -554,7 +558,8 @@ def do_start_server(server, options_override=None, rs_add=False):
 
     log_server_activity(server, "start")
 
-    mongod_pid = start_server_process(server,options_override)
+    mongod_pid = start_server_process(server, options_override,
+                                      install_compatible=install_compatible)
 
     try:
 
@@ -617,7 +622,8 @@ def maybe_config_server_repl_set(server, rs_add=False):
                             (server.get_id(),cluster.get_id()))
 
 ###############################################################################
-def _start_server_process_4real(server, options_override=None):
+def _start_server_process_4real(server, options_override=None,
+                                install_compatible=False):
     server_dir_exists = mk_server_dir(server)
     first_time = not server_dir_exists
 
@@ -626,7 +632,8 @@ def _start_server_process_4real(server, options_override=None):
         get_generate_key_file(server)
 
     # create the start command line
-    start_cmd = generate_start_command(server, options_override)
+    start_cmd = generate_start_command(server, options_override,
+                                       install_compatible=install_compatible)
 
     start_cmd_str = " ".join(start_cmd)
     first_time_msg = " for the first time" if first_time else ""
@@ -664,9 +671,12 @@ def get_forked_mongod_pid(parent_mongod):
     return int(pid_str)
 
 ###############################################################################
-def start_server_process(server,options_override=None):
+def start_server_process(server,options_override=None,
+                         install_compatible=False):
 
-    mongod_pid = _start_server_process_4real(server, options_override)
+    mongod_pid = _start_server_process_4real(server, options_override,
+                                             install_compatible=
+                                                install_compatible)
 
     log_info("Will now wait for server '%s' to start up."
              " Enjoy mongod's log for now!" %
@@ -2239,7 +2249,8 @@ def is_cluster_member(server):
 ###############################################################################
 # MONGOD Start Command functions
 ###############################################################################
-def generate_start_command(server, options_override=None):
+def generate_start_command(server, options_override=None,
+                           install_compatible=False):
     command = []
 
     """
@@ -2252,7 +2263,8 @@ def generate_start_command(server, options_override=None):
         apply_numactl(command)
 
     # append the mongod executable
-    command.append(get_mongod_executable(server.get_mongo_version()))
+    command.append(get_mongod_executable(server.get_mongo_version(),
+                                         install_compatible=install_compatible))
 
 
     # create the command args
@@ -2313,7 +2325,7 @@ def options_to_command_args(args):
 def get_mongo_executable(server_version,
                          executable_name,
                          version_check_pref=VERSION_PREF_EXACT,
-                         prompt_install=False):
+                         install_compatible=False):
 
     mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
     mongo_installs_dir = get_mongodb_installs_dir()
@@ -2349,18 +2361,14 @@ def get_mongo_executable(server_version,
             mongo_home,
             mongo_installs_dir))
 
-    def install_compatible_mongodb():
-        return install_mongodb(server_version)
 
-    if prompt_install:
-        log_info(msg)
-        result = prompt_execute_task("Install a MongoDB compatible with "
-                                     " '%s'?" % server_version,
-                                     install_compatible_mongodb)
-        if result[0]:
-            new_mongo_home = result[1]
-            new_exe =  get_mongo_home_exe(new_mongo_home, executable_name)
-            return mongo_exe_object(new_exe, version_obj(server_version))
+
+    if install_compatible:
+        log_warning(msg)
+        log_info("Installing a compatible MongoDB...")
+        new_mongo_home = install_mongodb(server_version)
+        new_exe =  get_mongo_home_exe(new_mongo_home, executable_name)
+        return mongo_exe_object(new_exe, version_obj(server_version))
 
 
 
@@ -2560,10 +2568,11 @@ def is_valid_mongo_exe(path):
     return path is not None and is_exe(path)
 
 ###############################################################################
-def get_mongod_executable(server_version):
+def get_mongod_executable(server_version, install_compatible=False):
     mongod_exe = get_mongo_executable(server_version,
                                       'mongod',
-                                       version_check_pref=VERSION_PREF_EXACT)
+                                       version_check_pref=VERSION_PREF_EXACT,
+                                       install_compatible=install_compatible)
     return mongod_exe.path
 
 ###############################################################################
