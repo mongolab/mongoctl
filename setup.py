@@ -114,7 +114,7 @@ def mongoctl_post_install():
 ###############################################################################
 setup(
     name='mongoctl',
-    version='0.3.5',
+    version='0.3.6',
     author='MongoLab team',
     author_email='team@mongolab.com',
     description='MongoDB command line utility',
