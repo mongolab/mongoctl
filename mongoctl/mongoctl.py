@@ -5439,7 +5439,8 @@ SUPPORTED_MONGO_DUMP_OPTIONS = [
     "repair",
     "forceTableScan",
     "ipv6",
-    "verbose"
+    "verbose",
+    "authenticationDatabase"
 ]
 
 SUPPORTED_MONGO_RESTORE_OPTIONS = [
