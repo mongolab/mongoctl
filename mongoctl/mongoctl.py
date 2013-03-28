@@ -3310,7 +3310,15 @@ def resolve_path(path):
     # expand vars
     path =  os.path.expandvars(custom_expanduser(path))
     # Turn relative paths to absolute
-    path = os.path.abspath(path)
+    try:
+        path = os.path.abspath(path)
+    except OSError, e:
+        # handle the case where cwd does not exist
+        if "No such file or directory" in e.message:
+            pass
+        else:
+            raise
+
     return path
 
 ###############################################################################
