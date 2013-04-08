@@ -23,7 +23,13 @@ class MongoUriWrapper:
     ###########################################################################
     @property
     def raw_uri(self):
-        return self._get_uri()
+        return self._get_uri(mask=False)
+
+    ###########################################################################
+    @property
+    def member_raw_uri_list(self):
+        return self._get_member_uri_list(mask=False)
+
     ###########################################################################
     @property
     def masked_uri(self):
@@ -31,13 +37,38 @@ class MongoUriWrapper:
 
     ###########################################################################
     @property
+    def member_masked_uri_list(self):
+        return self._get_member_uri_list(mask=True)
+
+    ###########################################################################
+    @property
     def database(self):
         return self._uri_obj["database"]
+
+
+    @database.setter
+    def database(self, value):
+        self._uri_obj["database"] = value
 
     ###########################################################################
     @property
     def node_list(self):
         return self._uri_obj["nodelist"]
+
+    ###########################################################################
+    @property
+    def address(self):
+        return self.addresses[0]
+
+    ###########################################################################
+    @property
+    def addresses(self):
+        addresses = []
+        for node in self.node_list:
+            address = "%s:%s" % (node[0], node[1])
+            addresses.append(address)
+
+        return addresses
 
     ###########################################################################
     @property
@@ -50,13 +81,35 @@ class MongoUriWrapper:
         return self._uri_obj["password"]
 
     ###########################################################################
+    def is_cluster_uri(self):
+        return len(self.node_list) > 1
+
+    ###########################################################################
     def __str__(self):
         return self.masked_uri
 
     ###########################################################################
     def _get_uri(self, mask=False):
         # build db string
-        db = self.database or ""
+        db_str = "/%s" % self.database if self.database else ""
+
+        # build credentials string
+        if self.username:
+            if mask:
+                creds = "*****:*****@"
+            else:
+                creds = "%s:%s@" % (self.username, self.password)
+        else:
+            creds = ""
+
+        # build hosts string
+        address_str = ",".join(self.addresses)
+        return "mongodb://%s%s%s" % (creds, address_str, db_str)
+
+    ###########################################################################
+    def _get_member_uri_list(self, mask=False):
+        # build db string
+        db_str = "%s" % self.database if self.database else ""
         username = self.username
         password = "****" if mask else self.password
 
@@ -67,13 +120,13 @@ class MongoUriWrapper:
             creds = ""
 
         # build hosts string
-        addresses = []
+        member_uris = []
         for node in self.node_list:
             address = "%s:%s" % (node[0], node[1])
-            addresses.append(address)
+            mem_uri = "mongodb://%s%s/%s" % (creds, address, db_str)
+            member_uris.append(mem_uri)
 
-        address_str = ",".join(addresses)
-        return "mongodb://%s%s/%s" % (creds, address_str, db)
+        return member_uris
 
 ###############################################################################
 def parse_mongo_uri(uri):
@@ -92,9 +145,26 @@ def parse_mongo_uri(uri):
 
     except Exception, e:
         raise Exception("Unable to parse mongo uri '%s'."
-                                " Cause: %s" % (e, uri))
+                        " Cause: %s" % (e, uri))
 
 ###############################################################################
 def mask_mongo_uri(uri):
     uri_wrapper = parse_mongo_uri(uri)
     return uri_wrapper.masked_uri
+
+###############################################################################
+def is_mongo_uri(value):
+    try:
+        parse_mongo_uri(value)
+        return True
+    except Exception,e:
+        return False
+
+###############################################################################
+def is_cluster_mongo_uri(mongo_uri):
+    """
+        Returns true if the specified mongo uri is a cluster connection
+    """
+    return len(parse_mongo_uri(mongo_uri).node_list) > 1
+
+
