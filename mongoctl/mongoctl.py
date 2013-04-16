@@ -2794,10 +2794,16 @@ def _mongo_add_user(db, username, password, read_only=False, num_tries=1):
             raise ofe
     except errors.AutoReconnect, ar:
         if num_tries < 3:
-            log_warning("_mongo_add_user: Caught a AutoReconnect error. "
-                        "retrying...")
-            _mongo_add_user(db, username, password, read_only=read_only,
-                            num_tries=num_tries+1)
+            log_warning("_mongo_add_user: Caught a AutoReconnect error. %s " %
+                        ar)
+            # check if the user/pass was saved successfully
+            if db.authenticate(username, password):
+                log_info("_mongo_add_user: user was added successfully. "
+                         "no need to retry")
+            else:
+                log_warning("_mongo_add_user: re-trying ...")
+                _mongo_add_user(db, username, password, read_only=read_only,
+                                num_tries=num_tries+1)
         else:
             raise
 
