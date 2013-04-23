@@ -2590,7 +2590,7 @@ def get_mongo_dump_executable(server_version):
                                     VERSION_PREF_EXACT_OR_MINOR)
     # Warn the user if it is not an exact match (minor match)
     if server_version and version_obj(server_version) != dump_exe.version:
-        log_warning("Using mongodump '%s' that does not exactly match"
+        log_warning("Using mongodump '%s' that does not exactly match "
                     "server version '%s'" % (dump_exe.version, server_version))
 
     return dump_exe.path
