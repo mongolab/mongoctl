@@ -14,6 +14,8 @@ All cluster definitions have the following schema:
 {
     "_id": <id>,
 
+    ["description" : <string>,]
+    
     ["replKey": "<secret-keyphrase>",]
 
     "members": [
