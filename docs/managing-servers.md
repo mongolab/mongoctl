@@ -14,6 +14,8 @@ All server definitions have the following schema:
 {
     "_id" : <string>,
 
+    ["description" : <string>,]
+    
     ["mongoVersion" : <string>,]
     
     ["address" : <host>[:<port>],]
