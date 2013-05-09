@@ -2002,10 +2002,13 @@ def validate_local_op(server, op):
     if not server.is_local():
         log_verbose("Server address validation failed.")
         raise MongoctlException("Cannot %s server '%s' on this machine "
-                                "because server's address '%s' is not local to"
-                                " this machine." % (op,
-                                                   server.get_id(),
-                                                   server.get_host_address()))
+                                "because server's address '%s' does not appear "
+                                "to be local to this machine. Pass the "
+                                "--assume-local option if you are sure that "
+                                "this server should be running on this "
+                                "machine." % (op,
+                                              server.get_id(),
+                                              server.get_host_address()))
     else:
         log_verbose("Server address validation passed. "
                     "Server '%s' address '%s' is local on this "
