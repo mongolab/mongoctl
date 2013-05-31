@@ -4429,8 +4429,10 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_repl_lag(self, master_status):
-        """Given two 'members' elements from rs.status(),
-         return lag between their optimes (in secs)."""
+        """
+            Given two 'members' elements from rs.status(),
+            return lag between their optimes (in secs).
+        """
         member_status = self.get_member_rs_status()
 
         if not member_status:
@@ -4438,11 +4440,16 @@ class Server(DocumentWrapper):
                                     " member '%s'" %
                                     self.get_id())
 
-        lag_in_seconds = abs(timedelta_total_seconds(
-            member_status['optimeDate'] -
-            master_status['optimeDate']))
+        return get_member_repl_lag(member_status, master_status)
 
-        return lag_in_seconds
+###############################################################################
+def get_member_repl_lag(member_status, master_status):
+
+    lag_in_seconds = abs(timedelta_total_seconds(
+        member_status['optimeDate'] -
+        master_status['optimeDate']))
+
+    return lag_in_seconds
 
 ###############################################################################
 # ReplicaSet Cluster Member Class
@@ -4761,7 +4768,8 @@ class ReplicaSetCluster(DocumentWrapper):
     ###########################################################################
     def get_status(self):
         primary_server = self.get_primary_member().get_server()
-        primary_server_address = primary_server.get_member_rs_status()['name']
+        master_status = primary_server.get_member_rs_status()
+        primary_server_address = master_status['name']
 
         rs_status_members = primary_server.get_rs_status()['members']
         other_members = []
@@ -4773,9 +4781,11 @@ class ReplicaSetCluster(DocumentWrapper):
                     "stateStr": m.get("stateStr")
                     }
                 if m.get("stateStr", None) == "SECONDARY":
+                    # compute lag
+                    lag_in_secs = get_member_repl_lag(m, master_status)
                     member['replLag'] = {
-                        "value": "TBD",
-                        "description": "TBD (e.g. 1 hr)"
+                        "value": lag_in_secs,
+                        "description": str(datetime.timedelta(seconds=lag_in_secs))
                         }
                 other_members.append(member)
         return {
