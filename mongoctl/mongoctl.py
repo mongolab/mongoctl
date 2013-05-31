@@ -3563,17 +3563,29 @@ def get_document_property(document, name, default=None):
         return default
 
 ###############################################################################
-def wait_for(predicate, timeout = None, sleep_duration = 2):
+def wait_for(predicate, timeout=None, sleep_duration=2, grace=True):
     start_time = now()
-    while (timeout is None) or (now() - start_time < timeout):
+    must_retry = may_retry = not predicate()
 
-        if predicate():
-            return True
-        else:
-            log_info("-- waiting --")
-            time.sleep(sleep_duration)
+    if must_retry and grace:
+        # optimizing for predicates whose first invocations may be slooooooow
+        log_verbose("GRACE: First eval finished in %d secs - resetting timer." %
+                    (now() - start_time))
+        start_time = now()
 
-    return False
+    while must_retry and may_retry:
+
+        must_retry = not predicate()
+        if must_retry:
+            net_time = now() - start_time
+            if timeout and net_time + sleep_duration > timeout:
+                may_retry = False
+            else:
+                left = "[-%d sec] " % (timeout - net_time) if timeout else ""
+                log_info("-- waiting %s--" % left)
+                time.sleep(sleep_duration)
+
+    return not must_retry
 
 ###############################################################################
 def now():
