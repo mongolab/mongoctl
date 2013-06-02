@@ -1722,7 +1722,7 @@ def do_install_mongodb(os_name, bits, version):
     if response.getcode() != 200:
         msg = ("Unable to download from url '%s' (response code '%s'). "
                "It could be that version '%s' you specified does not exist."
-              " Please double check the version you provide" %
+               " Please double check the version you provide" %
                (url, response.getcode(), version))
         raise MongoctlException(msg)
 
@@ -1730,6 +1730,9 @@ def do_install_mongodb(os_name, bits, version):
     install_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
 
     ensure_dir(mongodb_installs_dir)
+
+    # XXX LOOK OUT! Two processes installing same version simultaneously => BAD.
+    # TODO: mutex to protect the following
 
     if not dir_exists(install_dir):
         try:
