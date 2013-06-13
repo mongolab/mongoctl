@@ -4788,7 +4788,7 @@ class ReplicaSetCluster(DocumentWrapper):
                     lag_in_secs = get_member_repl_lag(m, master_status)
                     # compute lag description
                     hours, remainder = divmod(lag_in_secs, 3600)
-                    minutes, seconds = divmod(lag_in_secs, 60)
+                    minutes, seconds = divmod(remainder, 60)
                     if hours:
                         desc = ("%d hour(s) %d minute(s) %d second(s)" %
                                 (hours, minutes, seconds))
