@@ -4786,9 +4786,21 @@ class ReplicaSetCluster(DocumentWrapper):
                 if m.get("stateStr", None) == "SECONDARY":
                     # compute lag
                     lag_in_secs = get_member_repl_lag(m, master_status)
+                    # compute lag description
+                    hours, remainder = divmod(lag_in_secs, 3600)
+                    minutes, seconds = divmod(lag_in_secs, 60)
+                    if hours:
+                        desc = ("%d hour(s) %d minute(s) %d second(s)" %
+                                (hours, minutes, seconds))
+                    elif minutes:
+                        desc = ("%d minute(s) %d second(s)" % 
+                                (minutes, seconds))
+                    else:
+                        desc = "%d second(s)" % (seconds)
+                        
                     member['replLag'] = {
                         "value": lag_in_secs,
-                        "description": str(datetime.timedelta(seconds=lag_in_secs))
+                        "description": desc
                         }
                 other_members.append(member)
         return {
