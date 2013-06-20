@@ -1272,6 +1272,14 @@ MONGOCTL_PARSER_DEF = {
                     "cmd_arg":  "--ipv6",
                     "nargs": 0,
                     "help": "enable IPv6 support (disabled by default)"
+                },
+
+                {
+                    "name": "authenticationDatabase",
+                    "type" : "optional",
+                    "cmd_arg":  "--authenticationDatabase",
+                    "nargs": 1,
+                    "help": "user source (defaults to dbname). 2.4.x or greater only."
                 }
 
             ]

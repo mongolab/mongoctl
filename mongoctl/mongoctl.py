@@ -1278,7 +1278,7 @@ def mongo_dump_db_address(db_address,
                           password=None,
                           use_best_secondary=False,
                           max_repl_lag=None,
-                          dump_options={}):
+                          dump_options=None):
 
     if is_mongo_uri(db_address):
         mongo_dump_uri(uri=db_address, username=username, password=password,
@@ -1310,7 +1310,7 @@ def mongo_dump_db_address(db_address,
     raise MongoctlException("Unknown db address '%s'" % db_address)
 
 ###############################################################################
-def mongo_dump_db_path(dbpath, dump_options={}):
+def mongo_dump_db_path(dbpath, dump_options=None):
 
     do_mongo_dump(dbpath=dbpath,
                   dump_options=dump_options)
@@ -1320,7 +1320,7 @@ def mongo_dump_uri(uri,
                    username=None,
                    password=None,
                    use_best_secondary=False,
-                   dump_options={}):
+                   dump_options=None):
 
     uri_obj = parse_mongo_uri(uri)
     database = uri_obj["database"]
@@ -1348,7 +1348,7 @@ def mongo_dump_server(server,
                       database=None,
                       username=None,
                       password=None,
-                      dump_options={}):
+                      dump_options=None):
     validate_server(server)
 
     auth_db = database or "admin"
@@ -1375,7 +1375,7 @@ def mongo_dump_cluster(cluster,
                        password=None,
                        use_best_secondary=False,
                        max_repl_lag=False,
-                       dump_options={}):
+                       dump_options=None):
     validate_cluster(cluster)
 
     if use_best_secondary:
@@ -1396,7 +1396,7 @@ def mongo_dump_cluster_primary(cluster,
                                database=None,
                                username=None,
                                password=None,
-                               dump_options={}):
+                               dump_options=None):
     log_info("Locating primary server for cluster '%s'..." % cluster.get_id())
     primary_member = cluster.get_primary_member()
     if primary_member:
@@ -1418,7 +1418,7 @@ def mongo_dump_cluster_best_secondary(cluster,
                                       database=None,
                                       username=None,
                                       password=None,
-                                      dump_options={}):
+                                      dump_options=None):
 
     #max_repl_lag = max_repl_lag or 3600
     log_info("Finding best secondary server for cluster '%s' with replication"
@@ -1443,7 +1443,7 @@ def do_mongo_dump(host=None,
                   username=None,
                   password=None,
                   server_version=None,
-                  dump_options={}):
+                  dump_options=None):
 
 
     # create dump command with host and port
@@ -1467,6 +1467,12 @@ def do_mongo_dump(host=None,
         dump_cmd.extend(["-u", username, "-p"])
         if password:
             dump_cmd.append(password)
+
+    # ignore authenticationDatabase option is server_version is less than 2.4.0
+    if (dump_options and "authenticationDatabase" in dump_options and
+        server_version and
+        version_obj(server_version) < MongoctlNormalizedVersion("2.4.0")):
+        dump_options.pop("authenticationDatabase", None)
 
     # append shell options
     if dump_options:
@@ -1492,7 +1498,7 @@ def mongo_restore_db_address(db_address,
                              source,
                              username=None,
                              password=None,
-                             restore_options={}):
+                             restore_options=None):
 
     if is_mongo_uri(db_address):
         mongo_restore_uri(db_address, source, username, password,
@@ -1521,14 +1527,14 @@ def mongo_restore_db_address(db_address,
     raise MongoctlException("Unknown db address '%s'" % db_address)
 
 ###############################################################################
-def mongo_restore_db_path(dbpath, source, restore_options={}):
+def mongo_restore_db_path(dbpath, source, restore_options=None):
     do_mongo_restore(source, dbpath=dbpath, restore_options=restore_options)
 
 ###############################################################################
 def mongo_restore_uri(uri, source,
                       username=None,
                       password=None,
-                      restore_options={}):
+                      restore_options=None):
 
     uri_obj = parse_mongo_uri(uri)
     database = uri_obj["database"]
@@ -1551,7 +1557,7 @@ def mongo_restore_server(server, source,
                          database=None,
                          username=None,
                          password=None,
-                         restore_options={}):
+                         restore_options=None):
     validate_server(server)
 
     # auto complete password if possible
@@ -1575,7 +1581,7 @@ def mongo_restore_cluster(cluster, source,
                           database=None,
                           username=None,
                           password=None,
-                          restore_options={}):
+                          restore_options=None):
     validate_cluster(cluster)
     log_info("Locating primary server for cluster '%s'..." % cluster.get_id())
     primary_member = cluster.get_primary_member()
@@ -1600,7 +1606,7 @@ def do_mongo_restore(source,
                      username=None,
                      password=None,
                      server_version=None,
-                     restore_options={}):
+                     restore_options=None):
 
 
     # create restore command with host and port
@@ -1624,6 +1630,12 @@ def do_mongo_restore(source,
         restore_cmd.extend(["-u", username, "-p"])
         if password:
             restore_cmd.append(password)
+
+    # ignore authenticationDatabase option is server_version is less than 2.4.0
+    if (restore_options and "authenticationDatabase" in restore_options and
+        server_version and
+        version_obj(server_version) < MongoctlNormalizedVersion("2.4.0")):
+        restore_options.pop("authenticationDatabase", None)
 
     # append shell options
     if restore_options:
@@ -5509,7 +5521,8 @@ SUPPORTED_MONGO_RESTORE_OPTIONS = [
     "drop",
     "oplogReplay",
     "keepIndexVersion",
-    "verbose"
+    "verbose",
+    "authenticationDatabase"
 ]
 
 ###############################################################################
