@@ -4783,7 +4783,9 @@ class ReplicaSetCluster(DocumentWrapper):
                     "address": address,
                     "stateStr": m.get("stateStr")
                     }
-                if m.get("stateStr", None) == "SECONDARY":
+                if m.get("errmsg", None):
+                    member['errmsg'] = m['errmsg']
+                if m.get("stateStr", None) in ["SECONDARY", "RECOVERING"]:
                     # compute lag
                     lag_in_secs = get_member_repl_lag(m, master_status)
                     # compute lag description
