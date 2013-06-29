@@ -106,7 +106,7 @@ DEFAULT_DBPATH='/data/db'
 # db connection timeout, 10 seconds
 CONN_TIMEOUT = 10000
 
-MAX_SHUTDOWN_WAIT = 10
+MAX_SHUTDOWN_WAIT = 20
 
 # OS resource limits to impose on the 'mongod' process (see setrlimit(2))
 PROCESS_LIMITS = [
