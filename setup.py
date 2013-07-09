@@ -32,12 +32,7 @@ import subprocess
 import sys
 import inspect
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distribute_setup import use_setuptools
-    use_setuptools()
-    from setuptools import setup
+from setuptools import setup
 
 ###############################################################################
 # CONSTANTS
