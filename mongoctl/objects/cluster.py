@@ -1,16 +1,16 @@
 __author__ = 'abdul'
 
-import repository
-import users
+import mongoctl.repository
+from mongoctl import users
 from base import DocumentWrapper
-from utils import *
+from mongoctl.utils import *
 
 from bson import DBRef
 
-from config import get_cluster_member_alt_address_mapping
-from mongoctl_logging import log_verbose, log_error
+from mongoctl.config import get_cluster_member_alt_address_mapping
+from mongoctl.mongoctl_logging import log_verbose, log_error, log_db_command
 
-from prompt import prompt_confirm
+from mongoctl.prompt import prompt_confirm
 
 ###############################################################################
 # ReplicaSet Cluster Member Class
@@ -37,9 +37,9 @@ class ReplicaSetClusterMember(DocumentWrapper):
         if self.__server__ is None:
             if server_doc is not None:
                 if type(server_doc) is DBRef:
-                    self.__server__ =  repository.lookup_server(server_doc.id)
+                    self.__server__ = mongoctl.repository.lookup_server(server_doc.id)
             elif host is not None:
-                self.__server__ = repository.build_server_from_address(host)
+                self.__server__ = mongoctl.repository.build_server_from_address(host)
 
         return self.__server__
 
@@ -161,7 +161,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
                    "valid server." %
                    document_pretty_string(self.get_document()))
             raise MongoctlException(msg)
-        repository.validate_server(server)
+        mongoctl.repository.validate_server(server)
         if server.get_address() is None:
             raise MongoctlException("Invalid member configuration for server "
                                     "'%s'. address property is not set." %
@@ -270,7 +270,7 @@ class ReplicaSetCluster(DocumentWrapper):
             return
 
         for mem_doc in member_documents:
-            member = repository.new_replicaset_cluster_member(mem_doc)
+            member = mongoctl.repository.new_replicaset_cluster_member(mem_doc)
             self.__members__.append(member)
 
     ###########################################################################

@@ -34,22 +34,16 @@ import traceback
 
 import os
 
-import re
 
-import stat
-import subprocess
-import resource
-import datetime
 import shutil
 import platform
 import urllib
 
-import signal
+import repository
+import config
+import objects.server
 
 from dargparse import dargparse
-
-
-
 
 from bson.son import SON
 from mongoctl_command_config import MONGOCTL_PARSER_DEF
@@ -57,23 +51,17 @@ from mongoctl_command_config import MONGOCTL_PARSER_DEF
 from mongo_uri_tools import *
 from utils import *
 from mongoctl_logging import *
-from server import Server
 from prompt import *
-from config import *
-from server import *
 
 from mongo_version import *
-from repository import *
-from users import *
+
 from errors import MongoctlException
 
 ###############################################################################
 # Constants
 ###############################################################################
 
-MONGO_HOME_ENV_VAR = "MONGO_HOME"
 
-MONGO_VERSIONS_ENV_VAR = "MONGO_VERSIONS"
 
 CONF_ROOT_ENV_VAR = "MONGOCTL_CONF"
 
@@ -84,21 +72,6 @@ CLUSTER_ID_PARAM = "cluster"
 
 MAX_SHUTDOWN_WAIT = 20
 
-# OS resource limits to impose on the 'mongod' process (see setrlimit(2))
-PROCESS_LIMITS = [
-    # Many TCP/IP connections to mongod ==> many threads to handle them ==>
-    # RAM footprint of many stacks.  Ergo, limit the stack size per thread:
-    ('RLIMIT_STACK', "stack size (in bytes)", 1024 * 1024),
-    # Speaking of connections, we'd like to be able to have a lot of them:
-    ('RLIMIT_NOFILE', "number of file descriptors", 65536)
-    ]
-
-# VERSION CHECK PREFERENCE CONSTS
-VERSION_PREF_EXACT = 0
-VERSION_PREF_GREATER = 1
-VERSION_PREF_MAJOR_GE = 2
-VERSION_PREF_LATEST_STABLE = 3
-VERSION_PREF_EXACT_OR_MINOR = 4
 
 
 
@@ -163,9 +136,9 @@ def do_main(args):
 
     # set conf root if specified
     if parsed_args.configRoot is not None:
-        _set_config_root(parsed_args.configRoot)
+        config._set_config_root(parsed_args.configRoot)
     elif os.getenv(CONF_ROOT_ENV_VAR) is not None:
-        _set_config_root(os.getenv(CONF_ROOT_ENV_VAR))
+        config._set_config_root(os.getenv(CONF_ROOT_ENV_VAR))
 
     # get the function to call from the parser framework
     command_function = parsed_args.func
@@ -178,7 +151,7 @@ def do_main(args):
         # check if assumeLocal was specified
         assume_local = namespace_get_property(parsed_args,"assumeLocal")
         if assume_local:
-            assume_local_server(server_id)
+            objects.server.assume_local_server(server_id)
     # execute command
     log_info("")
     return command_function(parsed_args)
@@ -189,19 +162,6 @@ def do_main(args):
 ########################                       ################################
 ###############################################################################
 
-###############################################################################
-# start command
-###############################################################################
-def start_command(parsed_options):
-    options_override = extract_mongod_options(parsed_options)
-
-    if parsed_options.dryRun:
-        dry_run_start_server_cmd(parsed_options.server, options_override)
-    else:
-        start_server(parsed_options.server,
-                     options_override=options_override,
-                     rs_add=parsed_options.rsAdd,
-                     install_compatible=parsed_options.installCompatible)
 
 ###############################################################################
 # stop command
@@ -247,7 +207,7 @@ def status_command(parsed_options):
 # list servers command
 ###############################################################################
 def list_servers_command(parsed_options):
-    servers = lookup_all_servers()
+    servers = repository.lookup_all_servers()
     if not servers or len(servers) < 1:
         log_info("No servers have been configured.");
         return
@@ -363,20 +323,6 @@ def restore_command(parsed_options):
         mongo_restore_db_path(dbpath, source, restore_options=restore_options)
 
 ###############################################################################
-# tail log command
-###############################################################################
-def tail_log_command(parsed_options):
-    server = lookup_server(parsed_options.server)
-    validate_local_op(server, "tail-log")
-    log_path = server.get_log_file_path()
-    # check if log file exists
-    if os.path.exists(log_path):
-        log_tailer = tail_server_log(server)
-        log_tailer.communicate()
-    else:
-        log_info("Log file '%s' does not exist." % log_path)
-
-###############################################################################
 # print uri command
 ###############################################################################
 def print_uri_command(parsed_options):
@@ -488,288 +434,6 @@ def list_versions_command(parsed_options):
 ########################                   ####################################
 ###############################################################################
 
-###############################################################################
-# start server
-###############################################################################
-def start_server(server_id, options_override=None, rs_add=False,
-                 install_compatible=False):
-    do_start_server(lookup_and_validate_server(server_id),
-                    options_override=options_override,
-                    rs_add=rs_add,
-                    install_compatible=install_compatible)
-
-###############################################################################
-__mongod_pid__ = None
-__current_server__ = None
-
-###############################################################################
-def do_start_server(server, options_override=None, rs_add=False,
-                            install_compatible=False):
-    # ensure that the start was issued locally. Fail otherwise
-    validate_local_op(server, "start")
-
-    log_info("Checking to see if server '%s' is already running"
-             " before starting it..." % server.get_id())
-    status = server.get_status()
-    if status['connection']:
-        log_info("Server '%s' is already running." %
-                 server.get_id())
-        return
-    elif "timedOut" in status:
-        raise MongoctlException("Unable to start server: Server '%s' seems to"
-                                " be already started but is"
-                                " not responding (connection timeout)."
-                                " Or there might some server running on the"
-                                " same port %s" %
-                                (server.get_id(), server.get_port()))
-    # check if there is another process running on the same port
-    elif "error" in status and ("closed" in status["error"] or
-                                "reset" in status["error"] or
-                                "ids don't match" in status["error"]):
-        raise MongoctlException("Unable to start server: Either server '%s' is "
-                                "started but not responding or port %s is "
-                                "already in use." %
-                                (server.get_id(), server.get_port()))
-
-    log_server_activity(server, "start")
-
-    mongod_pid = start_server_process(server, options_override,
-                                      install_compatible=install_compatible)
-
-    try:
-
-        # prepare the server
-        prepare_server(server)
-        maybe_config_server_repl_set(server, rs_add=rs_add)
-    except Exception,e:
-        log_error("Unable to fully prepare server '%s'. Cause: %s \n"
-                  "Stop server now if more preparation is desired..." %
-                  (server.get_id(), e))
-        shall_we_terminate(mongod_pid)
-        exit(1)
-
-
-
-    # Note: The following block has to be the last block
-    # because mongod_process.communicate() will not return unless you
-    # interrupt the mongod process which will kill mongoctl, so nothing after
-    # this block will be executed. Almost never...
-
-    if not is_forking(server, options_override):
-        communicate_to_child_process(mongod_pid)
-
-###############################################################################
-def maybe_config_server_repl_set(server, rs_add=False):
-    # if the server belongs to a replica set cluster,
-    # then prompt the user to init the replica set IF not already initialized
-    # AND server is NOT an Arbiter
-    # OTHERWISE prompt to add server to replica if server is not added yet
-
-    cluster = lookup_cluster_by_server(server)
-
-    if cluster is not None:
-        log_verbose("Server '%s' is a member in the configuration for"
-                    " cluster '%s'." % (server.get_id(),cluster.get_id()))
-
-        if not cluster.is_replicaset_initialized():
-            log_info("Replica set cluster '%s' has not been initialized yet." %
-                     cluster.get_id())
-            if cluster.get_member_for(server).can_become_primary():
-                if rs_add:
-                    cluster.initialize_replicaset(server)
-                else:
-                    prompt_init_replica_cluster(cluster, server)
-            else:
-                log_info("Skipping replica set initialization because "
-                         "server '%s' cannot be elected primary." %
-                         server.get_id())
-        else:
-            log_verbose("No need to initialize cluster '%s', as it has"
-                        " already been initialized." % cluster.get_id())
-            if not cluster.is_member_configured_for(server):
-                if rs_add:
-                    cluster.add_member_to_replica(server)
-                else:
-                    prompt_add_member_to_replica(cluster, server)
-            else:
-                log_verbose("Server '%s' is already added to the replicaset"
-                            " conf of cluster '%s'." %
-                            (server.get_id(),cluster.get_id()))
-
-###############################################################################
-def _start_server_process_4real(server, options_override=None,
-                                install_compatible=False):
-    server_dir_exists = mk_server_dir(server)
-    first_time = not server_dir_exists
-
-    # generate key file if needed
-    if needs_repl_key(server):
-        get_generate_key_file(server)
-
-    # create the start command line
-    start_cmd = generate_start_command(server, options_override,
-                                       install_compatible=install_compatible)
-
-    start_cmd_str = " ".join(start_cmd)
-    first_time_msg = " for the first time" if first_time else ""
-
-    log_info("Starting server '%s'%s..." % (server.get_id(), first_time_msg))
-    log_info("\nExecuting command:\n%s\n" % start_cmd_str)
-
-    child_process_out = None
-    if is_forking(server, options_override):
-        child_process_out = subprocess.PIPE
-
-    global __mongod_pid__
-    global __current_server__
-
-    parent_mongod = create_subprocess(start_cmd,
-                                      stdout=child_process_out,
-                                      preexec_fn=server_process_preexec)
-
-
-    
-    if is_forking(server, options_override):
-        __mongod_pid__ = get_forked_mongod_pid(parent_mongod)
-    else:
-        __mongod_pid__ = parent_mongod.pid
-
-    __current_server__ = server
-    return __mongod_pid__
-
-###############################################################################
-def get_forked_mongod_pid(parent_mongod):
-    output = parent_mongod.communicate()[0]
-    pid_re_expr = "forked process: ([0-9]+)"
-    pid_str = re.search(pid_re_expr, output).groups()[0]
-
-    return int(pid_str)
-
-###############################################################################
-def start_server_process(server,options_override=None,
-                         install_compatible=False):
-
-    mongod_pid = _start_server_process_4real(server, options_override,
-                                             install_compatible=
-                                                install_compatible)
-
-    log_info("Will now wait for server '%s' to start up."
-             " Enjoy mongod's log for now!" %
-             server.get_id())
-    log_info("\n****************************************************************"
-             "***************")
-    log_info("* START: tail of log file at '%s'" % server.get_log_file_path())
-    log_info("******************************************************************"
-             "*************\n")
-
-    log_tailer = tail_server_log(server)
-    # wait until the server starts
-    try:
-        is_online = wait_for(server_started_predicate(server, mongod_pid),
-                             timeout=300)
-    finally:
-        # stop tailing
-        stop_tailing(log_tailer)
-
-    log_info("\n****************************************************************"
-             "***************")
-    log_info("* END: tail of log file at '%s'" % server.get_log_file_path())
-    log_info("******************************************************************"
-             "*************\n")
-
-    if not is_online:
-        raise MongoctlException("Timed out waiting for server '%s' to start. "
-                                "Please tail the log file to monitor further "
-                                "progress." %
-                                server.get_id())
-
-    log_info("Server '%s' started successfully! (pid=%s)\n" %
-             (server.get_id(), mongod_pid))
-
-    return mongod_pid
-
-###############################################################################
-def server_process_preexec():
-    """ make the server ignore ctrl+c signals and have the global mongoctl
-        signal handler take care of it
-    """
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
-    _set_process_limits()
-
-###############################################################################
-def _set_process_limits():
-    for (res_name, description, desired_limit) in PROCESS_LIMITS :
-        _set_a_process_limit(res_name, desired_limit, description)
-
-###############################################################################
-def _set_a_process_limit(resource_name, desired_limit, description):
-    which_resource = getattr(resource, resource_name)
-    (soft, hard) = resource.getrlimit(which_resource)
-    def set_resource(attempted_value):
-        log_verbose("Trying setrlimit(resource.%s, (%d, %d))" %
-                    (resource_name, attempted_value, hard))
-        resource.setrlimit(which_resource, (attempted_value, hard))
-
-    log_info("Setting OS limit on %s for process (desire up to %d)..."
-             "\n\t Current limit values: soft = %d, hard = %d" %
-             (description, desired_limit, soft, hard))
-
-    _negotiate_process_limit(set_resource, desired_limit, soft, hard)
-    log_info("Resulting OS limit on %s for process: " % description +
-             "soft = %d, hard = %d" % resource.getrlimit(which_resource))
-
-###############################################################################
-def _rlimit_min(one_val, nother_val):
-    """Returns the more stringent rlimit value.  -1 means no limit."""
-    if one_val < 0 or nother_val < 0 :
-        return max(one_val, nother_val)
-    else:
-        return min(one_val, nother_val)
-
-###############################################################################
-def _negotiate_process_limit(set_resource, desired_limit, soft, hard):
-
-    best_possible = _rlimit_min(hard, desired_limit)
-    worst_possible = soft
-    attempt = best_possible           # be optimistic for initial attempt
-
-    while abs(best_possible - worst_possible) > 1 :
-        try:
-            set_resource(attempt)
-            log_verbose("  That worked!  Should I negotiate further?")
-            worst_possible = attempt
-        except:
-            log_verbose("  Phooey.  That didn't work.")
-            if attempt < 0 :
-                log_info("\tCannot remove soft limit on resource.")
-                return
-            best_possible = attempt + (1 if best_possible < attempt else -1)
-
-        attempt = (best_possible + worst_possible) / 2
-
-###############################################################################
-def tail_server_log(server):
-    try:
-        logpath = server.get_log_file_path()
-        # touch log file to make sure it exists
-        log_verbose("Touching log file '%s'" % logpath)
-        execute_command(["touch", logpath])
-
-        tail_cmd = ["tail", "-f", logpath]
-        log_verbose("Executing command: %s" % (" ".join(tail_cmd)))
-        return create_subprocess(tail_cmd)
-    except Exception,e:
-        log_error("Unable to tail server log file. Cause: %s" % e)
-        return None
-
-###############################################################################
-def stop_tailing(log_tailer):
-    try:
-        if log_tailer:
-            log_verbose("-- Killing tail log path subprocess")
-            log_tailer.terminate()
-    except Exception,e:
-        log_verbose("Failed to kill tail subprocess. Cause: %s" % e)
 
 ###############################################################################
 def shall_we_terminate(mongod_pid):
@@ -1067,27 +731,9 @@ def dry_run_configure_cluster(cluster_id, force_primary_server_id=None):
     log_info("Executing the following command on the current primary:")
     log_info(document_pretty_string(db_command))
 
-###############################################################################
-def prompt_init_replica_cluster(replica_cluster,
-                                suggested_primary_server):
 
-    prompt = ("Do you want to initialize replica set cluster '%s' using "
-              "server '%s'?" %
-              (replica_cluster.get_id(), suggested_primary_server.get_id()))
 
-    def init_repl_func():
-        replica_cluster.initialize_replicaset(suggested_primary_server)
-    prompt_execute_task(prompt, init_repl_func)
 
-###############################################################################
-def prompt_add_member_to_replica(replica_cluster, server):
-
-    prompt = ("Do you want to add server '%s' to replica set cluster '%s'?" %
-              (server.get_id(), replica_cluster.get_id()))
-
-    def add_member_func():
-        replica_cluster.add_member_to_replica(server)
-    prompt_execute_task(prompt, add_member_func)
 
 ###############################################################################
 # open_mongo_shell_to
@@ -1815,29 +1461,7 @@ def extract_archive(archive_name):
     tar_cmd = ['tar', 'xvf', archive_name]
     call_command(tar_cmd)
 
-###############################################################################
-# HELPER functions
-###############################################################################
 
-###############################################################################
-def server_stopped_predicate(server, pid):
-    def server_stopped():
-        return (not server.is_online() and
-                (pid is None or not is_pid_alive(pid)))
-
-    return server_stopped
-
-###############################################################################
-def server_started_predicate(server, mongod_pid):
-    def server_started():
-        # check if the command failed
-        if not is_pid_alive(mongod_pid):
-            raise MongoctlException("Could not start the server. Please check"
-                                    " the log file.")
-
-        return server.is_online()
-
-    return server_started
 
 ###############################################################################
 def pid_dead_predicate(pid):
@@ -1856,35 +1480,6 @@ def is_forking(server, options_override):
         fork = True
 
     return fork
-
-
-
-def validate_local_op(server, op):
-
-    # If the server has been assumed to be local then skip validation
-    if is_assumed_local_server(server.get_id()):
-        log_verbose("Skipping validation of server's '%s' address '%s' to be"
-                    " local because --assume-local is on" %
-                    (server.get_id(), server.get_host_address()))
-        return
-
-    log_verbose("Validating server address: "
-                "Ensuring that server '%s' address '%s' is local on this "
-                "machine" % (server.get_id(), server.get_host_address()))
-    if not server.is_local():
-        log_verbose("Server address validation failed.")
-        raise MongoctlException("Cannot %s server '%s' on this machine "
-                                "because server's address '%s' does not appear "
-                                "to be local to this machine. Pass the "
-                                "--assume-local option if you are sure that "
-                                "this server should be running on this "
-                                "machine." % (op,
-                                              server.get_id(),
-                                              server.get_host_address()))
-    else:
-        log_verbose("Server address validation passed. "
-                    "Server '%s' address '%s' is local on this "
-                    "machine !" % (server.get_id(), server.get_host_address()))
 
 ###############################################################################
 def is_server_or_cluster_db_address(value):
@@ -1916,334 +1511,6 @@ def is_dbpath(value):
     value = resolve_path(value)
     return os.path.exists(value)
 
-###############################################################################
-# MONGOD Start Command functions
-###############################################################################
-def generate_start_command(server, options_override=None,
-                           install_compatible=False):
-    command = []
-
-    """
-        Check if we need to use numactl if we are running on a NUMA box.
-        10gen recommends using numactl on NUMA. For more info, see
-        http://www.mongodb.org/display/DOCS/NUMA
-        """
-    if mongod_needs_numactl():
-        log_info("Running on a NUMA machine...")
-        apply_numactl(command)
-
-    # append the mongod executable
-    command.append(get_mongod_executable(server.get_mongo_version(),
-                                         install_compatible=install_compatible))
-
-
-    # create the command args
-    cmd_options = server.export_cmd_options()
-
-    # set the logpath if forking..
-
-    if is_forking(server, options_override):
-        cmd_options['fork'] = True
-        set_document_property_if_missing(
-            cmd_options,
-            "logpath",
-            server.get_log_file_path())
-
-    # Add ReplicaSet args if a cluster is configured
-
-    cluster = lookup_validate_cluster_by_server(server)
-    if cluster is not None:
-
-        set_document_property_if_missing(cmd_options,
-            "replSet",
-            cluster.get_id())
-
-        # Specify the keyFile arg if needed
-        if needs_repl_key(server):
-            key_file_path = server.get_key_file_path()
-            set_document_property_if_missing(cmd_options,
-                                             "keyFile",
-                                             key_file_path)
-
-    # apply the options override
-    if options_override is not None:
-        for (option_name,option_val) in options_override.items():
-            cmd_options[option_name] = option_val
-
-
-    command.extend(options_to_command_args(cmd_options))
-    return command
-
-###############################################################################
-def options_to_command_args(args):
-
-    command_args=[]
-
-    for (arg_name,arg_val) in sorted(args.iteritems()):
-            # append the arg name and val as needed
-        if not arg_val:
-            continue
-        elif arg_val == True:
-            command_args.append("--%s" % arg_name)
-        else:
-            command_args.append("--%s" % arg_name)
-            command_args.append(str(arg_val))
-
-    return command_args
-
-###############################################################################
-def get_mongo_executable(server_version,
-                         executable_name,
-                         version_check_pref=VERSION_PREF_EXACT,
-                         install_compatible=False):
-
-    mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
-    mongo_installs_dir = get_mongodb_installs_dir()
-
-
-    ver_disp = "[Unspecified]" if server_version is None else server_version
-    log_verbose("Looking for a compatible %s for mongoVersion=%s." %
-                (executable_name, ver_disp))
-    exe_version_tuples = find_all_executables(executable_name)
-
-    if len(exe_version_tuples) > 0:
-        selected_exe = best_executable_match(executable_name,
-                                             exe_version_tuples,
-                                             server_version,
-                                             version_check_pref=
-                                             version_check_pref)
-        if selected_exe is not None:
-            log_info("Using %s at '%s' version '%s'..." %
-                     (executable_name,
-                      selected_exe.path,
-                      selected_exe.version))
-            return selected_exe
-
-    ## ok nothing found at all. wtf case
-    msg = ("Unable to find a compatible '%s' executable "
-           "for version %s. You may need to run 'mongoctl install-mongodb %s' to install it.\n\n"
-           "Here is your enviroment:\n\n"
-           "$PATH=%s\n\n"
-           "$MONGO_HOME=%s\n\n"
-           "mongoDBInstallationsDirectory=%s (in mongoctl.config)" %
-           (executable_name, ver_disp, ver_disp,
-            os.getenv("PATH"),
-            mongo_home,
-            mongo_installs_dir))
-
-
-
-    if install_compatible:
-        log_warning(msg)
-        log_info("Installing a compatible MongoDB...")
-        new_mongo_home = install_mongodb(server_version)
-        new_exe =  get_mongo_home_exe(new_mongo_home, executable_name)
-        return mongo_exe_object(new_exe, version_obj(server_version))
-
-
-
-    raise MongoctlException(msg)
-
-###############################################################################
-def find_all_executables(executable_name):
-    # create a list of all available executables found and then return the best
-    # match if applicable
-    executables_found = []
-
-    ####### Look in $PATH
-    path_executable = which(executable_name)
-    if path_executable is not None:
-        add_to_executables_found(executables_found, path_executable)
-
-    #### Look in $MONGO_HOME if set
-    mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
-
-    if mongo_home is not None:
-        mongo_home = resolve_path(mongo_home)
-        mongo_home_exe = get_mongo_home_exe(mongo_home, executable_name)
-        add_to_executables_found(executables_found, mongo_home_exe)
-        # Look in mongod_installs_dir if set
-    mongo_installs_dir = get_mongodb_installs_dir()
-
-    if mongo_installs_dir is not None:
-        if os.path.exists(mongo_installs_dir):
-            for mongo_installation in os.listdir(mongo_installs_dir):
-                child_mongo_home = os.path.join(mongo_installs_dir,
-                    mongo_installation)
-
-                child_mongo_exe = get_mongo_home_exe(child_mongo_home,
-                    executable_name)
-
-                add_to_executables_found(executables_found, child_mongo_exe)
-
-    return get_exe_version_tuples(executables_found)
-
-###############################################################################
-def add_to_executables_found(executables_found, executable):
-    if is_valid_mongo_exe(executable):
-        if executable not in executables_found:
-            executables_found.append(executable)
-    else:
-        log_verbose("Not a valid executable '%s'. Skipping..." % executable)
-
-###############################################################################
-def best_executable_match(executable_name,
-                          exe_version_tuples,
-                          version_str,
-                          version_check_pref=VERSION_PREF_EXACT):
-    version = version_obj(version_str)
-    match_func = exact_exe_version_match
-
-    exe_versions_str = exe_version_tuples_to_strs(exe_version_tuples)
-
-    log_verbose("Found the following %s's. Selecting best match "
-                "for version %s\n%s" %(executable_name, version_str,
-                                       exe_versions_str))
-
-    if version is None:
-        log_verbose("mongoVersion is null. "
-                    "Selecting default %s" % executable_name)
-        match_func = default_match
-    elif version_check_pref == VERSION_PREF_LATEST_STABLE:
-        match_func = latest_stable_exe
-    elif version_check_pref == VERSION_PREF_MAJOR_GE:
-        match_func = major_ge_exe_version_match
-    elif version_check_pref == VERSION_PREF_EXACT_OR_MINOR:
-        match_func = exact_or_minor_exe_version_match
-
-    return match_func(executable_name, exe_version_tuples, version)
-
-###############################################################################
-def default_match(executable_name, exe_version_tuples, version):
-    default_exe = latest_stable_exe(executable_name, exe_version_tuples)
-    if default_exe is None:
-        log_verbose("No stable %s found. Looking for any latest available %s "
-                    "..." % (executable_name, executable_name))
-        default_exe = latest_exe(executable_name, exe_version_tuples)
-    return default_exe
-
-###############################################################################
-def exact_exe_version_match(executable_name, exe_version_tuples, version):
-
-    for mongo_exe,exe_version in exe_version_tuples:
-        if exe_version == version:
-            return mongo_exe_object(mongo_exe, exe_version)
-
-    return None
-
-###############################################################################
-def latest_stable_exe(executable_name, exe_version_tuples, version=None):
-    log_verbose("Find the latest stable %s" % executable_name)
-    # find greatest stable exe
-    # hold values in a list of (exe,version) tuples
-    stable_exes = []
-    for mongo_exe,exe_version in exe_version_tuples:
-        # get the release number (e.g. A.B.C, release number is B here)
-        release_num = exe_version.parts[0][1]
-        # stable releases are the even ones
-        if (release_num % 2) == 0:
-            stable_exes.append((mongo_exe, exe_version))
-
-    return latest_exe(executable_name, stable_exes)
-
-###############################################################################
-def latest_exe(executable_name, exe_version_tuples, version=None):
-
-    # Return nothing if nothing compatible
-    if len(exe_version_tuples) == 0:
-        return None
-        # sort desc by version
-    exe_version_tuples.sort(key=lambda t: t[1], reverse=True)
-
-    exe = exe_version_tuples[0]
-    return mongo_exe_object(exe[0], exe[1])
-
-###############################################################################
-def major_ge_exe_version_match(executable_name, exe_version_tuples, version):
-    # find all compatible exes then return closet match (min version)
-    # hold values in a list of (exe,version) tuples
-    compatible_exes = []
-    for mongo_exe,exe_version in exe_version_tuples:
-        if exe_version.parts[0][0] >= version.parts[0][0]:
-            compatible_exes.append((mongo_exe, exe_version))
-
-    # Return nothing if nothing compatible
-    if len(compatible_exes) == 0:
-        return None
-    # find the best fit
-    compatible_exes.sort(key=lambda t: t[1])
-    exe = compatible_exes[-1]
-    return mongo_exe_object(exe[0], exe[1])
-
-###############################################################################
-def exact_or_minor_exe_version_match(executable_name,
-                                     exe_version_tuples,
-                                     version):
-    """
-    IF there is an exact match then use it
-     OTHERWISE try to find a minor version match
-    """
-    exe = exact_exe_version_match(executable_name,
-                                  exe_version_tuples,
-                                  version)
-
-    if not exe:
-        exe = minor_exe_version_match(executable_name,
-                                         exe_version_tuples,
-                                         version)
-    return exe
-
-###############################################################################
-def minor_exe_version_match(executable_name,
-                                     exe_version_tuples,
-                                     version):
-
-    # hold values in a list of (exe,version) tuples
-    compatible_exes = []
-    for mongo_exe,exe_version in exe_version_tuples:
-        # compatible ==> major + minor equality
-        if (exe_version.parts[0][0] == version.parts[0][0] and
-            exe_version.parts[0][1] == version.parts[0][1]):
-            compatible_exes.append((mongo_exe, exe_version))
-
-    # Return nothing if nothing compatible
-    if len(compatible_exes) == 0:
-        return None
-        # find the best fit
-    compatible_exes.sort(key=lambda t: t[1])
-    exe = compatible_exes[-1]
-    return mongo_exe_object(exe[0], exe[1])
-
-###############################################################################
-def get_exe_version_tuples(executables):
-    exe_ver_tuples = []
-    for mongo_exe in executables:
-        try:
-            exe_version = mongo_exe_version(mongo_exe)
-            exe_ver_tuples.append((mongo_exe, exe_version))
-        except Exception, e:
-            log_verbose("Skipping executable '%s': %s" % (mongo_exe, e))
-
-    return exe_ver_tuples
-
-###############################################################################
-def exe_version_tuples_to_strs(exe_ver_tuples):
-    strs = []
-    for mongo_exe,exe_version in exe_ver_tuples:
-        strs.append("%s = %s" % (mongo_exe, exe_version))
-    return "\n".join(strs)
-
-###############################################################################
-def is_valid_mongo_exe(path):
-    return path is not None and is_exe(path)
-
-###############################################################################
-def get_mongod_executable(server_version, install_compatible=False):
-    mongod_exe = get_mongo_executable(server_version,
-                                      'mongod',
-                                       version_check_pref=VERSION_PREF_EXACT,
-                                       install_compatible=install_compatible)
-    return mongod_exe.path
 
 ###############################################################################
 def get_mongo_shell_executable(server_version):
@@ -2279,40 +1546,6 @@ def get_mongo_restore_executable(server_version):
 
     return restore_exe.path
 
-###############################################################################
-def get_mongo_home_exe(mongo_home, executable_name):
-    return os.path.join(mongo_home, 'bin', executable_name)
-
-###############################################################################
-def mongo_exe_version(mongo_exe):
-    try:
-        re_expr = "v?((([0-9]+)\.([0-9]+)\.([0-9]+))([^, ]*))"
-        vers_spew = execute_command([mongo_exe, "--version"])
-        # only take first line of spew
-        vers_spew = vers_spew.split('\n')[0]
-        vers_grep = re.findall(re_expr, vers_spew)
-        full_version = vers_grep[-1][0]
-        result = version_obj(full_version)
-        if result is not None:
-            return result
-        else:
-            raise MongoctlException("Cannot parse mongo version from the"
-                                    " output of '%s --version'" % mongo_exe)
-    except Exception, e:
-        raise MongoctlException("Unable to get mongo version of '%s'."
-                  " Cause: %s" % (mongo_exe, e))
-
-###############################################################################
-class MongoExeObject():
-    pass
-
-###############################################################################
-def mongo_exe_object(exe_path, exe_version):
-    exe_obj = MongoExeObject()
-    exe_obj.path =  exe_path
-    exe_obj.version =  exe_version
-
-    return exe_obj
 
 ###############################################################################
 def prepare_server(server):
@@ -2325,43 +1558,11 @@ def prepare_server(server):
     # setup the local users
     setup_server_local_users(server)
 
-    if not is_cluster_member(server):
+    if not server.is_cluster_member():
         setup_server_users(server)
 
-###############################################################################
-def mk_server_dir(server):
-    # ensure the dbpath dir exists
-    dbpath = server.get_db_path()
-    log_verbose("Ensuring that server's dbpath '%s' exists..." % dbpath)
-    if ensure_dir(server.get_db_path()):
-        log_verbose("dbpath %s already exists!" % dbpath)
-        return True
-    else:
-        log_verbose("dbpath directory '%s' created successfully" % dbpath)
-        return False
 
 
-
-###############################################################################
-# Mongoctl Database Functions
-###############################################################################
-def log_server_activity(server, activity):
-
-    if is_logging_activity():
-        log_record = {"op": activity,
-                      "ts": datetime.datetime.utcnow(),
-                      "serverDoc": server.get_document(),
-                      "server": server.get_id(),
-                      "serverDisplayName": server.get_description()}
-        log_verbose("Logging server activity \n%s" %
-                    document_pretty_string(log_record))
-
-        get_activity_collection().insert(log_record)
-
-###############################################################################
-def is_logging_activity():
-    return (consulting_db_repository() and
-            get_mongoctl_config_val("logServerActivity" , False))
 
 
 
@@ -2392,118 +1593,11 @@ def get_server_pid(server):
 
 
 
-###############################################################################
-def get_generate_key_file(server):
-    cluster = lookup_cluster_by_server(server)
-    key_file_path = server.get_key_file_path()
 
-    # Generate the key file if it does not exist
-    if not os.path.exists(key_file_path):
-        key_file = open(key_file_path, 'w')
-        key_file.write(cluster.get_repl_key())
-        key_file.close()
-        # set the permissions required by mongod
-        os.chmod(key_file_path,stat.S_IRUSR)
-    return key_file_path
-
-###############################################################################
-__child_subprocesses__ = []
-
-def create_subprocess(command, **kwargs):
-    child_process = subprocess.Popen(command, **kwargs)
-
-    global __child_subprocesses__
-    __child_subprocesses__.append(child_process)
-
-    return child_process
-
-###############################################################################
-def communicate_to_child_process(child_pid):
-    get_child_process(child_pid).communicate()
-
-###############################################################################
-def get_child_process(child_pid):
-    global __child_subprocesses__
-    for child_process in __child_subprocesses__:
-        if child_process.pid == child_pid:
-            return child_process
-
-###############################################################################
-# NUMA Related functions
-###############################################################################
-def mongod_needs_numactl():
-    """ Logic kind of copied from MongoDB (mongodb-src/util/version.cpp) ;)
-
-        Return true IF we are on a box with a NUMA enabled kernel and more
-        than 1 numa node (they start at node0).
-    """
-    return dir_exists("/sys/devices/system/node/node1")
-
-###############################################################################
-def apply_numactl(command):
-
-    numactl_exe = get_numactl_exe()
-
-    if numactl_exe:
-        log_info("Using numactl '%s'" % numactl_exe)
-        command.extend([numactl_exe, "--interleave=all"])
-    else:
-        msg = ("You are running on a NUMA machine. It is recommended to run "
-               "your server using numactl but we cannot find a numactl "
-               "executable in your PATH. Proceeding might cause problems that"
-               " will manifest in strange ways, such as massive slow downs for"
-               " periods of time or high system cpu time. Proceed?")
-        if not prompt_confirm(msg):
-            exit(0)
-
-###############################################################################
-def get_numactl_exe():
-    return which("numactl")
-
-###############################################################################
-# SIGNAL HANDLER FUNCTIONS
-###############################################################################
-
-def mongoctl_signal_handler(signal_val, frame):
-    global __mongod_pid__
-
-    # otherwise prompt to kill server
-    global __child_subprocesses__
-    global __current_server__
-
-    def kill_child(child_process):
-        try:
-            if child_process.poll() is None:
-                log_verbose("Killing child process '%s'" % child_process )
-                child_process.terminate()
-        except Exception, e:
-            log_verbose("Unable to kill child process '%s': Cause: %s" %
-                        (child_process, e))
-
-    def exit_mongoctl():
-        # kill all children then exit
-        map(kill_child, __child_subprocesses__)
-        exit(0)
-
-        # if there is no mongod server yet then exit
-    if __mongod_pid__ is None:
-        exit_mongoctl()
-    else:
-        prompt_execute_task("Kill server '%s'?" % __current_server__.get_id(),
-                             exit_mongoctl)
-
-###############################################################################
-# Register the global mongoctl signal handler
-signal.signal(signal.SIGINT, mongoctl_signal_handler)
 
 ###############################################################################
 # Utility Methods
 ###############################################################################
-
-###############################################################################
-def set_document_property_if_missing(document, name, value):
-    if document.get(name) is None:
-        document[name] = value
 
 ###############################################################################
 def namespace_get_property(namespace, name):

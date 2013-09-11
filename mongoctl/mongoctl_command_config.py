@@ -123,7 +123,7 @@ MONGOCTL_PARSER_DEF = {
             #"usage" : generate default usage
             "shortDescription" : "start a server",
             "description" : "Starts a specific server.",
-            "function": "mongoctl.mongoctl.start_command",
+            "function": "mongoctl.commands.server.start.start_command",
             "args":[
 
                     {
@@ -927,7 +927,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "serverCommands",
             "shortDescription" : "tails a server's log file",
             "description" : "Tails server's log file. Works only on local host",
-            "function": "mongoctl.mongoctl.tail_log_command",
+            "function": "mongoctl.commands.server.tail_log.tail_log_command",
             "args": [
                     {
                     "name": "server",

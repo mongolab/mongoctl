@@ -1,6 +1,6 @@
 __author__ = 'abdul'
 
-from utils import document_pretty_string
+from mongoctl.utils import document_pretty_string
 ###############################################################################
 # Document Wrapper Class
 ###############################################################################

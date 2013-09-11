@@ -1,15 +1,17 @@
+
+
 __author__ = 'abdul'
 
 import pymongo
-import server
-import cluster
+
+import objects.server
+import objects.cluster
 
 from errors import *
 from config import *
 from mongo_uri_tools import parse_mongo_uri
 
-from mongo_version import (version_obj, is_supported_mongo_version,
-                           is_valid_version, REPL_KEY_SUPPORTED_VERSION)
+from mongo_version import is_supported_mongo_version, is_valid_version
 from mongo_uri_tools import is_cluster_mongo_uri, mask_mongo_uri
 
 DEFAULT_SERVERS_FILE = "servers.config"
@@ -310,8 +312,10 @@ def validate_cluster(cluster):
     errors = []
 
     ## validate repl key if needed
+    def server_needs_repl_key(server):
+        return server.needs_repl_key()
 
-    if (cluster.has_any_server_that(needs_repl_key) and
+    if (cluster.has_any_server_that(server_needs_repl_key) and
                 cluster.get_repl_key() is None):
         errors.append(
             "** no replKey configured. replKey is required because at least "
@@ -323,16 +327,6 @@ def validate_cluster(cluster):
                                 (cluster.get_id() , "\n".join(errors)))
 
     return cluster
-
-###############################################################################
-# we need a repl key if you are auth + a cluster member +
-# version is None or >= 2.0.0
-def needs_repl_key(server):
-    version = server.get_mongo_version_obj()
-    return (server.is_auth() and
-            is_cluster_member(server) and
-            (version is None or
-             version >= version_obj(REPL_KEY_SUPPORTED_VERSION)))
 
 ###############################################################################
 def lookup_validate_cluster_by_server(server):
@@ -358,11 +352,6 @@ def lookup_cluster_by_server(server):
 
 
     return cluster
-
-###############################################################################
-def is_cluster_member(server):
-    return lookup_cluster_by_server(server) is not None
-
 
 ###############################################################################
 def validate_server(server):
@@ -413,7 +402,7 @@ def get_activity_collection():
 # Factory Functions
 ###############################################################################
 def new_server(server_doc):
-    return server.Server(server_doc)
+    return objects.server.Server(server_doc)
 
 ###############################################################################
 def build_server_from_address(address):
@@ -495,7 +484,7 @@ def new_servers_dict(docs):
 
 ###############################################################################
 def new_cluster(cluster_doc):
-    return cluster.ReplicaSetCluster(cluster_doc)
+    return objects.cluster.ReplicaSetCluster(cluster_doc)
 
 ###############################################################################
 def new_replicaset_clusters_dict(docs):
@@ -505,7 +494,7 @@ def new_replicaset_clusters_dict(docs):
 
 ###############################################################################
 def new_replicaset_cluster_member(cluster_mem_doc):
-    return cluster.ReplicaSetClusterMember(cluster_mem_doc)
+    return objects.cluster.ReplicaSetClusterMember(cluster_mem_doc)
 
 ###############################################################################
 def new_replicaset_cluster_member_list(docs_iteratable):

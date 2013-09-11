@@ -5,8 +5,6 @@ from verlib import NormalizedVersion, suggest_normalized_version
 # Version support stuff
 MIN_SUPPORTED_VERSION = "1.8"
 
-REPL_KEY_SUPPORTED_VERSION = '2.0.0'
-
 ###############################################################################
 # MongoctlNormalizedVersion class
 # we had to inherit and override __str__ because the suggest_normalized_version

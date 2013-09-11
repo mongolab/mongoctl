@@ -10,7 +10,7 @@ import urlparse
 import json
 
 from bson import json_util
-from mongoctl_logging import log_verbose, log_info
+from mongoctl_logging import *
 from errors import MongoctlException
 
 ###############################################################################

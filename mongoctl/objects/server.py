@@ -2,22 +2,26 @@ __author__ = 'abdul'
 
 import os
 
-import user
-import repository
+import mongoctl.repository
 
 from base import DocumentWrapper
-from utils import resolve_path, document_pretty_string, is_host_local
+from mongoctl.utils import resolve_path, document_pretty_string, is_host_local
 from pymongo.errors import AutoReconnect
-from mongoctl_logging import log_verbose, log_error, log_warning
-from mongo_version import version_obj
+from mongoctl.mongoctl_logging import log_verbose, log_error, log_warning
+from mongoctl.mongo_version import version_obj
 
-from config import get_default_users
-from errors import MongoctlException
-from prompt import read_username, read_password
+from mongoctl.config import get_default_users
+from mongoctl.errors import MongoctlException
+from mongoctl.prompt import read_username, read_password
 
 from bson.son import SON
 from cluster import get_member_repl_lag
 from pymongo.connection import Connection
+
+import datetime
+
+from mongoctl import config
+from mongoctl import users
 
 ###############################################################################
 # CONSTANTS
@@ -38,6 +42,9 @@ DEFAULT_PORT = 27017
 
 # db connection timeout, 10 seconds
 CONN_TIMEOUT = 10000
+
+
+REPL_KEY_SUPPORTED_VERSION = '2.0.0'
 
 ###############################################################################
 # Server Class
@@ -249,7 +256,7 @@ class Server(DocumentWrapper):
         # if no login user found then check global login
 
         if not login_user:
-            login_user = user.get_global_login_user(self, dbname)
+            login_user = users.get_global_login_user(self, dbname)
 
         # if dbname is local and we cant find anything yet
         # THEN assume that local credentials == admin credentials
@@ -542,7 +549,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_rs_status_summary(self):
-        if repository.is_cluster_member(self):
+        if self.is_cluster_member():
             member_rs_status = self.get_member_rs_status()
             if member_rs_status:
                 return {
@@ -552,7 +559,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def is_arbiter_server(self):
-        cluster = repository.lookup_cluster_by_server(self)
+        cluster = mongoctl.repository.lookup_cluster_by_server(self)
         if cluster is not None:
             return cluster.get_member_for(self).is_arbiter()
         else:
@@ -688,6 +695,69 @@ class Server(DocumentWrapper):
 
         return get_member_repl_lag(member_status, master_status)
 
+    ###########################################################################
+    def validate_local_op(self, op):
+
+        # If the server has been assumed to be local then skip validation
+        if is_assumed_local_server(self.get_id()):
+            log_verbose("Skipping validation of server's '%s' address '%s' to be"
+                        " local because --assume-local is on" %
+                        (self.get_id(), self.get_host_address()))
+            return
+
+        log_verbose("Validating server address: "
+                    "Ensuring that server '%s' address '%s' is local on this "
+                    "machine" % (self.get_id(), self.get_host_address()))
+        if not self.is_local():
+            log_verbose("Server address validation failed.")
+            raise MongoctlException("Cannot %s server '%s' on this machine "
+                                    "because server's address '%s' does not appear "
+                                    "to be local to this machine. Pass the "
+                                    "--assume-local option if you are sure that "
+                                    "this server should be running on this "
+                                    "machine." % (op,
+                                                  self.get_id(),
+                                                  self.get_host_address()))
+        else:
+            log_verbose("Server address validation passed. "
+                        "Server '%s' address '%s' is local on this "
+                        "machine !" % (self.get_id(), self.get_host_address()))
+
+
+    ###########################################################################
+    def log_server_activity(self, activity):
+
+        if is_logging_activity():
+            log_record = {"op": activity,
+                          "ts": datetime.datetime.utcnow(),
+                          "serverDoc": self.get_document(),
+                          "server": self.get_id(),
+                          "serverDisplayName": self.get_description()}
+            log_verbose("Logging server activity \n%s" %
+                        document_pretty_string(log_record))
+
+            mongoctl.repository.get_activity_collection().insert(log_record)
+
+    ###########################################################################
+    def needs_repl_key(self):
+        """
+         We need a repl key if you are auth + a cluster member +
+         version is None or >= 2.0.0
+        """
+        version = self.get_mongo_version_obj()
+        return (self.is_auth() and
+                self.is_cluster_member() and
+                (version is None or
+                 version >= version_obj(REPL_KEY_SUPPORTED_VERSION)))
+
+    ###########################################################################
+    def is_cluster_member(self):
+        return mongoctl.repository.lookup_cluster_by_server(self) is not None
+
+###############################################################################
+def is_logging_activity():
+    return (mongoctl.repository.consulting_db_repository() and
+            config.get_mongoctl_config_val("logServerActivity" , False))
 
 ###############################################################################
 __assumed_local_servers__ = []
