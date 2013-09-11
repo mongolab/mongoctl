@@ -87,6 +87,8 @@ MONGOCTL_CONF_FILE_NAME = "mongoctl.config"
 
 KEY_FILE_NAME = "keyFile"
 
+LOCK_FILE_NAME = "mongod.lock"
+
 DEFAULT_SERVERS_FILE = "servers.config"
 
 DEFAULT_CLUSTERS_FILE = "clusters.config"
@@ -556,6 +558,8 @@ def do_start_server(server, options_override=None, rs_add=False,
                                 "already in use." %
                                 (server.get_id(), server.get_port()))
 
+    # do necessary work before starting the mongod process
+    _pre_server_start(server, options_override=options_override)
     log_server_activity(server, "start")
 
     mongod_pid = start_server_process(server, options_override,
@@ -582,6 +586,40 @@ def do_start_server(server, options_override=None, rs_add=False,
 
     if not is_forking(server, options_override):
         communicate_to_child_process(mongod_pid)
+
+###############################################################################
+def _pre_server_start(server, options_override=None):
+    """
+    Does necessary work before starting a server
+
+    1- An efficiency step for arbiters running with --no-journal
+        * there is a lock file ==>
+        * server must not have exited cleanly from last run, and does not know
+          how to auto-recover (as a journalled server would)
+        * however:  this is an arbiter, therefore
+        * there is no need to repair data files in any way ==>
+        * i can rm this lockfile and start my server
+    """
+
+    lock_file_path = server.get_lock_file_path()
+
+    no_journal = (server.get_cmd_option("nojournal") or
+                  (options_override and "nojournal" in options_override))
+    if (os.path.exists(lock_file_path) and
+            server.is_arbiter_server() and
+            no_journal):
+
+        log_warning("WARNING: Detected a lock file ('%s') for your server '%s'"
+                    " ; since this server is an arbiter, there is no need for"
+                    " repair or other action. Deleting mongod.lock and"
+                    " proceeding..." % (lock_file_path, server.get_id()))
+        try:
+            os.remove(lock_file_path)
+        except Exception, e:
+            raise MongoctlException("Error while trying to delete '%s'. "
+                                    "Cause: %s" % (lock_file_path, e))
+
+
 
 ###############################################################################
 def maybe_config_server_repl_set(server, rs_add=False):
@@ -3864,6 +3902,10 @@ class Server(DocumentWrapper):
     ###########################################################################
     def get_key_file_path(self):
         return self.get_server_file_path("keyFile", KEY_FILE_NAME)
+
+    ###########################################################################
+    def get_lock_file_path(self):
+        return self.get_server_file_path("keyFile", LOCK_FILE_NAME)
 
     ###########################################################################
     def get_server_file_path(self , cmd_prop, default_file_name):
