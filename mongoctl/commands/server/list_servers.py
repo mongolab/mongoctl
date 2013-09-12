@@ -2,6 +2,7 @@ __author__ = 'abdul'
 
 import mongoctl.repository as repository
 from mongoctl.mongoctl_logging import log_info
+from mongoctl.utils import to_string
 ###############################################################################
 # list servers command
 ###############################################################################
@@ -21,9 +22,8 @@ def list_servers_command(parsed_options):
 
     for server in servers:
         print formatter % (server.get_id(),
-                           _lista(server.get_description()),
-                           _lista(server.get_address_display()))
+                           to_string(server.get_description()),
+                           to_string(server.get_address_display()))
     print "\n"
 
-def _lista(thing):
-    return "" if thing is None else str(thing)
+

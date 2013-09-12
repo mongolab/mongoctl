@@ -1338,7 +1338,7 @@ MONGOCTL_PARSER_DEF = {
                             "This command is \nused both to initiate the "
                             "cluster for the first time \nand to reconfigure "
                             "the cluster.",
-            "function": "mongoctl.mongoctl.configure_cluster_command",
+            "function": "mongoctl.commands.cluster.configure.configure_cluster_command",
             "args": [
                     {
                     "name": "cluster",
@@ -1394,7 +1394,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "clusterCommands",
             "shortDescription" : "show list of configured clusters",
             "description" : "Show list of configured servers",
-            "function": "mongoctl.mongoctl.list_clusters_command"
+            "function": "mongoctl.commands.cluster.list_clusters.list_clusters_command"
         },
 
         #### show-cluster ####
@@ -1403,7 +1403,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "clusterCommands",
             "shortDescription" : "show cluster's configuration",
             "description" : "Shows specific cluster's configuration",
-            "function": "mongoctl.mongoctl.show_cluster_command",
+            "function": "mongoctl.commands.cluster.show.show_cluster_command",
             "args": [
                     {
                     "name": "cluster",

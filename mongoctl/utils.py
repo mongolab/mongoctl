@@ -14,6 +14,11 @@ from mongoctl_logging import *
 from errors import MongoctlException
 
 ###############################################################################
+
+def to_string(thing):
+    return "" if thing is None else str(thing)
+
+###############################################################################
 def document_pretty_string(document):
     return json.dumps(document, indent=4, default=json_util.default)
 
