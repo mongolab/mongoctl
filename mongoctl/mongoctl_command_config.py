@@ -655,7 +655,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "serverCommands",
             "shortDescription" : "stop a server",
             "description" : "Stops a specific server.",
-            "function": "mongoctl.mongoctl.stop_command",
+            "function": "mongoctl.commands.server.stop.stop_command",
             "args":[
                     {   "name": "server",
                         "type" : "positional",
@@ -705,7 +705,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "serverCommands",
             "shortDescription" : "restart a server",
             "description" : "Restarts a specific server.",
-            "function": "mongoctl.mongoctl.restart_command",
+            "function": "mongoctl.commands.server.restart.restart_command",
             "args":[
                     {   "name": "server",
                         "type" : "positional",

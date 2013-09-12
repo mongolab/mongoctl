@@ -1,0 +1,34 @@
+__author__ = 'abdul'
+
+import mongoctl.repository
+
+from mongoctl.mongoctl_logging import log_info
+from start import extract_mongod_options, do_start_server
+from stop import do_stop_server
+
+###############################################################################
+# restart command
+###############################################################################
+def restart_command(parsed_options):
+    options_override = extract_mongod_options(parsed_options)
+
+    restart_server(parsed_options.server, options_override)
+
+
+###############################################################################
+# restart server
+###############################################################################
+def restart_server(server_id, options_override=None):
+    server = mongoctl.repository.lookup_and_validate_server(server_id)
+    do_restart_server(server, options_override)
+
+###############################################################################
+def do_restart_server(server, options_override=None):
+    log_info("Restarting server '%s'..." % server.get_id())
+
+    if server.is_online():
+        do_stop_server(server)
+    else:
+        log_info("Server '%s' is not running." % server.get_id())
+
+    do_start_server(server, options_override)

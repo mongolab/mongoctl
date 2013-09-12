@@ -754,6 +754,24 @@ class Server(DocumentWrapper):
     def is_cluster_member(self):
         return mongoctl.repository.lookup_cluster_by_server(self) is not None
 
+    def get_pid(self):
+        pid_file_path = self.get_pid_file_path()
+        if os.path.exists(pid_file_path):
+            pid_file = open(pid_file_path, 'r')
+            pid = pid_file.readline().strip('\n')
+            if pid and pid.isdigit():
+                return int(pid)
+            else:
+                log_warning("Unable to determine pid for server '%s'. "
+                            "Not a valid number in '%s"'' %
+                            (self.get_id(), pid_file_path))
+        else:
+            log_warning("Unable to determine pid for server '%s'. "
+                        "pid file '%s' does not exist" %
+                        (self.get_id(), pid_file_path))
+
+        return None
+
 ###############################################################################
 def is_logging_activity():
     return (mongoctl.repository.consulting_db_repository() and
