@@ -323,11 +323,7 @@ def print_uri_command(parsed_options):
             raise MongoctlException("Cannot find a server or a cluster with"
                                     " id '%s'" % id)
 
-###############################################################################
-# re-sync secondary command
-###############################################################################
-def resync_secondary_command(parsed_options):
-    resync_secondary(parsed_options.server)
+
 
 ###############################################################################
 # configure cluster command
@@ -417,68 +413,8 @@ def list_versions_command(parsed_options):
 ###############################################################################
 
 
-###############################################################################
-def shall_we_terminate(mongod_pid):
-    def killit():
-        kill_process(mongod_pid, force=True)
-        log_info("Server process terminated at operator behest.")
-
-    (condemned, _) = prompt_execute_task("Kill server now?", killit)
-    return condemned
-
-###############################################################################
-def dry_run_start_server_cmd(server_id, options_override=None):
-    server = lookup_and_validate_server(server_id)
-    # ensure that the start was issued locally. Fail otherwise
-    validate_local_op(server, "start")
-
-    log_info("************ Dry Run ************\n")
-
-    start_cmd = generate_start_command(server, options_override)
-    start_cmd_str = " ".join(start_cmd)
-
-    log_info("\nCommand:")
-    log_info("%s\n" % start_cmd_str)
 
 
-
-###############################################################################
-def resync_secondary(server_id):
-
-    server = lookup_and_validate_server(server_id)
-    validate_local_op(server, "resync-secondary")
-
-    log_info("Checking if server '%s' is secondary..." % server_id)
-    # get the server status
-    status = server.get_status(admin=True)
-    if not status['connection']:
-        msg = ("Server '%s' does not seem to be running. For more details,"
-               " run 'mongoctl status %s'" % (server_id, server_id))
-        raise MongoctlException(msg)
-    elif 'error' in status:
-        msg = ("There was an error while connecting to server '%s' (error:%s)."
-               " For more details, run 'mongoctl status %s'" %
-               (server_id, status['error'], server_id))
-        raise MongoctlException(msg)
-
-    rs_state = None
-    if 'selfReplicaSetStatusSummary' in status:
-        rs_state = status['selfReplicaSetStatusSummary']['stateStr']
-
-    if rs_state not in ['SECONDARY', 'RECOVERING']:
-        msg = ("Server '%s' is not a secondary member or cannot be determined"
-               " as secondary (stateStr='%s'. For more details, run 'mongoctl"
-               " status %s'" % (server_id, rs_state, server_id))
-        raise MongoctlException(msg)
-
-    do_stop_server(server)
-
-    log_info("Deleting server's '%s' dbpath '%s'..." %
-             (server_id, server.get_db_path()))
-
-    shutil.rmtree(server.get_db_path())
-
-    do_start_server(server)
 
 
 ###############################################################################

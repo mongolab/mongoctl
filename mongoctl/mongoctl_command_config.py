@@ -1290,7 +1290,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "serverCommands",
             "shortDescription" : "Resyncs a secondary member",
             "description" : "Resyncs a secondary member",
-            "function": "mongoctl.mongoctl.resync_secondary_command",
+            "function": "mongoctl.commands.server.resync_secondary.resync_secondary_command",
             "args": [
                     {
                     "name": "server",
