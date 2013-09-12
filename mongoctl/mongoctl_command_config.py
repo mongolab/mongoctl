@@ -960,7 +960,7 @@ MONGOCTL_PARSER_DEF = {
                             "   (a) a mongodb URI (e.g. mongodb://localhost:27017[/mydb])\n"
                             "   (b) <server-id>[/<db>]\n"
                             "   (c) <cluster-id>[/<db>]\n",
-            "function": "mongoctl.mongoctl.dump_command",
+            "function": "mongoctl.commands.common.dump.dump_command",
             "args": [
                     {
                     "name": "target",
