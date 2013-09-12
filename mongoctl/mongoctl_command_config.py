@@ -1423,7 +1423,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "adminCommands",
             "shortDescription" : "install MongoDB",
             "description" : "install MongoDB",
-            "function": "mongoctl.mongoctl.install_command",
+            "function": "mongoctl.commands.misc.install.install_command",
             "args": [
                     {
                     "name": "version",
@@ -1442,7 +1442,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "adminCommands",
             "shortDescription" : "uninstall MongoDB",
             "description" : "uninstall MongoDB",
-            "function": "mongoctl.mongoctl.uninstall_command",
+            "function": "mongoctl.commands.misc.install.uninstall_command",
             "args": [
                     {
                     "name": "version",
@@ -1459,7 +1459,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "adminCommands",
             "shortDescription" : "install MongoDB",
             "description" : "install MongoDB",
-            "function": "mongoctl.mongoctl.install_command",
+            "function": "mongoctl.commands.misc.install.install_command",
             "args": [
                     {
                     "name": "version",
@@ -1476,7 +1476,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "adminCommands",
             "shortDescription" : "uninstall MongoDB",
             "description" : "uninstall MongoDB",
-            "function": "mongoctl.mongoctl.uninstall_command",
+            "function": "mongoctl.commands.misc.install.uninstall_command",
             "args": [
                     {
                     "name": "version",
