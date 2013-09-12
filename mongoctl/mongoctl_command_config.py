@@ -798,7 +798,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "serverCommands",
             "shortDescription" : "show server's configuration",
             "description" : "Shows the configuration for a specific server.",
-            "function": "mongoctl.mongoctl.show_server_command" ,
+            "function": "mongoctl.commands.server.show.show_server_command" ,
             "args":[
                     {   "name": "server",
                         "type" : "positional",
