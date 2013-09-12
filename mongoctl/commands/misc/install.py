@@ -39,6 +39,24 @@ def install_command(parsed_options):
 def uninstall_command(parsed_options):
     uninstall_mongodb(version=parsed_options.version)
 
+
+###############################################################################
+# list-versions command
+###############################################################################
+def list_versions_command(parsed_options):
+    mongo_installations = find__all_mongo_installations()
+
+    bar = "-" * 80
+    print bar
+    formatter = "%-20s %s"
+    print formatter % ("VERSION", "LOCATION")
+    print bar
+
+    for install_dir,version in mongo_installations:
+        print formatter % (version, install_dir)
+    print "\n"
+
+
 ###############################################################################
 # install_mongodb
 ###############################################################################

@@ -169,24 +169,6 @@ def do_main(args):
 
 
 
-###############################################################################
-# print uri command
-###############################################################################
-def print_uri_command(parsed_options):
-    id = parsed_options.id
-    db = parsed_options.db
-    # check if the id is a server id
-
-    server = lookup_server(id)
-    if server:
-        print server.get_mongo_uri_template(db=db)
-    else:
-        cluster = lookup_cluster(id)
-        if cluster:
-            print cluster.get_replica_mongo_uri_template(db=db)
-        else:
-            raise MongoctlException("Cannot find a server or a cluster with"
-                                    " id '%s'" % id)
 
 
 
@@ -244,21 +226,6 @@ def show_cluster_command(parsed_options):
 
 
 
-###############################################################################
-# list-versions command
-###############################################################################
-def list_versions_command(parsed_options):
-    mongo_installations = find__all_mongo_installations()
-
-    bar = "-" * 80
-    print bar
-    formatter = "%-20s %s"
-    print formatter % ("VERSION", "LOCATION")
-    print bar
-
-    for install_dir,version in mongo_installations:
-        print formatter % (version, install_dir)
-    print "\n"
 
 
 ###############################################################################

@@ -1495,7 +1495,7 @@ MONGOCTL_PARSER_DEF = {
                                  " this machine",
             "description" : "list all available MongoDB installations on"
                             " this machine",
-            "function": "mongoctl.mongoctl.list_versions_command",
+            "function": "mongoctl.commands.misc.install.list_versions_command",
         },
         #### print-uri ####
             {
@@ -1505,7 +1505,7 @@ MONGOCTL_PARSER_DEF = {
                                  " server or cluster",
             "description" : "Prints MongoDB connection URI of the specified"
                             " server or clurter",
-            "function": "mongoctl.mongoctl.print_uri_command",
+            "function": "mongoctl.commands.misc.print_uri.print_uri_command",
             "args": [
                     {
                     "name": "id",
