@@ -748,9 +748,9 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "status",
             "group": "serverCommands",
-            "shortDescription" : "retrieve status of server",
-            "description" : "Retrieves the status of a server",
-            "function": "mongoctl.mongoctl.status_command",
+            "shortDescription" : "retrieve status of server or a cluster",
+            "description" : "Retrieves the status of a server or a cluster",
+            "function": "mongoctl.commands.common.status.status_command",
             "args":[
                     {   "name": "id",
                         "type" : "positional",
