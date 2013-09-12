@@ -790,7 +790,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "serverCommands",
             "shortDescription" : "show list of configured servers",
             "description" : "Show list of configured servers.",
-            "function": "mongoctl.mongoctl.list_servers_command"
+            "function": "mongoctl.commands.server.list_servers.list_servers_command"
         },
         #### show-server ####
             {
