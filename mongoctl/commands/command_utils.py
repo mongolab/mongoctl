@@ -3,11 +3,13 @@ __author__ = 'abdul'
 import os
 import re
 
+import mongoctl.repository as repository
 from mongoctl.mongoctl_logging import *
 from mongoctl import config
 from mongoctl.errors import MongoctlException
 from mongoctl.utils import is_exe, which, resolve_path, execute_command
 from mongoctl.mongo_version import version_obj
+from mongoctl.mongo_uri_tools import is_mongo_uri
 
 ###############################################################################
 # CONSTS
@@ -338,3 +340,37 @@ def options_to_command_args(args):
             command_args.append(str(arg_val))
 
     return command_args
+
+
+###############################################################################
+def is_server_or_cluster_db_address(value):
+    """
+    checks if the specified value is in the form of
+    [server or cluster id][/database]
+    """
+    # check if value is an id string
+    id_path = value.split("/")
+    id = id_path[0]
+    return len(id_path) <= 2 and (repository.lookup_server(id) or
+                                  repository.lookup_cluster(id))
+
+###############################################################################
+def is_db_address(value):
+    """
+    Checks if the specified value is a valid mongoctl database address
+    """
+    return value and (is_mongo_uri(value) or
+                      is_server_or_cluster_db_address(value))
+
+
+###############################################################################
+def is_dbpath(value):
+    """
+    Checks if the specified value is a dbpath. dbpath could be an absolute
+    file path, relative path or a file uri
+    """
+
+    value = resolve_path(value)
+    return os.path.exists(value)
+
+
