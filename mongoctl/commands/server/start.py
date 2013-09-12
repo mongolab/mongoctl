@@ -7,7 +7,9 @@ import re
 import signal
 import resource
 
-from mongoctl.commands import command_utils
+from mongoctl.commands.command_utils import (
+    options_to_command_args, extract_mongo_exe_options
+)
 from mongoctl import repository
 from mongoctl.mongoctl_logging import *
 from mongoctl.errors import MongoctlException
@@ -55,8 +57,7 @@ def start_command(parsed_options):
 
 ###############################################################################
 def extract_mongod_options(parsed_args):
-    return command_utils.extract_mongo_exe_options(parsed_args,
-                                                   SUPPORTED_MONGOD_OPTIONS)
+    return extract_mongo_exe_options(parsed_args, SUPPORTED_MONGOD_OPTIONS)
 
 
 ###############################################################################
@@ -537,22 +538,6 @@ def get_mongod_executable(server_version, install_compatible=False):
                                       install_compatible=install_compatible)
     return mongod_exe.path
 
-###############################################################################
-def options_to_command_args(args):
-
-    command_args=[]
-
-    for (arg_name,arg_val) in sorted(args.iteritems()):
-    # append the arg name and val as needed
-        if not arg_val:
-            continue
-        elif arg_val == True:
-            command_args.append("--%s" % arg_name)
-        else:
-            command_args.append("--%s" % arg_name)
-            command_args.append(str(arg_val))
-
-    return command_args
 
 ###############################################################################
 SUPPORTED_MONGOD_OPTIONS = [

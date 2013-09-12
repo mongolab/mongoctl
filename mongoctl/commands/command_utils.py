@@ -321,3 +321,20 @@ def mongo_exe_object(exe_path, exe_version):
     exe_obj.version =  exe_version
 
     return exe_obj
+
+###############################################################################
+def options_to_command_args(args):
+
+    command_args=[]
+
+    for (arg_name,arg_val) in sorted(args.iteritems()):
+    # append the arg name and val as needed
+        if not arg_val:
+            continue
+        elif arg_val == True:
+            command_args.append("--%s" % arg_name)
+        else:
+            command_args.append("--%s" % arg_name)
+            command_args.append(str(arg_val))
+
+    return command_args

@@ -164,16 +164,7 @@ def do_main(args):
 
 
 
-###############################################################################
-# connect command
-###############################################################################
-def connect_command(parsed_options):
-    shell_options = extract_mongo_shell_options(parsed_options)
-    open_mongo_shell_to(parsed_options.dbAddress,
-                        username=parsed_options.username,
-                        password=parsed_options.password,
-                        shell_options=shell_options,
-                        js_files=parsed_options.jsFiles)
+
 
 
 ###############################################################################
@@ -400,161 +391,6 @@ def dry_run_configure_cluster(cluster_id, force_primary_server_id=None):
 
 
 
-###############################################################################
-# open_mongo_shell_to
-###############################################################################
-def open_mongo_shell_to(db_address,
-                        username=None,
-                        password=None,
-                        shell_options={},
-                        js_files=[]):
-    if is_mongo_uri(db_address):
-        open_mongo_shell_to_uri(db_address, username, password,
-                                shell_options, js_files)
-        return
-
-    # db_address is an id string
-    id_path = db_address.split("/")
-    id = id_path[0]
-    database = id_path[1] if len(id_path) == 2 else None
-
-    server = lookup_server(id)
-    if server:
-        open_mongo_shell_to_server(server, database, username, password,
-                                   shell_options, js_files)
-        return
-
-    # Maybe cluster?
-    cluster = lookup_cluster(id)
-    if cluster:
-        open_mongo_shell_to_cluster(cluster, database, username, password,
-                                    shell_options, js_files)
-        return
-    # Unknown destination
-    raise MongoctlException("Unknown db address '%s'" % db_address)
-
-###############################################################################
-def open_mongo_shell_to_server(server,
-                               database=None,
-                               username=None,
-                               password=None,
-                               shell_options={},
-                               js_files=[]):
-    validate_server(server)
-
-    if not database:
-        if server.is_arbiter_server():
-            database = "local"
-        else:
-            database = "admin"
-
-    if username or server.needs_to_auth(database):
-        # authenticate and grab a working username/password
-        username, password = server.get_working_login(database, username,
-                                                      password)
-
-
-
-    do_open_mongo_shell_to(server.get_connection_address(),
-                           database,
-                           username,
-                           password,
-                           server.get_mongo_version(),
-                           shell_options,
-                           js_files)
-
-###############################################################################
-def open_mongo_shell_to_cluster(cluster,
-                                database=None,
-                                username=None,
-                                password=None,
-                                shell_options={},
-                                js_files=[]):
-    log_info("Locating primary server for cluster '%s'..." % cluster.get_id())
-    primary_member = cluster.get_primary_member()
-    if primary_member:
-        primary_server = primary_member.get_server()
-        log_info("Connecting to primary server '%s'" % primary_server.get_id())
-        open_mongo_shell_to_server(primary_server,
-                                   database=database,
-                                   username=username,
-                                   password=password,
-                                   shell_options=shell_options,
-                                   js_files=js_files)
-    else:
-        log_error("No primary server found for cluster '%s'" %
-                  cluster.get_id())
-
-###############################################################################
-def open_mongo_shell_to_uri(uri,
-                            username=None,
-                            password=None,
-                            shell_options={},
-                            js_files=[]):
-
-    uri_wrapper = parse_mongo_uri(uri)
-    database = uri_wrapper.database
-    username = username if username else uri_wrapper.username
-    password = password if password else uri_wrapper.password
-
-
-    server_or_cluster = build_server_or_cluster_from_uri(uri)
-
-    if type(server_or_cluster) == Server:
-        open_mongo_shell_to_server(server_or_cluster,
-                                   database=database,
-                                   username=username,
-                                   password=password,
-                                   shell_options=shell_options,
-                                   js_files=js_files)
-    else:
-        open_mongo_shell_to_cluster(server_or_cluster,
-                                    database=database,
-                                    username=username,
-                                    password=password,
-                                    shell_options=shell_options,
-                                    js_files=js_files)
-
-###############################################################################
-def do_open_mongo_shell_to(address,
-                           database=None,
-                           username=None,
-                           password=None,
-                           server_version=None,
-                           shell_options={},
-                           js_files=[]):
-
-    # default database to admin
-    database = database if database else "admin"
-
-
-    connect_cmd = [get_mongo_shell_executable(server_version),
-                   "%s/%s" % (address, database)]
-
-    if username:
-        connect_cmd.extend(["-u",username, "-p"])
-        if password:
-            connect_cmd.extend([password])
-
-    # append shell options
-    if shell_options:
-        connect_cmd.extend(options_to_command_args(shell_options))
-
-    # append js files
-    if js_files:
-        connect_cmd.extend(js_files)
-
-    cmd_display =  connect_cmd[:]
-    # mask user/password
-    if username:
-        cmd_display[cmd_display.index("-u") + 1] =  "****"
-        if password:
-            cmd_display[cmd_display.index("-p") + 1] =  "****"
-
-
-
-    log_info("Executing command: \n%s" % " ".join(cmd_display))
-    call_command(connect_cmd, bubble_exit_code=True)
 
 ###############################################################################
 # mongo_dump
@@ -1170,13 +1006,6 @@ def is_dbpath(value):
 
 
 ###############################################################################
-def get_mongo_shell_executable(server_version):
-    shell_exe = get_mongo_executable(server_version,
-                                     'mongo',
-                                     version_check_pref=VERSION_PREF_MAJOR_GE)
-    return shell_exe.path
-
-###############################################################################
 def get_mongo_dump_executable(server_version):
     dump_exe = get_mongo_executable(server_version,
                                     'mongodump',
@@ -1277,10 +1106,7 @@ def get_mongoctl_cmd_parser():
 def extract_mongod_options(parsed_args):
     return extract_mongo_exe_options(parsed_args, SUPPORTED_MONGOD_OPTIONS)
 
-###############################################################################
-def extract_mongo_shell_options(parsed_args):
-    return extract_mongo_exe_options(parsed_args,
-                                     SUPPORTED_MONGO_SHELL_OPTIONS)
+
 
 ###############################################################################
 def extract_mongo_dump_options(parsed_args):
@@ -1368,14 +1194,7 @@ SUPPORTED_MONGOD_OPTIONS = [
 ]
 
 
-SUPPORTED_MONGO_SHELL_OPTIONS = [
-    "shell",
-    "norc",
-    "quiet",
-    "eval",
-    "verbose",
-    "ipv6",
-]
+
 
 SUPPORTED_MONGO_DUMP_OPTIONS = [
     "directoryperdb",
