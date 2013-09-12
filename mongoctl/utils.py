@@ -13,6 +13,14 @@ from bson import json_util
 from mongoctl_logging import *
 from errors import MongoctlException
 
+
+###############################################################################
+def namespace_get_property(namespace, name):
+    if hasattr(namespace, name):
+        return getattr(namespace,name)
+
+    return None
+
 ###############################################################################
 
 def to_string(thing):

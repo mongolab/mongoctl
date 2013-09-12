@@ -22,7 +22,6 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import unittest
-import time
 
 from mongoctl.tests.test_base import MongoctlTestBase
 

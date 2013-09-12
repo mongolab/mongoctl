@@ -22,16 +22,15 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import unittest
-import time
+
 import os
 import shutil
-import mongoctl
+import mongoctl.config as config
 
 from mongoctl.tests.test_base import MongoctlTestBase
-from mongoctl import mongoctl
 
 TEMP_MONGO_INSTALL_DIR = "temp_mongo_installs_dir"
-MONGO_INSTALL_DIR = mongoctl.get_mongodb_installs_dir()
+MONGO_INSTALL_DIR = config.get_mongodb_installs_dir()
 class InstallTest(MongoctlTestBase):
 
 ###########################################################################
@@ -39,7 +38,7 @@ class InstallTest(MongoctlTestBase):
         print ("setUp(): Temporarily setting mongoDBInstallationsDirectory=%s" %
                TEMP_MONGO_INSTALL_DIR)
 
-        mongoctl.set_mongodb_installs_dir(TEMP_MONGO_INSTALL_DIR)
+        config.set_mongodb_installs_dir(TEMP_MONGO_INSTALL_DIR)
         super(InstallTest, self).setUp()
 
     ###########################################################################
@@ -53,7 +52,7 @@ class InstallTest(MongoctlTestBase):
         print ("tearDown(): Resetting  mongoDBInstallationsDirectory back to"
                " '%s'" % MONGO_INSTALL_DIR)
 
-        mongoctl.set_mongodb_installs_dir(MONGO_INSTALL_DIR)
+        config.set_mongodb_installs_dir(MONGO_INSTALL_DIR)
 
     ###########################################################################
     def test_install(self):

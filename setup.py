@@ -26,13 +26,11 @@
 ###############################################################################
 import os
 import shutil
-import stat
 import pwd
-import subprocess
 import sys
 import inspect
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 ###############################################################################
 # CONSTANTS
@@ -96,10 +94,9 @@ def copy_sample_configs():
 
 def install_latest_mongodb():
     try:
-        import mongoctl
-        from mongoctl.mongoctl import install_mongodb
+        from mongoctl.commands.misc.install import install_mongodb
         install_mongodb(None)
-    except Exception,e:
+    except Exception, e:
         #print "Unable to install latest mongodb. Cause: '%s' " % e
         pass
 ###############################################################################
@@ -122,11 +119,7 @@ setup(
                      " installation of MongoDB and management of MongoDB servers and replica set clusters. It is"
                      " particularly useful if you maintain many MongoDB environments with"
                      " lots of configurations to manage.",
-    packages=['mongoctl',
-              'mongoctl/tests',
-              'mongoctl/tests/testing_conf',
-              'mongoctl/minify_json',
-              'mongoctl/sample_conf'],
+    packages=find_packages(),
 
     package_data = {'mongoctl.tests.testing_conf':
                         ['*.config'],

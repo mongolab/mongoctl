@@ -1,5 +1,8 @@
 __author__ = 'abdul'
 
+import mongoctl.repository as repository
+from mongoctl.utils import document_pretty_string
+from mongoctl.mongoctl_logging import log_info
 
 ###############################################################################
 # configure cluster command
@@ -22,12 +25,12 @@ def configure_cluster_command(parsed_options):
 # Cluster Methods
 ###############################################################################
 def configure_cluster(cluster_id, force_primary_server_id=None):
-    cluster = lookup_and_validate_cluster(cluster_id)
+    cluster = repository.lookup_and_validate_cluster(cluster_id)
     force_primary_server = None
     # validate force primary
     if force_primary_server_id:
         force_primary_server = \
-            lookup_and_validate_server(force_primary_server_id)
+            repository.lookup_and_validate_server(force_primary_server_id)
 
     configure_replica_cluster(cluster,force_primary_server=
     force_primary_server)
@@ -39,7 +42,7 @@ def configure_replica_cluster(replica_cluster, force_primary_server=None):
 
 ###############################################################################
 def dry_run_configure_cluster(cluster_id, force_primary_server_id=None):
-    cluster = lookup_and_validate_cluster(cluster_id)
+    cluster = repository.lookup_and_validate_cluster(cluster_id)
     log_info("\n************ Dry Run ************\n")
     db_command = None
     force = force_primary_server_id is not None

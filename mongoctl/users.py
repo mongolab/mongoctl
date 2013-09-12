@@ -7,13 +7,26 @@ from pymongo.errors import OperationFailure, AutoReconnect
 from errors import MongoctlException
 from prompt import read_password
 
-
 ###############################################################################
-__global_login_user__= {
+__global_login_user__ = {
     "serverId": None,
     "database": "admin",
     "username": None,
-    "password": None}
+    "password": None
+}
+
+
+###############################################################################
+def parse_global_login_user_arg(username, password, server_id):
+
+    # if -u or --username  was not specified then nothing to do
+    if not username:
+        return
+
+    global __global_login_user__
+    __global_login_user__['serverId'] = server_id
+    __global_login_user__['username'] = username
+    __global_login_user__['password'] = password
 
 ###############################################################################
 def get_global_login_user(server, dbname):

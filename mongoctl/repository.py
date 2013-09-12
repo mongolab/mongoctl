@@ -56,7 +56,6 @@ def get_mongoctl_database():
                     " connection to mongoctl's database repository."
                     "\nCAUSE: %s."
                     "\n*************" % e)
-        raise
 
 ###############################################################################
 def has_db_repository():

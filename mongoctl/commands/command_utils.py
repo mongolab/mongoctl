@@ -87,7 +87,8 @@ def get_mongo_executable(server_version,
     if install_compatible:
         log_warning(msg)
         log_info("Installing a compatible MongoDB...")
-        new_mongo_home = install_mongodb(server_version)
+        import mongoctl.commands.misc.install as mongoctl_install
+        new_mongo_home = mongoctl_install.install_mongodb(server_version)
         new_exe =  get_mongo_home_exe(new_mongo_home, executable_name)
         return mongo_exe_object(new_exe, version_obj(server_version))
 

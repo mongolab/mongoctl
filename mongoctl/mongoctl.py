@@ -34,41 +34,31 @@ import traceback
 
 import os
 
-
-import shutil
-import platform
-import urllib
-
-import repository
 import config
 import objects.server
 
 from dargparse import dargparse
+from mongoctl_logging import (
+    log_error, log_info, turn_logging_verbose_on, log_verbose
+)
 
-from bson.son import SON
 from mongoctl_command_config import MONGOCTL_PARSER_DEF
-
-from mongo_uri_tools import *
-from utils import *
-from mongoctl_logging import *
-from prompt import *
-
-from mongo_version import *
-
 from errors import MongoctlException
+from prompt import (
+    is_interactive_mode, set_interactive_mode, say_yes_to_everything,
+    say_no_to_everything
+)
+
+from utils import namespace_get_property
+from users import parse_global_login_user_arg
 
 ###############################################################################
 # Constants
 ###############################################################################
 
-
-
 CONF_ROOT_ENV_VAR = "MONGOCTL_CONF"
 
 SERVER_ID_PARAM = "server"
-
-CLUSTER_ID_PARAM = "cluster"
-
 
 ###############################################################################
 # MAIN
@@ -137,8 +127,11 @@ def do_main(args):
     command_function = parsed_args.func
 
     # parse global login if present
-    parse_global_login_user_arg(parsed_args)
-    server_id = namespace_get_property(parsed_args,SERVER_ID_PARAM)
+    username = namespace_get_property(parsed_args, "username")
+
+    password = namespace_get_property(parsed_args, "password")
+    server_id = namespace_get_property(parsed_args, SERVER_ID_PARAM)
+    parse_global_login_user_arg(username, password, server_id)
 
     if server_id is not None:
         # check if assumeLocal was specified
@@ -148,32 +141,6 @@ def do_main(args):
     # execute command
     log_info("")
     return command_function(parsed_args)
-
-###############################################################################
-# Utility Methods
-###############################################################################
-
-def namespace_get_property(namespace, name):
-    if hasattr(namespace, name):
-        return getattr(namespace,name)
-
-    return None
-
-###############################################################################
-def parse_global_login_user_arg(parsed_args):
-    username = namespace_get_property(parsed_args, "username")
-
-    # if -u or --username  was not specified then nothing to do
-    if not username:
-        return
-    password = namespace_get_property(parsed_args, "password")
-    server_id = namespace_get_property(parsed_args,SERVER_ID_PARAM)
-
-    global __global_login_user__
-    __global_login_user__['serverId'] = server_id
-    __global_login_user__['username'] = username
-    __global_login_user__['password'] = password
-
 
 ###############################################################################
 ########################                      #################################
@@ -191,10 +158,6 @@ def parse_global_login_user_arg(parsed_args):
 def get_mongoctl_cmd_parser():
     parser = dargparse.build_parser(MONGOCTL_PARSER_DEF)
     return parser
-
-
-
-
 
 
 ###############################################################################
