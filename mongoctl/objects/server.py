@@ -37,6 +37,8 @@ LOG_FILE_NAME = "mongodb.log"
 
 KEY_FILE_NAME = "keyFile"
 
+LOCK_FILE_NAME = "mongod.lock"
+
 # This is mongodb's default port
 DEFAULT_PORT = 27017
 
@@ -93,6 +95,10 @@ class Server(DocumentWrapper):
     ###########################################################################
     def get_key_file_path(self):
         return self.get_server_file_path("keyFile", KEY_FILE_NAME)
+
+    ###########################################################################
+    def get_lock_file_path(self):
+        return self.get_server_file_path("keyFile", LOCK_FILE_NAME)
 
     ###########################################################################
     def get_server_file_path(self , cmd_prop, default_file_name):
