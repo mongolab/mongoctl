@@ -201,11 +201,11 @@ def mongo_dump_cluster_primary(cluster,
                                username=None,
                                password=None,
                                dump_options=None):
-    log_info("Locating primary server for cluster '%s'..." % cluster.get_id())
+    log_info("Locating primary server for cluster '%s'..." % cluster.id)
     primary_member = cluster.get_primary_member()
     if primary_member:
         primary_server = primary_member.get_server()
-        log_info("Dumping current primary '%s'..." % primary_server.get_id())
+        log_info("Dumping current primary '%s'..." % primary_server.id)
         mongo_dump_server(primary_server,
                           database=database,
                           username=username,
@@ -213,7 +213,7 @@ def mongo_dump_cluster_primary(cluster,
                           dump_options=dump_options)
     else:
         raise MongoctlException("No primary found for cluster '%s'" %
-                                cluster.get_id())
+                                cluster.id)
 
 
 ###############################################################################
@@ -227,17 +227,17 @@ def mongo_dump_cluster_best_secondary(cluster,
     #max_repl_lag = max_repl_lag or 3600
     log_info("Finding best secondary server for cluster '%s' with replication"
              " lag less than max (%s seconds)..." %
-             (cluster.get_id(), max_repl_lag))
+             (cluster.id, max_repl_lag))
     best_secondary = cluster.get_dump_best_secondary(max_repl_lag=max_repl_lag)
     if best_secondary:
         server = best_secondary.get_server()
 
-        log_info("Found secondary server '%s'. Dumping..." % server.get_id())
+        log_info("Found secondary server '%s'. Dumping..." % server.id)
         mongo_dump_server(server, database=database, username=username,
                           password=password, dump_options=dump_options)
     else:
         raise MongoctlException("No secondary server found for cluster '%s'" %
-                                cluster.get_id())
+                                cluster.id)
 
 ###############################################################################
 def do_mongo_dump(host=None,

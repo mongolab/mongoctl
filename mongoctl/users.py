@@ -34,7 +34,7 @@ def get_global_login_user(server, dbname):
 
     # all server or exact server + db match
     if ((not __global_login_user__["serverId"] or
-                 __global_login_user__["serverId"] == server.get_id()) and
+                 __global_login_user__["serverId"] == server.id) and
             __global_login_user__["username"] and
                 __global_login_user__["database"] == dbname):
         return __global_login_user__
@@ -47,7 +47,7 @@ def get_global_login_user(server, dbname):
         global_login_cluster = repository.lookup_cluster_by_server(global_login_server)
         cluster = repository.lookup_cluster_by_server(server)
         if (global_login_cluster and cluster and
-                    global_login_cluster.get_id() == cluster.get_id()):
+                    global_login_cluster.id == cluster.id):
             return __global_login_user__
 
 
@@ -58,11 +58,11 @@ def setup_server_users(server):
     i.e. system.users collection is empty
     """
     """if not should_seed_users(server):
-        log_verbose("Not seeding users for server '%s'" % server.get_id())
+        log_verbose("Not seeding users for server '%s'" % server.id)
         return"""
 
     log_info("Checking if there are any users that need to be added for "
-             "server '%s'..." % server.get_id())
+             "server '%s'..." % server.id)
 
     seed_users = server.get_seed_users()
 
@@ -89,13 +89,13 @@ def setup_server_users(server):
 ###############################################################################
 def setup_cluster_users(cluster, primary_server):
     log_verbose("Setting up cluster '%s' users using primary server '%s'" %
-                (cluster.get_id(), primary_server.get_id()))
+                (cluster.id, primary_server.id))
     return setup_server_users(primary_server)
 
 ###############################################################################
 def should_seed_users(server):
     log_verbose("See if we should seed users for server '%s'" %
-                server.get_id())
+                server.id)
     try:
         connection = server.get_db_connection()
         dbnames = connection.database_names()
@@ -187,7 +187,7 @@ def setup_server_db_users(server, dbname, db_users):
         raise MongoctlException(
             "Error while setting up users for '%s'" \
             " database on server '%s'."
-            "\n Cause: %s" % (dbname, server.get_id(), e))
+            "\n Cause: %s" % (dbname, server.id, e))
 
 ###############################################################################
 def prepend_global_admin_user(other_users, server):
@@ -239,7 +239,7 @@ def setup_server_admin_users(server):
     except Exception,e:
         raise MongoctlException(
             "Error while setting up admin users on server '%s'."
-            "\n Cause: %s" % (server.get_id(), e))
+            "\n Cause: %s" % (server.id, e))
 
 ###############################################################################
 def setup_server_local_users(server):
@@ -268,7 +268,7 @@ def setup_server_local_users(server):
     except Exception,e:
         raise MongoctlException(
             "Error while setting up local users on server '%s'."
-            "\n Cause: %s" % (server.get_id(), e))
+            "\n Cause: %s" % (server.id, e))
 
 ###############################################################################
 def read_seed_password(dbname, username):

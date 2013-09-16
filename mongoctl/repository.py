@@ -233,7 +233,7 @@ def db_lookup_all_clusters():
 def db_lookup_cluster_by_server(server):
     cluster_collection = get_mongoctl_cluster_db_collection()
     cluster_doc = cluster_collection.find_one({"members.server.$id":
-                                                   server.get_id()})
+                                                   server.id})
 
     if cluster_doc is not None:
         return new_cluster(cluster_doc)
@@ -271,7 +271,7 @@ def get_configured_servers():
                                     servers_path_or_url)
         for document in server_documents:
             server = new_server(document)
-            __configured_servers__[server.get_id()] = server
+            __configured_servers__[server.id] = server
 
     return __configured_servers__
 
@@ -300,13 +300,13 @@ def get_configured_clusters():
                                     clusters_path_or_url)
         for document in cluster_documents:
             cluster = new_cluster(document)
-            __configured_clusters__[cluster.get_id()] = cluster
+            __configured_clusters__[cluster.id] = cluster
 
     return __configured_clusters__
 
 ###############################################################################
 def validate_cluster(cluster):
-    log_info("Validating cluster '%s'..." % cluster.get_id() )
+    log_info("Validating cluster '%s'..." % cluster.id )
 
     errors = []
 
@@ -323,7 +323,7 @@ def validate_cluster(cluster):
     if len(errors) > 0:
         raise MongoctlException("Cluster %s configuration is not valid. "
                                 "Please fix errors below and try again.\n%s" %
-                                (cluster.get_id() , "\n".join(errors)))
+                                (cluster.id , "\n".join(errors)))
 
     return cluster
 

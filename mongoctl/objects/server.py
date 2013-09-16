@@ -476,7 +476,7 @@ class Server(DocumentWrapper):
                 return True
             else:
                 log_verbose("Error while connecting to server '%s': %s " %
-                            (self.get_id(), status['error']))
+                            (self.id, status['error']))
 
     ###########################################################################
     def is_online_locally(self):
@@ -485,7 +485,7 @@ class Server(DocumentWrapper):
     ###########################################################################
     def is_use_local(self):
         return (self.get_address() is None or
-                is_assumed_local_server(self.get_id())
+                is_assumed_local_server(self.id)
                 or self.is_local())
 
     ###########################################################################
@@ -496,7 +496,7 @@ class Server(DocumentWrapper):
         except Exception, e:
             log_error("Unable to resolve address '%s' for server '%s'."
                       " Cause: %s" %
-                      (self.get_host_address(), self.get_id(), e))
+                      (self.get_host_address(), self.id, e))
         return False
 
     ###########################################################################
@@ -628,7 +628,7 @@ class Server(DocumentWrapper):
                 raise e
             else:
                 log_verbose("Cannot get rs config from server '%s'. "
-                            "cause: %s" % (self.get_id(), e))
+                            "cause: %s" % (self.id, e))
                 return None
 
     ###########################################################################
@@ -639,7 +639,7 @@ class Server(DocumentWrapper):
             return rs_status
         except (Exception,RuntimeError), e:
             log_verbose("Cannot get rs status from server '%s'. cause: %s" %
-                        (self.get_id(), e))
+                        (self.id, e))
             return None
 
     ###########################################################################
@@ -652,7 +652,7 @@ class Server(DocumentWrapper):
                         return member
             except (Exception,RuntimeError), e:
                 log_verbose("Cannot get member rs status from server '%s'. cause: %s" %
-                            (self.get_id(), e))
+                            (self.id, e))
                 return None
 
     ###########################################################################
@@ -678,7 +678,7 @@ class Server(DocumentWrapper):
 
         except(Exception, RuntimeError),e:
             log_verbose("isMaster command failed on server '%s'. Cause %s" %
-                        (self.get_id(), e))
+                        (self.id, e))
 
     ###########################################################################
     def read_replicaset_name(self):
@@ -697,7 +697,7 @@ class Server(DocumentWrapper):
         if not member_status:
             raise MongoctlException("Unable to determine replicaset status for"
                                     " member '%s'" %
-                                    self.get_id())
+                                    self.id)
 
         return get_member_repl_lag(member_status, master_status)
 
@@ -705,15 +705,15 @@ class Server(DocumentWrapper):
     def validate_local_op(self, op):
 
         # If the server has been assumed to be local then skip validation
-        if is_assumed_local_server(self.get_id()):
+        if is_assumed_local_server(self.id):
             log_verbose("Skipping validation of server's '%s' address '%s' to be"
                         " local because --assume-local is on" %
-                        (self.get_id(), self.get_host_address()))
+                        (self.id, self.get_host_address()))
             return
 
         log_verbose("Validating server address: "
                     "Ensuring that server '%s' address '%s' is local on this "
-                    "machine" % (self.get_id(), self.get_host_address()))
+                    "machine" % (self.id, self.get_host_address()))
         if not self.is_local():
             log_verbose("Server address validation failed.")
             raise MongoctlException("Cannot %s server '%s' on this machine "
@@ -722,12 +722,12 @@ class Server(DocumentWrapper):
                                     "--assume-local option if you are sure that "
                                     "this server should be running on this "
                                     "machine." % (op,
-                                                  self.get_id(),
+                                                  self.id,
                                                   self.get_host_address()))
         else:
             log_verbose("Server address validation passed. "
                         "Server '%s' address '%s' is local on this "
-                        "machine !" % (self.get_id(), self.get_host_address()))
+                        "machine !" % (self.id, self.get_host_address()))
 
 
     ###########################################################################
@@ -737,7 +737,7 @@ class Server(DocumentWrapper):
             log_record = {"op": activity,
                           "ts": datetime.datetime.utcnow(),
                           "serverDoc": self.get_document(),
-                          "server": self.get_id(),
+                          "server": self.id,
                           "serverDisplayName": self.get_description()}
             log_verbose("Logging server activity \n%s" %
                         document_pretty_string(log_record))
@@ -770,11 +770,11 @@ class Server(DocumentWrapper):
             else:
                 log_warning("Unable to determine pid for server '%s'. "
                             "Not a valid number in '%s"'' %
-                            (self.get_id(), pid_file_path))
+                            (self.id, pid_file_path))
         else:
             log_warning("Unable to determine pid for server '%s'. "
                         "pid file '%s' does not exist" %
-                        (self.get_id(), pid_file_path))
+                        (self.id, pid_file_path))
 
         return None
 

@@ -34,9 +34,10 @@ class DocumentWrapper(object):
         self.__document__[name] = value
 
     ###########################################################################
-    def get_id(self):
+    @property
+    def id(self):
         return self.get_property('_id')
 
-    ###########################################################################
-    def set_id(self, value):
+    @id.setter
+    def id(self, value):
         self.set_property('_id', value)

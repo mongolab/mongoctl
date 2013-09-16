@@ -12,7 +12,7 @@ def list_servers_command(parsed_options):
         log_info("No servers have been configured.");
         return
 
-    servers = sorted(servers, key=lambda s: s.get_id())
+    servers = sorted(servers, key=lambda s: s.id)
     bar = "-"*80
     print bar
     formatter = "%-25s %-40s %s"
@@ -21,7 +21,7 @@ def list_servers_command(parsed_options):
 
 
     for server in servers:
-        print formatter % (server.get_id(),
+        print formatter % (server.id,
                            to_string(server.get_description()),
                            to_string(server.get_address_display()))
     print "\n"

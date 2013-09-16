@@ -57,7 +57,7 @@ def mongoctl_signal_handler(signal_val, frame):
     if __mongod_pid__ is None:
         exit_mongoctl()
     else:
-        prompt_execute_task("Kill server '%s'?" % __current_server__.get_id(),
+        prompt_execute_task("Kill server '%s'?" % __current_server__.id,
                             exit_mongoctl)
 
 ###############################################################################

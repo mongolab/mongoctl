@@ -97,11 +97,11 @@ def do_start_server(server, options_override=None, rs_add=False,
     server.validate_local_op("start")
 
     log_info("Checking to see if server '%s' is already running"
-             " before starting it..." % server.get_id())
+             " before starting it..." % server.id)
     status = server.get_status()
     if status['connection']:
         log_info("Server '%s' is already running." %
-                 server.get_id())
+                 server.id)
         return
     elif "timedOut" in status:
         raise MongoctlException("Unable to start server: Server '%s' seems to"
@@ -109,7 +109,7 @@ def do_start_server(server, options_override=None, rs_add=False,
                                 " not responding (connection timeout)."
                                 " Or there might some server running on the"
                                 " same port %s" %
-                                (server.get_id(), server.get_port()))
+                                (server.id, server.get_port()))
     # check if there is another process running on the same port
     elif "error" in status and ("closed" in status["error"] or
                                         "reset" in status["error"] or
@@ -117,7 +117,7 @@ def do_start_server(server, options_override=None, rs_add=False,
         raise MongoctlException("Unable to start server: Either server '%s' is "
                                 "started but not responding or port %s is "
                                 "already in use." %
-                                (server.get_id(), server.get_port()))
+                                (server.id, server.get_port()))
 
     # do necessary work before starting the mongod process
     _pre_server_start(server, options_override=options_override)
@@ -135,7 +135,7 @@ def do_start_server(server, options_override=None, rs_add=False,
     except Exception,e:
         log_error("Unable to fully prepare server '%s'. Cause: %s \n"
                   "Stop server now if more preparation is desired..." %
-                  (server.get_id(), e))
+                  (server.id, e))
         shall_we_terminate(mongod_pid)
         exit(1)
 
@@ -176,7 +176,7 @@ def _pre_server_start(server, options_override=None):
         log_warning("WARNING: Detected a lock file ('%s') for your server '%s'"
                     " ; since this server is an arbiter, there is no need for"
                     " repair or other action. Deleting mongod.lock and"
-                    " proceeding..." % (lock_file_path, server.get_id()))
+                    " proceeding..." % (lock_file_path, server.id))
         try:
             os.remove(lock_file_path)
         except Exception, e:
@@ -189,7 +189,7 @@ def prepare_server(server):
      Contains post start server operations
     """
     log_info("Preparing server '%s' for use as configured..." %
-             server.get_id())
+             server.id)
 
     # setup the local users
     users.setup_server_local_users(server)
@@ -217,11 +217,11 @@ def maybe_config_server_repl_set(server, rs_add=False):
 
     if cluster is not None:
         log_verbose("Server '%s' is a member in the configuration for"
-                    " cluster '%s'." % (server.get_id(),cluster.get_id()))
+                    " cluster '%s'." % (server.id,cluster.id))
 
         if not cluster.is_replicaset_initialized():
             log_info("Replica set cluster '%s' has not been initialized yet." %
-                     cluster.get_id())
+                     cluster.id)
             if cluster.get_member_for(server).can_become_primary():
                 if rs_add:
                     cluster.initialize_replicaset(server)
@@ -230,10 +230,10 @@ def maybe_config_server_repl_set(server, rs_add=False):
             else:
                 log_info("Skipping replica set initialization because "
                          "server '%s' cannot be elected primary." %
-                         server.get_id())
+                         server.id)
         else:
             log_verbose("No need to initialize cluster '%s', as it has"
-                        " already been initialized." % cluster.get_id())
+                        " already been initialized." % cluster.id)
             if not cluster.is_member_configured_for(server):
                 if rs_add:
                     cluster.add_member_to_replica(server)
@@ -242,7 +242,7 @@ def maybe_config_server_repl_set(server, rs_add=False):
             else:
                 log_verbose("Server '%s' is already added to the replicaset"
                             " conf of cluster '%s'." %
-                            (server.get_id(),cluster.get_id()))
+                            (server.id,cluster.id))
 
 
 ###############################################################################
@@ -251,7 +251,7 @@ def prompt_init_replica_cluster(replica_cluster,
 
     prompt = ("Do you want to initialize replica set cluster '%s' using "
               "server '%s'?" %
-              (replica_cluster.get_id(), suggested_primary_server.get_id()))
+              (replica_cluster.id, suggested_primary_server.id))
 
     def init_repl_func():
         replica_cluster.initialize_replicaset(suggested_primary_server)
@@ -262,7 +262,7 @@ def prompt_init_replica_cluster(replica_cluster,
 def prompt_add_member_to_replica(replica_cluster, server):
 
     prompt = ("Do you want to add server '%s' to replica set cluster '%s'?" %
-              (server.get_id(), replica_cluster.get_id()))
+              (server.id, replica_cluster.id))
 
     def add_member_func():
         replica_cluster.add_member_to_replica(server)
@@ -285,7 +285,7 @@ def _start_server_process_4real(server, options_override=None,
     start_cmd_str = " ".join(start_cmd)
     first_time_msg = " for the first time" if first_time else ""
 
-    log_info("Starting server '%s'%s..." % (server.get_id(), first_time_msg))
+    log_info("Starting server '%s'%s..." % (server.id, first_time_msg))
     log_info("\nExecuting command:\n%s\n" % start_cmd_str)
 
     child_process_out = None
@@ -327,7 +327,7 @@ def start_server_process(server,options_override=None,
 
     log_info("Will now wait for server '%s' to start up."
              " Enjoy mongod's log for now!" %
-             server.get_id())
+             server.id)
     log_info("\n****************************************************************"
              "***************")
     log_info("* START: tail of log file at '%s'" % server.get_log_file_path())
@@ -353,10 +353,10 @@ def start_server_process(server,options_override=None,
         raise MongoctlException("Timed out waiting for server '%s' to start. "
                                 "Please tail the log file to monitor further "
                                 "progress." %
-                                server.get_id())
+                                server.id)
 
     log_info("Server '%s' started successfully! (pid=%s)\n" %
-             (server.get_id(), mongod_pid))
+             (server.id, mongod_pid))
 
     return mongod_pid
 
@@ -457,7 +457,7 @@ def generate_start_command(server, options_override=None,
     cluster = repository.lookup_validate_cluster_by_server(server)
     if cluster is not None:
         if "replSet" not in cmd_options:
-            cmd_options["replSet"] = cluster.get_id()
+            cmd_options["replSet"] = cluster.id
 
         # Specify the keyFile arg if needed
         if server.needs_repl_key():
@@ -574,6 +574,13 @@ def get_mongod_executable(server_version, install_compatible=False):
                                       install_compatible=install_compatible)
     return mongod_exe.path
 
+###############################################################################
+def get_mongos_executable(server_version, install_compatible=False):
+    mongos_exe = get_mongo_executable(server_version,
+                                      'mongos',
+                                      version_check_pref=VERSION_PREF_EXACT,
+                                      install_compatible=install_compatible)
+    return mongos_exe.path
 
 ###############################################################################
 SUPPORTED_MONGOD_OPTIONS = [

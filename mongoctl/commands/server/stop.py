@@ -40,7 +40,7 @@ def do_stop_server(server, force=False):
     server.validate_local_op("stop")
 
     log_info("Checking to see if server '%s' is actually running before"
-             " stopping it..." % server.get_id())
+             " stopping it..." % server.id)
 
     # init local flags
     can_stop_mongoly = True
@@ -52,17 +52,17 @@ def do_stop_server(server, force=False):
             log_info("Unable to issue 'shutdown' command to server '%s'. "
                      "The server is not responding (connection timed out) "
                      "although port %s is open, possibly for mongod." %
-                     (server.get_id(), server.get_port()))
+                     (server.id, server.get_port()))
             can_stop_mongoly = False
         else:
             log_info("Server '%s' is not running." %
-                     server.get_id())
+                     server.id)
             return
 
     pid = server.get_pid()
     pid_disp = pid if pid else "[Cannot be determined]"
     log_info("Stopping server '%s' (pid=%s)..." %
-             (server.get_id(), pid_disp))
+             (server.id, pid_disp))
     # log server activity stop
     server.log_server_activity("stop")
     # TODO: Enable this again when stabilized
@@ -79,10 +79,10 @@ def do_stop_server(server, force=False):
                                         try_mongo_force=can_stop_mongoly)
 
     if shutdown_success:
-        log_info("Server '%s' has stopped." % server.get_id())
+        log_info("Server '%s' has stopped." % server.id)
     else:
         raise MongoctlException("Unable to stop server '%s'." %
-                                server.get_id())
+                                server.id)
 
 ###############################################################################
 def step_down_if_needed(server, force):
@@ -103,7 +103,7 @@ def mongo_stop_server(server, pid, force=False):
                   document_pretty_string(shutdown_cmd)))
         server.disconnecting_db_command(shutdown_cmd, "admin")
 
-        log_info("Will now wait for server '%s' to stop." % server.get_id())
+        log_info("Will now wait for server '%s' to stop." % server.id)
         # Check that the server has stopped
         stop_pred = server_stopped_predicate(server, pid)
         wait_for(stop_pred,timeout=MAX_SHUTDOWN_WAIT)
@@ -115,7 +115,7 @@ def mongo_stop_server(server, pid, force=False):
             return True
     except Exception, e:
         log_error("Failed to gracefully stop server '%s'. Cause: %s" %
-                  (server.get_id(), e))
+                  (server.id, e))
         return False
 
 ###############################################################################
@@ -138,31 +138,31 @@ def kill_stop_server(server, pid):
                   server.get_pid_file_path())
         return False
 
-    log_info("Forcibly stopping server '%s'...\n" % server.get_id())
+    log_info("Forcibly stopping server '%s'...\n" % server.id)
     log_info("Sending kill -1 (HUP) signal to server '%s' (pid=%s)..." %
-             (server.get_id(), pid))
+             (server.id, pid))
 
     kill_process(pid, force=False)
 
     log_info("Will now wait for server '%s' (pid=%s) to die." %
-             (server.get_id(), pid))
+             (server.id, pid))
     wait_for(pid_dead_predicate(pid), timeout=MAX_SHUTDOWN_WAIT)
 
     if is_pid_alive(pid):
         log_error("Failed to kill server process with -1 (HUP).")
         log_info("Sending kill -9 (SIGKILL) signal to server"
-                 "'%s' (pid=%s)..." % (server.get_id(), pid))
+                 "'%s' (pid=%s)..." % (server.id, pid))
         kill_process(pid, force=True)
 
         log_info("Will now wait for server '%s' (pid=%s) to die." %
-                 (server.get_id(), pid))
+                 (server.id, pid))
         wait_for(pid_dead_predicate(pid), timeout=MAX_SHUTDOWN_WAIT)
 
     if not is_pid_alive(pid):
-        log_info("Forcefully-stopped server '%s'." % server.get_id())
+        log_info("Forcefully-stopped server '%s'." % server.id)
         return True
     else:
-        log_error("Forceful stop of server '%s' failed." % server.get_id())
+        log_error("Forceful stop of server '%s' failed." % server.id)
         return False
 
 ###############################################################################
@@ -188,16 +188,16 @@ def prompt_or_force_stop_server(server, pid,
 
 ###############################################################################
 def step_server_down(server, force=False):
-    log_info("Stepping down server '%s'..." % server.get_id())
+    log_info("Stepping down server '%s'..." % server.id)
 
     try:
         cmd = SON( [('replSetStepDown', 10),('force', force)])
         server.disconnecting_db_command(cmd, "admin")
-        log_info("Server '%s' stepped down successfully!" % server.get_id())
+        log_info("Server '%s' stepped down successfully!" % server.id)
         return True
     except (Exception), e:
         log_error("Failed to step down server '%s'. Cause: %s" %
-                  (server.get_id(), e))
+                  (server.id, e))
         return False
 
 ###############################################################################
@@ -207,7 +207,7 @@ def prompt_step_server_down(server, force):
 
     return prompt_execute_task("Server '%s' is a primary server. "
                                "Step it down before proceeding to shutdown?" %
-                               server.get_id(),
+                               server.id,
                                step_down_func)
 
 ###############################################################################

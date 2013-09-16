@@ -165,7 +165,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
         if server.get_address() is None:
             raise MongoctlException("Invalid member configuration for server "
                                     "'%s'. address property is not set." %
-                                    (server.get_id()))
+                                    (server.id))
 
     ###########################################################################
     def validate_against_current_config(self, current_rs_conf):
@@ -188,8 +188,8 @@ class ReplicaSetClusterMember(DocumentWrapper):
         current_member_confs = current_rs_conf['members']
         err = None
         for curr_mem_conf in current_member_confs:
-            if (self.get_id() and
-                        self.get_id() == curr_mem_conf['_id'] and
+            if (self.id and
+                        self.id == curr_mem_conf['_id'] and
                     not is_same_address(my_host, curr_mem_conf['host'])):
                 err = ("Member config is not consistent with current rs "
                        "config. \n%s\n. Both have the sam _id but addresses"
@@ -198,15 +198,15 @@ class ReplicaSetClusterMember(DocumentWrapper):
                         my_host, curr_mem_conf['host'] ))
 
             elif (is_same_address(my_host, curr_mem_conf['host']) and
-                      self.get_id() and
-                          self.get_id() != curr_mem_conf['_id']):
+                      self.id and
+                          self.id != curr_mem_conf['_id']):
                 err = ("Member config is not consistent with current rs "
                        "config. \n%s\n. Both addresses"
                        " '%s' and '%s' resolve to the same host but _ids '%s'"
                        " and '%s' are not equal." %
                        (document_pretty_string(curr_mem_conf),
                         my_host, curr_mem_conf['host'],
-                        self.get_id(), curr_mem_conf['_id']))
+                        self.id, curr_mem_conf['_id']))
 
         if err:
             raise MongoctlException("Invalid member configuration:\n%s \n%s" %
@@ -217,15 +217,15 @@ class ReplicaSetClusterMember(DocumentWrapper):
     def validate_against_other(self, other_member):
         err = None
         # validate _id uniqueness
-        if self.get_id() and self.get_id() == other_member.get_id():
+        if self.id and self.id == other_member.id:
             err = ("Duplicate '_id' ('%s') found in a different member." %
-                   self.get_id())
+                   self.id)
 
         # validate server uniqueness
         elif (self.get_property('server') and
-                      self.get_server().get_id() == other_member.get_server().get_id()):
+                      self.get_server().id == other_member.get_server().id):
             err = ("Duplicate 'server' ('%s') found in a different member." %
-                   self.get_server().get_id())
+                   self.get_server().id)
         else:
 
             # validate host uniqueness
@@ -289,7 +289,7 @@ class ReplicaSetCluster(DocumentWrapper):
         for member in self.get_members():
             server = member.get_server()
             if server is not None:
-                info.append(server.get_id())
+                info.append(server.id)
             else:
                 info.append("<Invalid Member>")
 
@@ -377,14 +377,14 @@ class ReplicaSetCluster(DocumentWrapper):
         primary_member = self.get_primary_member()
         if not primary_member:
             raise MongoctlException("Unable to determine primary member for"
-                                    " cluster '%s'" % self.get_id())
+                                    " cluster '%s'" % self.id)
 
         master_status = primary_member.get_server().get_member_rs_status()
 
         if not master_status:
             raise MongoctlException("Unable to determine replicaset status for"
                                     " primary member '%s'" %
-                                    primary_member.get_server().get_id())
+                                    primary_member.get_server().id)
 
         for member in self.get_members():
             if member.get_server().is_secondary():
@@ -392,7 +392,7 @@ class ReplicaSetCluster(DocumentWrapper):
                 if max_repl_lag and  repl_lag > max_repl_lag:
                     log_info("Excluding member '%s' because it's repl lag "
                              "(in seconds)%s is more than max %s. " %
-                             (member.get_server().get_id(),
+                             (member.get_server().id,
                               repl_lag, max_repl_lag))
                     continue
                 secondary_lag_tuples.append((member,repl_lag))
@@ -430,10 +430,10 @@ class ReplicaSetCluster(DocumentWrapper):
     ###########################################################################
     def initialize_replicaset(self, suggested_primary_server=None):
         log_info("Initializing replica set cluster '%s' %s..." %
-                 (self.get_id(),
+                 (self.id,
                   "" if suggested_primary_server is None else
                   "to contain only server '%s'" %
-                  suggested_primary_server.get_id()))
+                  suggested_primary_server.id))
 
         ##### Determine primary server
         log_info("Determining which server should be primary...")
@@ -447,7 +447,7 @@ class ReplicaSetCluster(DocumentWrapper):
             raise MongoctlException("Unable to determine primary server."
                                     " At least one member server has"
                                     " to be online.")
-        log_info("Selected server '%s' as primary." % primary_server.get_id())
+        log_info("Selected server '%s' as primary." % primary_server.id)
 
         init_cmd = self.get_replicaset_init_all_db_command(suggested_primary_server)
 
@@ -465,12 +465,12 @@ class ReplicaSetCluster(DocumentWrapper):
 
             if self.is_replicaset_initialized():
                 log_info("Successfully initiated replica set cluster '%s'!" %
-                         self.get_id())
+                         self.id)
             else:
                 msg = ("Timeout error: Initializing replicaset '%s' took "
                        "longer than expected. This does not necessarily"
                        " mean that it failed but it could have failed. " %
-                       self.get_id())
+                       self.id)
                 raise MongoctlException(msg)
                 ## add the admin user after the set has been initiated
             ## Wait for the server to become primary though (at MongoDB's end)
@@ -485,10 +485,10 @@ class ReplicaSetCluster(DocumentWrapper):
             if not is_primary_for_real():
                 msg = ("Timeout error: Waiting for server '%s' to become "
                        "primary took longer than expected. "
-                       "Please try again later." % primary_server.get_id())
+                       "Please try again later." % primary_server.id)
                 raise MongoctlException(msg)
 
-            log_info("Server '%s' is primary now!" % primary_server.get_id())
+            log_info("Server '%s' is primary now!" % primary_server.id)
 
             # setup cluster users
             users.setup_cluster_users(self, primary_server)
@@ -499,7 +499,7 @@ class ReplicaSetCluster(DocumentWrapper):
         except Exception,e:
             raise MongoctlException("Unable to initialize "
                                     "replica set cluster '%s'. Cause: %s" %
-                                    (self.get_id(),e) )
+                                    (self.id,e) )
 
     ###########################################################################
     def configure_replicaset(self, add_server=None, force_primary_server=None):
@@ -517,43 +517,43 @@ class ReplicaSetCluster(DocumentWrapper):
             # validate is cluster member
             if not force_primary_member:
                 msg = ("Server '%s' is not a member of cluster '%s'" %
-                       (force_primary_server.get_id(), self.get_id()))
+                       (force_primary_server.id, self.id))
                 raise MongoctlException(msg)
 
             # validate is administrable
             if not force_primary_server.is_administrable():
                 msg = ("Server '%s' is not running or has connection problems. "
                        "For more details, Run 'mongoctl status %s'" %
-                       (force_primary_server.get_id(),
-                        force_primary_server.get_id()))
+                       (force_primary_server.id,
+                        force_primary_server.id))
                 raise MongoctlException(msg)
 
             if not force_primary_member.can_become_primary():
                 msg = ("Server '%s' cannot become primary. Reconfiguration of"
                        " a replica set must be sent to a node that can become"
-                       " primary" % force_primary_server.get_id())
+                       " primary" % force_primary_server.id)
                 raise MongoctlException(msg)
 
             if primary_member:
                 msg = ("Cluster '%s' currently has server '%s' as primary. Proceed "
                        "with force-reconfigure on server '%s'?" %
-                       (self.get_id(),
-                        primary_member.get_server().get_id(),
-                        force_primary_server.get_id()))
+                       (self.id,
+                        primary_member.get_server().id,
+                        force_primary_server.id))
                 if not prompt_confirm(msg):
                     return
             else:
                 log_info("No primary server found for cluster '%s'" %
-                         self.get_id())
+                         self.id)
         elif primary_member is None:
             raise MongoctlException("Unable to determine primary server"
                                     " for replica set cluster '%s'" %
-                                    self.get_id())
+                                    self.id)
 
         cmd_server = (force_primary_server if force_primary_server
                       else primary_member.get_server())
 
-        log_info("Re-configuring replica set cluster '%s'..." % self.get_id())
+        log_info("Re-configuring replica set cluster '%s'..." % self.id)
 
         force = force_primary_server is not None
         rs_reconfig_cmd = \
@@ -563,13 +563,13 @@ class ReplicaSetCluster(DocumentWrapper):
 
         try:
             log_info("Executing the following command on server '%s':"
-                     "\n%s" % (cmd_server.get_id(),
+                     "\n%s" % (cmd_server.id,
                                document_pretty_string(rs_reconfig_cmd)))
 
             cmd_server.disconnecting_db_command(rs_reconfig_cmd, "admin")
 
             log_info("Re-configuration command for replica set cluster '%s' issued"
-                     " successfully." % self.get_id())
+                     " successfully." % self.id)
 
             # Probably need to reconnect.  May not be primary any more.
             realized_config = self.read_rs_config()
@@ -593,7 +593,7 @@ class ReplicaSetCluster(DocumentWrapper):
         except Exception,e:
             raise MongoctlException("Unable to reconfigure "
                                     "replica set cluster '%s'. Cause: %s " %
-                                    (self.get_id(),e) )
+                                    (self.id,e) )
 
     ###########################################################################
     def add_member_to_replica(self, server):
@@ -629,7 +629,7 @@ class ReplicaSetCluster(DocumentWrapper):
     def get_member_for(self, server):
         for member in self.get_members():
             if (member.get_server() and
-                        member.get_server().get_id() == server.get_id()):
+                        member.get_server().id == server.id):
                 return member
 
         return None
@@ -698,7 +698,7 @@ class ReplicaSetCluster(DocumentWrapper):
         # populate member ids when needed
         self.populate_member_conf_ids(member_confs, current_rs_conf)
 
-        return {"_id" : self.get_id(),
+        return {"_id" : self.id,
                 "members": member_confs}
 
     ###########################################################################

@@ -114,11 +114,11 @@ def open_mongo_shell_to_cluster(cluster,
                                 password=None,
                                 shell_options={},
                                 js_files=[]):
-    log_info("Locating primary server for cluster '%s'..." % cluster.get_id())
+    log_info("Locating primary server for cluster '%s'..." % cluster.id)
     primary_member = cluster.get_primary_member()
     if primary_member:
         primary_server = primary_member.get_server()
-        log_info("Connecting to primary server '%s'" % primary_server.get_id())
+        log_info("Connecting to primary server '%s'" % primary_server.id)
         open_mongo_shell_to_server(primary_server,
                                    database=database,
                                    username=username,
@@ -127,7 +127,7 @@ def open_mongo_shell_to_cluster(cluster,
                                    js_files=js_files)
     else:
         log_error("No primary server found for cluster '%s'" %
-                  cluster.get_id())
+                  cluster.id)
 
 ###############################################################################
 def open_mongo_shell_to_uri(uri,

@@ -14,7 +14,7 @@ def list_clusters_command(parsed_options):
         return
 
     # sort clusters by id
-    clusters = sorted(clusters, key=lambda c: c.get_id())
+    clusters = sorted(clusters, key=lambda c: c.id)
     bar = "-"*80
     print bar
     formatter = "%-25s %-40s %s"
@@ -26,6 +26,6 @@ def list_clusters_command(parsed_options):
 
         members_info = "[ %s ]" % ", ".join(cluster.get_members_info())
 
-        print formatter % (cluster.get_id(), desc, members_info)
+        print formatter % (cluster.id, desc, members_info)
     print "\n"
 

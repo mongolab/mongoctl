@@ -24,11 +24,11 @@ def restart_server(server_id, options_override=None):
 
 ###############################################################################
 def do_restart_server(server, options_override=None):
-    log_info("Restarting server '%s'..." % server.get_id())
+    log_info("Restarting server '%s'..." % server.id)
 
     if server.is_online():
         do_stop_server(server)
     else:
-        log_info("Server '%s' is not running." % server.get_id())
+        log_info("Server '%s' is not running." % server.id)
 
     do_start_server(server, options_override)
