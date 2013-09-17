@@ -531,13 +531,13 @@ def get_numactl_exe():
 ###############################################################################
 def mk_server_dir(server):
     # ensure the dbpath dir exists
-    dbpath = server.get_db_path()
-    log_verbose("Ensuring that server's dbpath '%s' exists..." % dbpath)
+    server_dir = server.get_server_root_dir()
+    log_verbose("Ensuring that server's root dir '%s' exists..." % server_dir)
     if ensure_dir(server.get_db_path()):
-        log_verbose("dbpath %s already exists!" % dbpath)
+        log_verbose("server root dir %s already exists!" % server_dir)
         return True
     else:
-        log_verbose("dbpath directory '%s' created successfully" % dbpath)
+        log_verbose("server root dir '%s' created successfully" % server_dir)
         return False
 
 

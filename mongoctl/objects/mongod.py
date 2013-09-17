@@ -44,7 +44,7 @@ class MongodServer(server.Server):
         return resolve_path(dbpath)
 
     ###########################################################################
-    def get_server_root_folder(self):
+    def get_server_root_dir(self):
         """
             Override!
         :return:
