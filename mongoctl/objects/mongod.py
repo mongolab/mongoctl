@@ -257,6 +257,6 @@ class MongodServer(server.Server):
          version is None or >= 2.0.0
         """
         return (self.supports_repl_key() and
-                self.is_auth())
+                self.is_auth() and self.is_cluster_member())
 
 
