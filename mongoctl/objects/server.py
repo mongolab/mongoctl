@@ -2,7 +2,7 @@ __author__ = 'abdul'
 
 import os
 
-import mongoctl.repository
+import mongoctl.repository as repository
 
 from base import DocumentWrapper
 from mongoctl.utils import resolve_path, document_pretty_string, is_host_local
@@ -15,7 +15,7 @@ from mongoctl.errors import MongoctlException
 from mongoctl.prompt import read_username, read_password
 
 from bson.son import SON
-from cluster import get_member_repl_lag
+
 from pymongo.connection import Connection
 
 import datetime
@@ -27,17 +27,12 @@ from mongoctl import users
 # CONSTANTS
 ###############################################################################
 
-# This is mongodb's default dbpath
-DEFAULT_DBPATH='/data/db'
-
 # default pid file name
 PID_FILE_NAME = "pid.txt"
 
 LOG_FILE_NAME = "mongodb.log"
 
 KEY_FILE_NAME = "keyFile"
-
-LOCK_FILE_NAME = "mongod.lock"
 
 # This is mongodb's default port
 DEFAULT_PORT = 27017
@@ -77,12 +72,13 @@ class Server(DocumentWrapper):
         return self.set_property("description", desc)
 
     ###########################################################################
-    def get_db_path(self):
-        dbpath =  self.get_cmd_option("dbpath")
-        if dbpath is None:
-            dbpath =  DEFAULT_DBPATH
+    def get_server_root_folder(self):
+        server_root = self.get_property("serverRoot")
+        return resolve_path(server_root)
 
-        return resolve_path(dbpath)
+    ###########################################################################
+    def set_server_root_folder(self, val):
+        self.set_property("serverRoot", val)
 
     ###########################################################################
     def get_pid_file_path(self):
@@ -93,15 +89,18 @@ class Server(DocumentWrapper):
         return self.get_server_file_path("logpath", LOG_FILE_NAME)
 
     ###########################################################################
-    def get_key_file_path(self):
+    def get_key_file(self):
+        kf = self.get_cmd_option("keyFile")
+        if kf:
+            return resolve_path(kf)
+
+    ###########################################################################
+    def get_default_key_file_path(self):
         return self.get_server_file_path("keyFile", KEY_FILE_NAME)
 
-    ###########################################################################
-    def get_lock_file_path(self):
-        return self.get_server_file_path("keyFile", LOCK_FILE_NAME)
 
     ###########################################################################
-    def get_server_file_path(self , cmd_prop, default_file_name):
+    def get_server_file_path(self, cmd_prop, default_file_name):
         file_path = self.get_cmd_option(cmd_prop)
         if file_path is not None:
             return resolve_path(file_path)
@@ -109,12 +108,12 @@ class Server(DocumentWrapper):
             return self.get_default_file_path(default_file_name)
 
     ###########################################################################
-    def get_default_file_path(self , file_name):
-        return self.get_db_path() + os.path.sep + file_name
+    def get_default_file_path(self, file_name):
+        return self.get_server_root_folder() + os.path.sep + file_name
 
     ###########################################################################
     def get_address(self):
-        address =  self.get_property("address")
+        address = self.get_property("address")
 
         if address is not None:
             if address.find(":") > 0:
@@ -154,29 +153,12 @@ class Server(DocumentWrapper):
     def get_port(self):
         port = self.get_cmd_option("port")
         if port is None:
-            port =  DEFAULT_PORT
+            port = DEFAULT_PORT
         return port
 
     ###########################################################################
     def set_port(self, port):
         self.set_cmd_option("port", port)
-
-    ###########################################################################
-    def is_auth(self):
-        return (self.get_cmd_option("auth") or
-                self.get_cmd_option("keyFile") is not None)
-
-    ###########################################################################
-    def set_auth(self,auth):
-        self.set_cmd_option("auth", auth)
-
-    ###########################################################################
-    def is_master(self):
-        return self.get_cmd_option("master")
-
-    ###########################################################################
-    def is_slave(self):
-        return self.get_cmd_option("slave")
 
     ###########################################################################
     def is_fork(self):
@@ -235,7 +217,6 @@ class Server(DocumentWrapper):
     def export_cmd_options(self):
         cmd_options =  self.get_cmd_options().copy()
         # reset some props to exporting vals
-        cmd_options['dbpath'] = self.get_db_path()
         cmd_options['pidfilepath'] = self.get_pid_file_path()
         if 'repairpath' in cmd_options:
             cmd_options['repairpath'] = resolve_path(cmd_options['repairpath'])
@@ -334,12 +315,6 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def command_needs_auth(self, dbname, cmd):
-        # isMaster command does not need auth
-        if "isMaster" in cmd or "ismaster" in cmd:
-            return False
-        if 'shutdown' in cmd and self.is_arbiter_server():
-            return False
-
         return self.needs_to_auth(dbname)
 
     ###########################################################################
@@ -465,10 +440,6 @@ class Server(DocumentWrapper):
             return False
 
     ###########################################################################
-    def is_administrable(self):
-        return not self.is_arbiter_server() and self.can_function()
-
-    ###########################################################################
     def can_function(self):
         status = self.get_status()
         if status['connection']:
@@ -527,13 +498,9 @@ class Server(DocumentWrapper):
             status['connection'] = True
 
             # grab status summary if it was specified + if i am not an arbiter
-            if admin and not self.is_arbiter_server():
+            if admin:
                 server_summary = self.get_server_status_summary()
                 status["serverStatusSummary"] = server_summary
-                rs_summary = self.get_rs_status_summary()
-                if rs_summary:
-                    status["selfReplicaSetStatusSummary"] = rs_summary
-
 
         except (RuntimeError, Exception),e:
             self.sever_db_connection()   # better luck next time!
@@ -546,30 +513,12 @@ class Server(DocumentWrapper):
     ###########################################################################
     def get_server_status_summary(self):
         server_status = self.db_command(SON([('serverStatus', 1)]),"admin")
-        server_summary  = {
+        server_summary = {
             "host": server_status['host'],
             "connections": server_status['connections'],
             "version": server_status['version']
         }
         return server_summary
-
-    ###########################################################################
-    def get_rs_status_summary(self):
-        if self.is_cluster_member():
-            member_rs_status = self.get_member_rs_status()
-            if member_rs_status:
-                return {
-                    "name": member_rs_status['name'],
-                    "stateStr": member_rs_status['stateStr']
-                }
-
-    ###########################################################################
-    def is_arbiter_server(self):
-        cluster = mongoctl.repository.lookup_cluster_by_server(self)
-        if cluster is not None:
-            return cluster.get_member_for(self).is_arbiter()
-        else:
-            return False
 
     ###########################################################################
     def get_db_connection(self):
@@ -589,23 +538,10 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_connection_address(self):
-        if(self.is_use_local()):
+        if self.is_use_local():
             return self.get_local_address()
         else:
             return self.get_address()
-
-    ###########################################################################
-    def get_mongo_uri_template(self, db=None):
-        if not db:
-            if self.is_auth():
-                db = "/[dbname]"
-            else:
-                db = ""
-        else:
-            db = "/" + db
-
-        creds = "[dbuser]:[dbpass]@" if self.is_auth() else ""
-        return "mongodb://%s%s%s" % (creds, self.get_address_display(), db)
 
     ###########################################################################
     def make_db_connection(self, address):
@@ -616,7 +552,7 @@ class Server(DocumentWrapper):
                               connectTimeoutMS=CONN_TIMEOUT)
         except Exception,e:
             error_msg = "Cannot connect to '%s'. Cause: %s" % \
-                        (address , e)
+                        (address, e)
             raise MongoctlException(error_msg,cause=e)
 
     ###########################################################################
@@ -630,76 +566,6 @@ class Server(DocumentWrapper):
                 log_verbose("Cannot get rs config from server '%s'. "
                             "cause: %s" % (self.id, e))
                 return None
-
-    ###########################################################################
-    def get_rs_status(self):
-        try:
-            rs_status_cmd = SON([('replSetGetStatus', 1)])
-            rs_status =  self.db_command(rs_status_cmd, 'admin')
-            return rs_status
-        except (Exception,RuntimeError), e:
-            log_verbose("Cannot get rs status from server '%s'. cause: %s" %
-                        (self.id, e))
-            return None
-
-    ###########################################################################
-    def get_member_rs_status(self):
-        rs_status =  self.get_rs_status()
-        if rs_status:
-            try:
-                for member in rs_status['members']:
-                    if 'self' in member and member['self']:
-                        return member
-            except (Exception,RuntimeError), e:
-                log_verbose("Cannot get member rs status from server '%s'. cause: %s" %
-                            (self.id, e))
-                return None
-
-    ###########################################################################
-    def is_primary(self):
-        master_result = self.is_master_command()
-
-        if master_result:
-            return master_result.get("ismaster")
-
-    ###########################################################################
-    def is_secondary(self):
-        master_result = self.is_master_command()
-
-        if master_result:
-            return master_result.get("secondary")
-
-    ###########################################################################
-    def is_master_command(self):
-        try:
-            if self.is_online():
-                result = self.db_command({"isMaster" : 1}, "admin")
-                return result
-
-        except(Exception, RuntimeError),e:
-            log_verbose("isMaster command failed on server '%s'. Cause %s" %
-                        (self.id, e))
-
-    ###########################################################################
-    def read_replicaset_name(self):
-        master_result = self.is_master_command()
-        if master_result:
-            return "setName" in master_result and master_result["setName"]
-
-    ###########################################################################
-    def get_repl_lag(self, master_status):
-        """
-            Given two 'members' elements from rs.status(),
-            return lag between their optimes (in secs).
-        """
-        member_status = self.get_member_rs_status()
-
-        if not member_status:
-            raise MongoctlException("Unable to determine replicaset status for"
-                                    " member '%s'" %
-                                    self.id)
-
-        return get_member_repl_lag(member_status, master_status)
 
     ###########################################################################
     def validate_local_op(self, op):
@@ -742,24 +608,26 @@ class Server(DocumentWrapper):
             log_verbose("Logging server activity \n%s" %
                         document_pretty_string(log_record))
 
-            mongoctl.repository.get_activity_collection().insert(log_record)
+            repository.get_activity_collection().insert(log_record)
 
     ###########################################################################
     def needs_repl_key(self):
+        """
+         MUST BE OVERRIDDEN
+        """
+        raise Exception("needs_repl_key must be implemented in subclasses")
+
+    ###########################################################################
+    def supports_repl_key(self):
         """
          We need a repl key if you are auth + a cluster member +
          version is None or >= 2.0.0
         """
         version = self.get_mongo_version_obj()
-        return (self.is_auth() and
-                self.is_cluster_member() and
-                (version is None or
-                 version >= version_obj(REPL_KEY_SUPPORTED_VERSION)))
+        return (version is None or
+                version >= version_obj(REPL_KEY_SUPPORTED_VERSION))
 
     ###########################################################################
-    def is_cluster_member(self):
-        return mongoctl.repository.lookup_cluster_by_server(self) is not None
-
     def get_pid(self):
         pid_file_path = self.get_pid_file_path()
         if os.path.exists(pid_file_path):
@@ -780,7 +648,7 @@ class Server(DocumentWrapper):
 
 ###############################################################################
 def is_logging_activity():
-    return (mongoctl.repository.consulting_db_repository() and
+    return (repository.consulting_db_repository() and
             config.get_mongoctl_config_val("logServerActivity" , False))
 
 ###############################################################################

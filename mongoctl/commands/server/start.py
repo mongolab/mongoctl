@@ -462,7 +462,8 @@ def generate_start_command(server, options_override=None,
         # Specify the keyFile arg if needed
         if server.needs_repl_key():
             if "keyFile" not in cmd_options:
-                key_file_path = server.get_key_file_path()
+                key_file_path = (server.get_key_file() or
+                                 server.get_default_key_file_path())
                 cmd_options["keyFile"] = key_file_path
 
     # apply the options override
@@ -555,7 +556,7 @@ def mk_server_dir(server):
 ###############################################################################
 def get_generate_key_file(server):
     cluster = repository.lookup_cluster_by_server(server)
-    key_file_path = server.get_key_file_path()
+    key_file_path = server.get_key_file() or server.get_default_key_file_path()
 
     # Generate the key file if it does not exist
     if not os.path.exists(key_file_path):

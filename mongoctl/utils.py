@@ -278,3 +278,18 @@ def timedelta_total_seconds(td):
      This was added for python 2.6 compatibilty
     """
     return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 1e6) / 1e6
+
+###############################################################################
+def resolve_class(kls):
+    if kls == "dict":
+        return dict
+
+    try:
+        parts = kls.split('.')
+        module = ".".join(parts[:-1])
+        m = __import__( module )
+        for comp in parts[1:]:
+            m = getattr(m, comp)
+        return m
+    except Exception, e:
+        raise Exception("Cannot resolve class '%s'. Cause: %s" % (kls, e))

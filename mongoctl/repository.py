@@ -3,13 +3,16 @@
 __author__ = 'abdul'
 
 import pymongo
+import config
 
-import objects.server
 import objects.cluster
 
-from errors import *
-from config import *
+from errors import MongoctlException
+from mongoctl_logging import log_warning, log_verbose, log_info
 from mongo_uri_tools import parse_mongo_uri
+from utils import (
+    resolve_class, document_pretty_string, is_valid_member_address
+    )
 
 from mongo_version import is_supported_mongo_version, is_valid_version
 from mongo_uri_tools import is_cluster_mongo_uri, mask_mongo_uri
@@ -59,11 +62,11 @@ def get_mongoctl_database():
 
 ###############################################################################
 def has_db_repository():
-    return get_database_repository_conf() is not None
+    return config.get_database_repository_conf() is not None
 
 ###############################################################################
 def has_file_repository():
-    return get_file_repository_conf() is not None
+    return config.get_file_repository_conf() is not None
 
 ###############################################################################
 def consulting_db_repository():
@@ -76,7 +79,7 @@ def is_db_repository_online():
 
 ###############################################################################
 def _db_repo_connect():
-    db_conf = get_database_repository_conf()
+    db_conf = config.get_database_repository_conf()
     uri = db_conf["databaseURI"]
     conn = pymongo.Connection(uri)
     dbname = parse_mongo_uri(uri).database
@@ -261,11 +264,12 @@ def get_configured_servers():
     if __configured_servers__ is None:
         __configured_servers__ = {}
 
-        file_repo_conf = get_file_repository_conf()
+        file_repo_conf = config.get_file_repository_conf()
         servers_path_or_url = file_repo_conf.get("servers",
                                                  DEFAULT_SERVERS_FILE)
 
-        server_documents = read_config_json("servers", servers_path_or_url)
+        server_documents = config.read_config_json("servers",
+                                                   servers_path_or_url)
         if not isinstance(server_documents, list):
             raise MongoctlException("Server list in '%s' must be an array" %
                                     servers_path_or_url)
@@ -288,13 +292,14 @@ def get_configured_clusters():
     if __configured_clusters__ is None:
         __configured_clusters__ = {}
 
-        file_repo_conf = get_file_repository_conf()
+        file_repo_conf = config.get_file_repository_conf()
         clusters_path_or_url = file_repo_conf.get("clusters",
                                                   DEFAULT_CLUSTERS_FILE)
 
 
 
-        cluster_documents = read_config_json("clusters", clusters_path_or_url)
+        cluster_documents = config.read_config_json("clusters",
+                                                    clusters_path_or_url)
         if not isinstance(cluster_documents, list):
             raise MongoctlException("Cluster list in '%s' must be an array" %
                                     clusters_path_or_url)
@@ -371,7 +376,7 @@ def validate_server(server):
 def get_mongoctl_server_db_collection():
 
     mongoctl_db = get_mongoctl_database()
-    conf = get_database_repository_conf()
+    conf = config.get_database_repository_conf()
 
     server_collection_name = conf.get("servers", DEFAULT_SERVERS_COLLECTION)
 
@@ -381,7 +386,7 @@ def get_mongoctl_server_db_collection():
 def get_mongoctl_cluster_db_collection():
 
     mongoctl_db = get_mongoctl_database()
-    conf = get_database_repository_conf()
+    conf = config.get_database_repository_conf()
     cluster_collection_name = conf.get("clusters", DEFAULT_CLUSTERS_COLLECTION)
 
     return mongoctl_db[cluster_collection_name]
@@ -391,8 +396,8 @@ def get_activity_collection():
 
     mongoctl_db = get_mongoctl_database()
 
-    activity_coll_name = get_mongoctl_config_val('activityCollectionName',
-                                                 DEFAULT_ACTIVITY_COLLECTION)
+    activity_coll_name = config.get_mongoctl_config_val(
+        'activityCollectionName', DEFAULT_ACTIVITY_COLLECTION)
 
     return mongoctl_db[activity_coll_name]
 
@@ -401,7 +406,18 @@ def get_activity_collection():
 # Factory Functions
 ###############################################################################
 def new_server(server_doc):
-    return objects.server.Server(server_doc)
+    _type = server_doc.get("_type")
+
+    if _type is None or _type == "mongod":
+        server_type = "mongoctl.objects.mongod.MongodServer"
+    elif _type == "mongos":
+        server_type = "mongoctl.objects.mongos.MongosServer"
+    else:
+        raise MongoctlException("Unknown server _type '%s' for server:\n%s" %
+                                (_type, document_pretty_string(server_doc)))
+
+    clazz = resolve_class(server_type)
+    return clazz(server_doc)
 
 ###############################################################################
 def build_server_from_address(address):
