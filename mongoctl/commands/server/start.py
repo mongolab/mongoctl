@@ -50,8 +50,7 @@ def start_command(parsed_options):
     else:
         start_server(parsed_options.server,
                      options_override=options_override,
-                     rs_add=parsed_options.rsAdd,
-                     install_compatible=parsed_options.installCompatible)
+                     rs_add=parsed_options.rsAdd)
 
 
 
@@ -79,12 +78,10 @@ def dry_run_start_server_cmd(server_id, options_override=None):
 ###############################################################################
 # start server
 ###############################################################################
-def start_server(server_id, options_override=None, rs_add=False,
-                 install_compatible=False):
+def start_server(server_id, options_override=None, rs_add=False):
     do_start_server(repository.lookup_and_validate_server(server_id),
                     options_override=options_override,
-                    rs_add=rs_add,
-                    install_compatible=install_compatible)
+                    rs_add=rs_add)
 
 ###############################################################################
 __mongod_pid__ = None
@@ -566,7 +563,7 @@ def get_mongod_executable(server_version):
     return mongod_exe.path
 
 ###############################################################################
-def get_mongos_executable(server_version, install_compatible=False):
+def get_mongos_executable(server_version):
     mongos_exe = get_mongo_executable(server_version,
                                       'mongos',
                                       version_check_pref=VERSION_PREF_EXACT)
