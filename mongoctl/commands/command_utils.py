@@ -45,8 +45,7 @@ def extract_mongo_exe_options(parsed_args, supported_options):
 ###############################################################################
 def get_mongo_executable(server_version,
                          executable_name,
-                         version_check_pref=VERSION_PREF_EXACT,
-                         install_compatible=False):
+                         version_check_pref=VERSION_PREF_EXACT):
 
     mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
     mongo_installs_dir = config.get_mongodb_installs_dir()
@@ -72,7 +71,8 @@ def get_mongo_executable(server_version,
 
     ## ok nothing found at all. wtf case
     msg = ("Unable to find a compatible '%s' executable "
-           "for version %s. You may need to run 'mongoctl install-mongodb %s' to install it.\n\n"
+           "for version %s. You may need to run 'mongoctl install-mongodb %s'"
+           " to install it.\n\n"
            "Here is your enviroment:\n\n"
            "$PATH=%s\n\n"
            "$MONGO_HOME=%s\n\n"
@@ -81,18 +81,6 @@ def get_mongo_executable(server_version,
             os.getenv("PATH"),
             mongo_home,
             mongo_installs_dir))
-
-
-
-    if install_compatible:
-        log_warning(msg)
-        log_info("Installing a compatible MongoDB...")
-        import mongoctl.commands.misc.install as mongoctl_install
-        new_mongo_home = mongoctl_install.install_mongodb(server_version)
-        new_exe =  get_mongo_home_exe(new_mongo_home, executable_name)
-        return mongo_exe_object(new_exe, version_obj(server_version))
-
-
 
     raise MongoctlException(msg)
 

@@ -162,16 +162,6 @@ MONGOCTL_PARSER_DEF = {
                     "default": False
                 },
                     {
-                    "name": "installCompatible",
-                    "type" : "optional",
-                    "cmd_arg": "--install-mongodb",
-                    "nargs": 0,
-                    "help": "Automatically installs MongoDB compatible with "
-                            "server if no compatible installation found",
-                    "default": False
-                },
-
-                    {
                     "name": "username",
                     "type" : "optional",
                     "help": "admin username",
