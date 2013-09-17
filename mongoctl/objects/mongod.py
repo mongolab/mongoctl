@@ -63,6 +63,20 @@ class MongodServer(server.Server):
 
         return cmd_options
 
+    def get_seed_users(self):
+        """
+            Override!
+        :return:
+        """
+        seed_users = super(MongodServer, self).get_seed_users()
+        # exempt database users for config servers
+        if seed_users and self.is_config_server():
+            for dbname in seed_users.keys():
+                if dbname not in ["admin", "local", "config"]:
+                    del seed_users[dbname]
+
+        return seed_users
+
     ###########################################################################
     def get_lock_file_path(self):
         return self.get_default_file_path(LOCK_FILE_NAME)
@@ -97,6 +111,10 @@ class MongodServer(server.Server):
     ###########################################################################
     def is_cluster_member(self):
         return self.get_cluster() is not None
+
+    ###########################################################################
+    def is_config_server(self):
+        return self.get_cmd_option("configsvr")
 
     ###########################################################################
     def is_administrable(self):
