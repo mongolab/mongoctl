@@ -44,7 +44,7 @@ class MongodServer(server.Server):
         return resolve_path(dbpath)
 
     ###########################################################################
-    def get_server_root_dir(self):
+    def get_root_dir(self):
         """
             Override!
         :return:
@@ -52,17 +52,30 @@ class MongodServer(server.Server):
         return self.get_db_path()
 
     ###########################################################################
-    def export_cmd_options(self):
+    def export_cmd_options(self, options_override=None):
         """
             Override!
         :return:
         """
-        cmd_options =  super(MongodServer, self).export_cmd_options()
+        cmd_options = super(MongodServer, self).export_cmd_options(
+            options_override=options_override)
+
         # reset some props to exporting vals
         cmd_options['dbpath'] = self.get_db_path()
 
+        if 'repairpath' in cmd_options:
+            cmd_options['repairpath'] = resolve_path(cmd_options['repairpath'])
+
+        # Add ReplicaSet args if a cluster is configured
+
+        cluster = self.get_cluster()
+        if cluster is not None:
+            if "replSet" not in cmd_options:
+                cmd_options["replSet"] = cluster.id
+
         return cmd_options
 
+    ###########################################################################
     def get_seed_users(self):
         """
             Override!

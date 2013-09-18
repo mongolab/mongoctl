@@ -7,10 +7,12 @@ import re
 import signal
 import resource
 
+import mongoctl.repository as repository
+
 from mongoctl.commands.command_utils import (
     options_to_command_args, extract_mongo_exe_options
 )
-from mongoctl import repository
+
 from mongoctl.mongoctl_logging import *
 from mongoctl.errors import MongoctlException
 from mongoctl import users
@@ -25,6 +27,9 @@ from mongoctl.commands.command_utils import (
     )
 
 from mongoctl.prompt import prompt_confirm
+
+from mongoctl.objects.mongod import MongodServer
+from mongoctl.objects.mongos import MongosServer
 
 ###############################################################################
 # CONSTS
@@ -43,25 +48,29 @@ PROCESS_LIMITS = [
 ###############################################################################
 
 def start_command(parsed_options):
-    options_override = extract_mongod_options(parsed_options)
+    server_id = parsed_options.server
+    server = repository.lookup_and_validate_server(server_id)
+    options_override = extract_server_options(server, parsed_options)
 
     if parsed_options.dryRun:
-        dry_run_start_server_cmd(parsed_options.server, options_override)
+        dry_run_start_server_cmd(server, options_override)
     else:
-        start_server(parsed_options.server,
+        start_server(server,
                      options_override=options_override,
                      rs_add=parsed_options.rsAdd)
 
 
 
 ###############################################################################
-def extract_mongod_options(parsed_args):
-    return extract_mongo_exe_options(parsed_args, SUPPORTED_MONGOD_OPTIONS)
+def extract_server_options(server, parsed_args):
+    if isinstance(server, MongodServer):
+        return extract_mongo_exe_options(parsed_args, SUPPORTED_MONGOD_OPTIONS)
+    elif isinstance(server, MongosServer):
+        return extract_mongo_exe_options(parsed_args, SUPPORTED_MONGOS_OPTIONS)
 
 
 ###############################################################################
-def dry_run_start_server_cmd(server_id, options_override=None):
-    server = repository.lookup_and_validate_server(server_id)
+def dry_run_start_server_cmd(server, options_override=None):
     # ensure that the start was issued locally. Fail otherwise
     server.validate_local_op("start")
 
@@ -78,8 +87,8 @@ def dry_run_start_server_cmd(server_id, options_override=None):
 ###############################################################################
 # start server
 ###############################################################################
-def start_server(server_id, options_override=None, rs_add=False):
-    do_start_server(repository.lookup_and_validate_server(server_id),
+def start_server(server, options_override=None, rs_add=False):
+    do_start_server(server,
                     options_override=options_override,
                     rs_add=rs_add)
 
@@ -120,34 +129,25 @@ def do_start_server(server, options_override=None, rs_add=False):
 
     server.log_server_activity("start")
 
-    mongod_pid = start_server_process(server, options_override)
+    server_pid = start_server_process(server, options_override)
 
-    try:
-
-        # prepare the server
-        prepare_server(server)
-        maybe_config_server_repl_set(server, rs_add=rs_add)
-    except Exception,e:
-        log_error("Unable to fully prepare server '%s'. Cause: %s \n"
-                  "Stop server now if more preparation is desired..." %
-                  (server.id, e))
-        shall_we_terminate(mongod_pid)
-        exit(1)
-
-
+    _post_server_start(server, server_pid)
 
     # Note: The following block has to be the last block
-    # because mongod_process.communicate() will not return unless you
-    # interrupt the mongod process which will kill mongoctl, so nothing after
+    # because server_process.communicate() will not return unless you
+    # interrupt the server process which will kill mongoctl, so nothing after
     # this block will be executed. Almost never...
 
-    if not is_forking(server, options_override):
-        communicate_to_child_process(mongod_pid)
-
-
+    if not server.is_fork():
+        communicate_to_child_process(server_pid)
 
 ###############################################################################
 def _pre_server_start(server, options_override=None):
+    if isinstance(server, MongodServer):
+        _pre_mongod_server_start(server, options_override=options_override)
+
+###############################################################################
+def _pre_mongod_server_start(server, options_override=None):
     """
     Does necessary work before starting a server
 
@@ -178,8 +178,28 @@ def _pre_server_start(server, options_override=None):
             raise MongoctlException("Error while trying to delete '%s'. "
                                     "Cause: %s" % (lock_file_path, e))
 
+
 ###############################################################################
-def prepare_server(server):
+def _post_server_start(server, server_pid, **kwargs):
+    if isinstance(server, MongodServer):
+        _post_mongod_server_start(server, server_pid, **kwargs)
+
+###############################################################################
+def _post_mongod_server_start(server, server_pid, **kwargs):
+    try:
+
+        # prepare the server
+        prepare_mongod_server(server)
+        maybe_config_server_repl_set(server, rs_add=kwargs.get("rs_add"))
+    except Exception,e:
+        log_error("Unable to fully prepare server '%s'. Cause: %s \n"
+                  "Stop server now if more preparation is desired..." %
+                  (server.id, e))
+        shall_we_terminate(server_pid)
+        exit(1)
+
+###############################################################################
+def prepare_mongod_server(server):
     """
      Contains post start server operations
     """
@@ -282,7 +302,7 @@ def _start_server_process_4real(server, options_override=None):
     log_info("\nExecuting command:\n%s\n" % start_cmd_str)
 
     child_process_out = None
-    if is_forking(server, options_override):
+    if server.is_fork():
         child_process_out = subprocess.PIPE
 
     global __mongod_pid__
@@ -294,7 +314,7 @@ def _start_server_process_4real(server, options_override=None):
 
 
 
-    if is_forking(server, options_override):
+    if server.is_fork():
         __mongod_pid__ = get_forked_mongod_pid(parent_mongod)
     else:
         __mongod_pid__ = parent_mongod.pid
@@ -424,41 +444,13 @@ def generate_start_command(server, options_override=None):
         """
     if mongod_needs_numactl():
         log_info("Running on a NUMA machine...")
-        apply_numactl(command)
+        command = apply_numactl(command)
 
     # append the mongod executable
-    command.append(get_mongod_executable(server.get_mongo_version()))
-
+    command.append(get_server_executable(server))
 
     # create the command args
-    cmd_options = server.export_cmd_options()
-
-    # set the logpath if forking..
-
-    if is_forking(server, options_override):
-        cmd_options['fork'] = True
-        if "logpath" not in cmd_options:
-            cmd_options["logpath"] = server.get_log_file_path()
-
-    # Add ReplicaSet args if a cluster is configured
-
-    cluster = repository.lookup_validate_cluster_by_server(server)
-    if cluster is not None:
-        if "replSet" not in cmd_options:
-            cmd_options["replSet"] = cluster.id
-
-        # Specify the keyFile arg if needed
-        if server.needs_repl_key():
-            if "keyFile" not in cmd_options:
-                key_file_path = (server.get_key_file() or
-                                 server.get_default_key_file_path())
-                cmd_options["keyFile"] = key_file_path
-
-    # apply the options override
-    if options_override is not None:
-        for (option_name,option_val) in options_override.items():
-            cmd_options[option_name] = option_val
-
+    cmd_options = server.export_cmd_options(options_override=options_override)
 
     command.extend(options_to_command_args(cmd_options))
     return command
@@ -485,17 +477,6 @@ def server_started_predicate(server, mongod_pid):
     return server_started
 
 ###############################################################################
-def is_forking(server, options_override):
-    fork = server.is_fork()
-    if options_override is not None:
-        fork = options_override.get('fork', fork)
-
-    if fork is None:
-        fork = True
-
-    return fork
-
-###############################################################################
 # NUMA Related functions
 ###############################################################################
 def mongod_needs_numactl():
@@ -513,7 +494,7 @@ def apply_numactl(command):
 
     if numactl_exe:
         log_info("Using numactl '%s'" % numactl_exe)
-        command.extend([numactl_exe, "--interleave=all"])
+        return [numactl_exe, "--interleave=all"] + command
     else:
         msg = ("You are running on a NUMA machine. It is recommended to run "
                "your server using numactl but we cannot find a numactl "
@@ -531,9 +512,9 @@ def get_numactl_exe():
 ###############################################################################
 def mk_server_dir(server):
     # ensure the dbpath dir exists
-    server_dir = server.get_server_root_dir()
+    server_dir = server.get_root_dir()
     log_verbose("Ensuring that server's root dir '%s' exists..." % server_dir)
-    if ensure_dir(server.get_db_path()):
+    if ensure_dir(server.get_root_dir()):
         log_verbose("server root dir %s already exists!" % server_dir)
         return True
     else:
@@ -556,15 +537,22 @@ def get_generate_key_file(server):
     return key_file_path
 
 ###############################################################################
-def get_mongod_executable(server_version):
-    mongod_exe = get_mongo_executable(server_version,
+def get_server_executable(server):
+    if isinstance(server, MongodServer):
+        return get_mongod_executable(server)
+    elif isinstance(server, MongosServer):
+        return get_mongos_executable(server)
+
+###############################################################################
+def get_mongod_executable(server):
+    mongod_exe = get_mongo_executable(server.get_mongo_version(),
                                       'mongod',
                                       version_check_pref=VERSION_PREF_EXACT)
     return mongod_exe.path
 
 ###############################################################################
-def get_mongos_executable(server_version):
-    mongos_exe = get_mongo_executable(server_version,
+def get_mongos_executable(server):
+    mongos_exe = get_mongo_executable(server.get_mongo_version(),
                                       'mongos',
                                       version_check_pref=VERSION_PREF_EXACT)
     return mongos_exe.path
@@ -583,7 +571,6 @@ SUPPORTED_MONGOD_OPTIONS = [
     "keyFile",
     "nounixsocket",
     "unixSocketPrefix",
-    "fork",
     "auth",
     "cpu",
     "dbpath",
@@ -624,4 +611,31 @@ SUPPORTED_MONGOD_OPTIONS = [
     "shardsvr",
     "noMoveParanoia",
     "setParameter"
+]
+
+
+###############################################################################
+SUPPORTED_MONGOS_OPTIONS = [
+    "verbose",
+    "quiet",
+    "port",
+    "bind_ip",
+    "maxConns",
+    "logpath",
+    "logappend",
+    "pidfilepath",
+    "keyFile",
+    "nounixsocket",
+    "unixSocketPrefix",
+    "ipv6",
+    "jsonp",
+    "nohttpinterface",
+    "upgrade",
+    "setParameter",
+    "syslog",
+    "configdb",
+    "localThreshold",
+    "test",
+    "chunkSize",
+    "noscripting"
 ]

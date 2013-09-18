@@ -293,16 +293,6 @@ MONGOCTL_PARSER_DEF = {
                     "help": "alternative directory for UNIX domain sockets "
                             "(defaults to /tmp)"
                 },
-
-                    {
-                    "name": "fork",
-                    "type" : "optional",
-                    "cmd_arg":  "--fork",
-                    "nargs": 0,
-                    "help": "noop; mongoctl will always fork the mongod process",
-                    "default": None
-                },
-
                     {
                     "name": "auth",
                     "type" : "optional",

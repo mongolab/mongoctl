@@ -14,6 +14,8 @@ from mongoctl.errors import MongoctlException
 from mongoctl.utils import call_command
 from mongoctl.objects.server import Server
 
+from mongoctl.objects.mongod import MongodServer
+
 ###############################################################################
 # CONSTS
 ###############################################################################
@@ -87,7 +89,7 @@ def open_mongo_shell_to_server(server,
     repository.validate_server(server)
 
     if not database:
-        if server.is_arbiter_server():
+        if isinstance(server, MongodServer) and server.is_arbiter_server():
             database = "local"
         else:
             database = "admin"

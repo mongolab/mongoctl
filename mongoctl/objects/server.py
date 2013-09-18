@@ -72,13 +72,13 @@ class Server(DocumentWrapper):
         return self.set_property("description", desc)
 
     ###########################################################################
-    def get_server_root_dir(self):
-        server_root = self.get_property("serverRoot")
+    def get_root_dir(self):
+        server_root = self.get_property("rootDir")
         return resolve_path(server_root)
 
     ###########################################################################
-    def set_server_root_dir(self, val):
-        self.set_property("serverRoot", val)
+    def set_root_dir(self, val):
+        self.set_property("rootDir", val)
 
     ###########################################################################
     def get_pid_file_path(self):
@@ -109,7 +109,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_default_file_path(self, file_name):
-        return self.get_server_root_dir() + os.path.sep + file_name
+        return self.get_root_dir() + os.path.sep + file_name
 
     ###########################################################################
     def get_address(self):
@@ -162,7 +162,8 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def is_fork(self):
-        return self.get_cmd_option("fork")
+        fork = self.get_cmd_option("fork")
+        return fork or fork is None
 
     ###########################################################################
     def get_mongo_version(self):
@@ -214,13 +215,29 @@ class Server(DocumentWrapper):
         return self.set_property('cmdOptions' , cmd_options)
 
     ###########################################################################
-    def export_cmd_options(self):
+    def export_cmd_options(self, options_override=None):
         cmd_options =  self.get_cmd_options().copy()
         # reset some props to exporting vals
         cmd_options['pidfilepath'] = self.get_pid_file_path()
-        if 'repairpath' in cmd_options:
-            cmd_options['repairpath'] = resolve_path(cmd_options['repairpath'])
 
+            # apply the options override
+        if options_override is not None:
+            for (option_name, option_val) in options_override.items():
+                cmd_options[option_name] = option_val
+
+        # set the logpath if forking..
+
+        if (self.is_fork() or (options_override is not None and
+                               options_override.get("fork"))):
+            cmd_options['fork'] = True
+            if "logpath" not in cmd_options:
+                cmd_options["logpath"] = self.get_log_file_path()
+
+        # Specify the keyFile arg if needed
+        if self.needs_repl_key() and "keyFile" not in cmd_options:
+            key_file_path = (self.get_key_file() or
+                             self.get_default_key_file_path())
+            cmd_options["keyFile"] = key_file_path
         return cmd_options
 
     ###########################################################################
