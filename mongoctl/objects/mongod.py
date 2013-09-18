@@ -73,6 +73,10 @@ class MongodServer(server.Server):
             if "replSet" not in cmd_options:
                 cmd_options["replSet"] = cluster.id
 
+        # add configSvr
+        if self.is_config_server():
+            cmd_options["configsvr"] = True
+
         return cmd_options
 
     ###########################################################################
@@ -110,7 +114,7 @@ class MongodServer(server.Server):
         else:
             cluster = self.get_cluster()
             if cluster:
-                return cluster.get_repl_key()
+                return cluster.get_repl_key() is not None
 
     ###########################################################################
     def set_auth(self,auth):
@@ -173,6 +177,20 @@ class MongodServer(server.Server):
             return cluster.get_member_for(self).is_arbiter()
         else:
             return False
+
+    ###########################################################################
+    def is_config_server(self):
+        lookup_type = repository.LOOKUP_TYPE_CONFIG_SVR
+        cluster = repository.lookup_cluster_by_server(self,
+                                                      lookup_type=lookup_type)
+        return cluster is not None
+
+    ###########################################################################
+    def is_shard_server(self):
+        lookup_type = repository.LOOKUP_TYPE_SHARDS
+        cluster = repository.lookup_cluster_by_server(self,
+                                                      lookup_type=lookup_type)
+        return cluster is not None
 
     ###########################################################################
     def command_needs_auth(self, dbname, cmd):

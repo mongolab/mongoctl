@@ -1,6 +1,6 @@
 __author__ = 'abdul'
 
-import mongoctl.repository
+import mongoctl.repository as repository
 from mongoctl import users
 from base import DocumentWrapper
 from mongoctl.utils import *
@@ -23,7 +23,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
     ###########################################################################
     def __init__(self, member_doc):
         DocumentWrapper.__init__(self, member_doc)
-        self.__server__ = None
+        self._server = None
 
     ###########################################################################
     # Properties
@@ -34,14 +34,14 @@ class ReplicaSetClusterMember(DocumentWrapper):
         server_doc = self.get_property("server")
         host = self.get_property("host")
 
-        if self.__server__ is None:
+        if self._server is None:
             if server_doc is not None:
                 if type(server_doc) is DBRef:
-                    self.__server__ = mongoctl.repository.lookup_server(server_doc.id)
+                    self._server = repository.lookup_server(server_doc.id)
             elif host is not None:
-                self.__server__ = mongoctl.repository.build_server_from_address(host)
+                self._server = repository.build_server_from_address(host)
 
-        return self.__server__
+        return self._server
 
     ###########################################################################
     def get_host(self):
@@ -161,7 +161,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
                    "valid server." %
                    document_pretty_string(self.get_document()))
             raise MongoctlException(msg)
-        mongoctl.repository.validate_server(server)
+        repository.validate_server(server)
         if server.get_address() is None:
             raise MongoctlException("Invalid member configuration for server "
                                     "'%s'. address property is not set." %
@@ -258,20 +258,20 @@ class ReplicaSetCluster(DocumentWrapper):
     ###########################################################################
     def __init__(self, cluster_document):
         DocumentWrapper.__init__(self, cluster_document)
-        self.init_members()
+        self._members = self._resolve_members("members")
 
     ###########################################################################
-    def init_members(self):
-        member_documents = self.get_property("members")
-        self.__members__ = []
+    def _resolve_members(self, member_prop):
+        member_documents = self.get_property(member_prop)
+        members = []
 
         # if members are not set then return
-        if member_documents is None:
-            return
+        if member_documents:
+            for mem_doc in member_documents:
+                member = repository.new_replicaset_cluster_member(mem_doc)
+                members.append(member)
 
-        for mem_doc in member_documents:
-            member = mongoctl.repository.new_replicaset_cluster_member(mem_doc)
-            self.__members__.append(member)
+        return members
 
     ###########################################################################
     # Properties
@@ -281,7 +281,7 @@ class ReplicaSetCluster(DocumentWrapper):
 
     ###########################################################################
     def get_members(self):
-        return self.__members__
+        return self._members
 
     ###########################################################################
     def get_members_info(self):

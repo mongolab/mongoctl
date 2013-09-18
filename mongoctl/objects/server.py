@@ -125,8 +125,8 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_address_display(self):
-        display =  self.get_address()
-        if display is  None:
+        display = self.get_address()
+        if display is None:
             display = self.get_local_address()
         return display
 

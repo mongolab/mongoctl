@@ -29,8 +29,32 @@ class MongosServer(Server):
         super(MongosServer, self).__init__(server_doc)
 
     ###########################################################################
+    def get_cluster(self):
+        return repository.lookup_cluster_by_server(self)
+
+
+    ###########################################################################
+    def export_cmd_options(self, options_override=None):
+        """
+            Override!
+        :return:
+        """
+        cmd_options = super(MongosServer, self).export_cmd_options(
+            options_override=options_override)
+
+        # Add configServers arg
+        cluster = self.get_cluster()
+        config_addresses = ",".join(cluster.get_config_member_addresses())
+        cmd_options["configdb"] = config_addresses
+
+        return cmd_options
+    ###########################################################################
     # Properties
     ###########################################################################
     def needs_repl_key(self):
-        #TODO implement
-        pass
+        """
+         We need a repl key if you are auth + a cluster member +
+         version is None or >= 2.0.0
+        """
+        return (self.supports_repl_key() and
+                self.get_cluster().get_repl_key() is not None)
