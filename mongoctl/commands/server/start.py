@@ -16,7 +16,9 @@ from mongoctl.commands.command_utils import (
 from mongoctl.mongoctl_logging import *
 from mongoctl.errors import MongoctlException
 from mongoctl import users
-from mongoctl.proccess import communicate_to_child_process, create_subprocess
+from mongoctl.processes import(
+    communicate_to_child_process, create_subprocess, get_child_processes
+    )
 from mongoctl.prompt import prompt_execute_task
 from mongoctl.utils import (
     ensure_dir, which, wait_for, dir_exists, is_pid_alive
@@ -556,6 +558,42 @@ def get_mongos_executable(server):
                                       'mongos',
                                       version_check_pref=VERSION_PREF_EXACT)
     return mongos_exe.path
+
+
+###############################################################################
+# SIGNAL HANDLER FUNCTIONS
+###############################################################################
+#TODO Remove this ugly signal handler and use something more elegant
+def mongoctl_signal_handler(signal_val, frame):
+    global __mongod_pid__
+
+    # otherwise prompt to kill server
+    global __current_server__
+
+    def kill_child(child_process):
+        try:
+            if child_process.poll() is None:
+                log_verbose("Killing child process '%s'" % child_process )
+                child_process.terminate()
+        except Exception, e:
+            log_verbose("Unable to kill child process '%s': Cause: %s" %
+                        (child_process, e))
+
+    def exit_mongoctl():
+        # kill all children then exit
+        map(kill_child, get_child_processes())
+        exit(0)
+
+        # if there is no mongod server yet then exit
+    if __mongod_pid__ is None:
+        exit_mongoctl()
+    else:
+        prompt_execute_task("Kill server '%s'?" % __current_server__.id,
+                            exit_mongoctl)
+
+###############################################################################
+# Register the global mongoctl signal handler
+signal.signal(signal.SIGINT, mongoctl_signal_handler)
 
 ###############################################################################
 SUPPORTED_MONGOD_OPTIONS = [
