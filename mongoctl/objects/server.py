@@ -72,8 +72,8 @@ class Server(DocumentWrapper):
         return self.set_property("description", desc)
 
     ###########################################################################
-    def get_root_dir(self):
-        server_root = self.get_property("rootDir")
+    def get_root_path(self):
+        server_root = self.get_property("rootPath")
         return resolve_path(server_root)
 
     ###########################################################################
@@ -109,7 +109,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_default_file_path(self, file_name):
-        return self.get_root_dir() + os.path.sep + file_name
+        return self.get_root_path() + os.path.sep + file_name
 
     ###########################################################################
     def get_address(self):
