@@ -228,7 +228,7 @@ def maybe_config_server_repl_set(server, rs_add=False):
     # AND server is NOT an Arbiter
     # OTHERWISE prompt to add server to replica if server is not added yet
 
-    cluster = repository.lookup_cluster_by_server(server)
+    cluster = server.get_replicaset_cluster()
 
     if cluster is not None:
         log_verbose("Server '%s' is a member in the configuration for"
@@ -524,7 +524,7 @@ def mk_server_dir(server):
 
 ###############################################################################
 def get_generate_key_file(server):
-    cluster = repository.lookup_cluster_by_server(server)
+    cluster = server.get_cluster()
     key_file_path = server.get_key_file() or server.get_default_key_file_path()
 
     # Generate the key file if it does not exist

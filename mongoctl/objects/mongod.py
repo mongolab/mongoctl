@@ -9,8 +9,8 @@ from mongoctl.mongoctl_logging import log_verbose
 
 from bson.son import SON
 from mongoctl.errors import MongoctlException
-from cluster import get_member_repl_lag
-
+from replicaset_cluster import ReplicaSetCluster, get_member_repl_lag
+from shardset_cluster import ShardSetCluster
 ###############################################################################
 # CONSTANTS
 ###############################################################################
@@ -68,14 +68,18 @@ class MongodServer(server.Server):
 
         # Add ReplicaSet args if a cluster is configured
 
-        cluster = self.get_cluster()
-        if cluster is not None:
+        repl_cluster = self.get_replicaset_cluster()
+        if repl_cluster is not None:
             if "replSet" not in cmd_options:
-                cmd_options["replSet"] = cluster.id
+                cmd_options["replSet"] = repl_cluster.id
 
-        # add configSvr
+        # add configsvr as needed
         if self.is_config_server():
             cmd_options["configsvr"] = True
+
+        # add shardsvr as needed
+        if self.is_shard_server():
+            cmd_options["shardsvr"] = True
 
         return cmd_options
 
@@ -120,15 +124,6 @@ class MongodServer(server.Server):
     def set_auth(self,auth):
         self.set_cmd_option("auth", auth)
 
-
-    ###########################################################################
-    def get_cluster(self):
-        return repository.lookup_cluster_by_server(self)
-
-    ###########################################################################
-    def is_cluster_member(self):
-        return self.get_cluster() is not None
-
     ###########################################################################
     def is_config_server(self):
         return self.get_cmd_option("configsvr")
@@ -162,7 +157,7 @@ class MongodServer(server.Server):
 
     ###########################################################################
     def get_rs_status_summary(self):
-        if self.is_cluster_member():
+        if self.is_replicaset_member():
             member_rs_status = self.get_member_rs_status()
             if member_rs_status:
                 return {
@@ -172,25 +167,32 @@ class MongodServer(server.Server):
 
     ###########################################################################
     def is_arbiter_server(self):
-        cluster = repository.lookup_cluster_by_server(self)
-        if cluster is not None:
-            return cluster.get_member_for(self).is_arbiter()
-        else:
-            return False
+        cluster = self.get_cluster()
+        return (isinstance(cluster, ReplicaSetCluster) and
+                cluster.get_member_for(self).is_arbiter())
+
+    ###########################################################################
+    def is_replicaset_member(self):
+        cluster = self.get_cluster()
+        return isinstance(cluster, ReplicaSetCluster)
+
+    ###########################################################################
+    def get_replicaset_cluster(self):
+        cluster = self.get_cluster()
+        if isinstance(cluster, ReplicaSetCluster):
+            return cluster
 
     ###########################################################################
     def is_config_server(self):
-        lookup_type = repository.LOOKUP_TYPE_CONFIG_SVR
-        cluster = repository.lookup_cluster_by_server(self,
-                                                      lookup_type=lookup_type)
-        return cluster is not None
+        cluster = self.get_cluster()
+        return (isinstance(cluster, ShardSetCluster) and
+                cluster.has_config_server(self))
 
     ###########################################################################
     def is_shard_server(self):
-        lookup_type = repository.LOOKUP_TYPE_SHARDS
-        cluster = repository.lookup_cluster_by_server(self,
-                                                      lookup_type=lookup_type)
-        return cluster is not None
+        cluster = self.get_cluster()
+        return (isinstance(cluster, ShardSetCluster) and
+                cluster.has_shard_server(self))
 
     ###########################################################################
     def command_needs_auth(self, dbname, cmd):
@@ -297,15 +299,5 @@ class MongodServer(server.Server):
                                     self.id)
 
         return get_member_repl_lag(member_status, master_status)
-
-
-    ###########################################################################
-    def needs_repl_key(self):
-        """
-         We need a repl key if you are auth + a cluster member +
-         version is None or >= 2.0.0
-        """
-        return (self.supports_repl_key() and
-                self.is_auth() and self.is_cluster_member())
 
 

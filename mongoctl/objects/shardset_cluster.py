@@ -2,20 +2,20 @@ __author__ = 'abdul'
 
 import mongoctl.repository as repository
 
-from cluster import ReplicaSetCluster
+from cluster import Cluster
 from base import DocumentWrapper
 from bson import DBRef
 
 ###############################################################################
 # ShardSet Cluster Class
 ###############################################################################
-class ShardSetCluster(ReplicaSetCluster):
+class ShardSetCluster(Cluster):
 
     ###########################################################################
     # Constructor and other init methods
     ###########################################################################
     def __init__(self, cluster_document):
-        ReplicaSetCluster.__init__(self, cluster_document)
+        Cluster.__init__(self, cluster_document)
         self._config_members = self._resolve_members("configServers")
         self._shards = self._resolve_shard_members()
 
@@ -38,9 +38,21 @@ class ShardSetCluster(ReplicaSetCluster):
         return self._config_members
 
     ###########################################################################
+    def has_config_server(self, server):
+        for member in self.config_members:
+            if member.get_server().id == server.id:
+                return True
+
+    ###########################################################################
     @property
     def shards(self):
         return self._shards
+
+    ###########################################################################
+    def has_shard_server(self, server):
+        for shard in self.shards:
+            if shard.get_server() and shard.get_server().id == server.id:
+                return True
 
     ###########################################################################
     def get_config_member_addresses(self):

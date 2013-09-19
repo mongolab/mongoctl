@@ -11,7 +11,7 @@ from errors import MongoctlException
 from mongoctl_logging import log_warning, log_verbose, log_info
 from mongo_uri_tools import parse_mongo_uri
 from utils import (
-    resolve_class, document_pretty_string, is_valid_member_address
+    resolve_class, document_pretty_string, is_valid_member_address, listify
     )
 
 from mongo_version import is_supported_mongo_version, is_valid_version
@@ -31,6 +31,8 @@ DEFAULT_ACTIVITY_COLLECTION = "logs.server-activity"
 LOOKUP_TYPE_MEMBER = "members"
 LOOKUP_TYPE_CONFIG_SVR = "configServers"
 LOOKUP_TYPE_SHARDS = "shards"
+LOOKUP_TYPE_ANY = [LOOKUP_TYPE_CONFIG_SVR, LOOKUP_TYPE_MEMBER,
+                   LOOKUP_TYPE_SHARDS]
 
 ###############################################################################
 # Global variable: mongoctl's mongodb object
@@ -238,12 +240,19 @@ def db_lookup_all_clusters():
 
 ###############################################################################
 # Lookup by server id
-def db_lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_MEMBER):
+def db_lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_ANY):
     cluster_collection = get_mongoctl_cluster_db_collection()
-    prop = "%s.server.$id" % lookup_type
-    cluster_doc = cluster_collection.find_one({
-        prop: server.id
-    })
+    lookup_type = listify(lookup_type)
+    type_query =[]
+    for t in lookup_type:
+        prop_query = {"%s.server.$id" % t: server.id}
+        type_query.append(prop_query)
+
+    query = {
+        "$or": type_query
+    }
+
+    cluster_doc = cluster_collection.find_one(query)
 
     if cluster_doc is not None:
         return new_cluster(cluster_doc)
@@ -252,23 +261,23 @@ def db_lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_MEMBER):
 
 
 ###############################################################################
-def config_lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_MEMBER):
+def config_lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_ANY):
     clusters = get_configured_clusters()
-    result = None
-    if lookup_type == LOOKUP_TYPE_MEMBER:
-        result = filter(lambda c: c.has_member_server(server),
-                        clusters.values())
-    elif lookup_type == LOOKUP_TYPE_CONFIG_SVR:
-        result = filter(lambda c: cluster_has_config_server(c, server),
-                        clusters.values())
-    elif lookup_type == LOOKUP_TYPE_CONFIG_SVR:
-        result = filter(lambda c: cluster_has_shard_server(c, server),
-                        clusters.values())
-    else:
-        raise Exception("Unknown lookup type")
+    lookup_type = listify(lookup_type)
 
-    if result:
-        return result[0]
+    for t in lookup_type:
+        result = None
+        if t == LOOKUP_TYPE_MEMBER:
+            result = filter(lambda c: c.has_member_server(server),
+                            clusters.values())
+        elif t == LOOKUP_TYPE_CONFIG_SVR:
+            result = filter(lambda c: cluster_has_config_server(c, server),
+                            clusters.values())
+        elif t == LOOKUP_TYPE_SHARDS:
+            result = filter(lambda c: cluster_has_shard_server(c, server),
+                            clusters.values())
+        if result:
+            return result[0]
 
 ###############################################################################
 def cluster_has_config_server(cluster, server):
@@ -332,8 +341,6 @@ def get_configured_clusters():
         clusters_path_or_url = file_repo_conf.get("clusters",
                                                   DEFAULT_CLUSTERS_FILE)
 
-
-
         cluster_documents = config.read_config_json("clusters",
                                                     clusters_path_or_url)
         if not isinstance(cluster_documents, list):
@@ -378,7 +385,7 @@ def lookup_validate_cluster_by_server(server):
     return cluster
 
 ###############################################################################
-def lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_MEMBER):
+def lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_ANY):
     validate_repositories()
     cluster = None
 
@@ -538,8 +545,8 @@ def new_servers_dict(docs):
 def new_cluster(cluster_doc):
     _type = cluster_doc.get("_type")
 
-    if _type is None or _type == "mongod":
-        cluster_type = "mongoctl.objects.cluster.ReplicaSetCluster"
+    if _type is None or _type == "ReplicaSetCluster":
+        cluster_type = "mongoctl.objects.replicaset_cluster.ReplicaSetCluster"
     elif _type == "ShardSetCluster":
         cluster_type = "mongoctl.objects.shardset_cluster.ShardSetCluster"
     else:
@@ -557,7 +564,8 @@ def new_replicaset_clusters_dict(docs):
 
 ###############################################################################
 def new_replicaset_cluster_member(cluster_mem_doc):
-    clazz = resolve_class("mongoctl.objects.cluster.ReplicaSetClusterMember")
+    mem_type = "mongoctl.objects.replicaset_cluster.ReplicaSetClusterMember"
+    clazz = resolve_class(mem_type)
     return clazz(cluster_mem_doc)
 
 ###############################################################################

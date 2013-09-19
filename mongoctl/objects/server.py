@@ -295,6 +295,14 @@ class Server(DocumentWrapper):
         return self.get_seed_users().get(dbname)
 
     ###########################################################################
+    def get_cluster(self):
+        return repository.lookup_cluster_by_server(self)
+
+    ###########################################################################
+    def is_cluster_member(self):
+        return self.get_cluster() is not None
+
+    ###########################################################################
     # DB Methods
     ###########################################################################
 
@@ -630,9 +638,12 @@ class Server(DocumentWrapper):
     ###########################################################################
     def needs_repl_key(self):
         """
-         MUST BE OVERRIDDEN
+         We need a repl key if you are auth + a cluster member +
+         version is None or >= 2.0.0
         """
-        raise Exception("needs_repl_key must be implemented in subclasses")
+        cluster = self.get_cluster()
+        return (self.supports_repl_key() and
+                cluster is not None and cluster.get_repl_key() is not None)
 
     ###########################################################################
     def supports_repl_key(self):
