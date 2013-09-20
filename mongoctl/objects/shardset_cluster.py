@@ -91,8 +91,15 @@ class ShardSetCluster(Cluster):
 
     ###########################################################################
     def configure_shardset(self):
-        mongos = self.get_any_online_member().get_server()
+        mongos = self.get_any_online_mongos()
         cmd = self.get_shardset_configure_command()
+
+        log_info("Configuring shardset '%s' " % self.id)
+
+        configured_shards = self.read_configured_shards()
+        log_info("Current configured shards: \n%s" %
+                 document_pretty_string(configured_shards))
+
         log_info("Executing command \n%s\non mongos '%s'" %
                  (document_pretty_string(cmd), mongos.id))
         mongos.db_command(cmd, "admin")
@@ -106,15 +113,20 @@ class ShardSetCluster(Cluster):
         }
 
     ###########################################################################
+    def read_configured_shards(self):
+        mongos = self.get_any_online_mongos()
+        return list(mongos.get_db("config")["shards"].find())
+
+    ###########################################################################
     def get_shard_url(self):
         shard_addresses = self.get_shard_addresses()
         return ",".join(shard_addresses)
 
     ###########################################################################
-    def get_any_online_member(self):
+    def get_any_online_mongos(self):
         for member in self.get_members():
             if member.get_server().is_online():
-                return member
+                return member.get_server()
 
     ###########################################################################
     def get_member_type(self):
