@@ -24,12 +24,17 @@ class Cluster(DocumentWrapper):
         members = []
 
         # if members are not set then return
+        member_type = self.get_member_type()
         if member_documents:
             for mem_doc in member_documents:
-                member = repository.new_replicaset_cluster_member(mem_doc)
+                member = member_type(mem_doc)
                 members.append(member)
 
         return members
+
+    ###########################################################################
+    def get_member_type(self):
+        raise Exception("Should be implemented by subclasses")
 
     ###########################################################################
     # Properties

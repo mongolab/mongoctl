@@ -358,15 +358,10 @@ def validate_cluster(cluster):
 
     errors = []
 
-    ## validate repl key if needed
-    def server_needs_repl_key(server):
-        return server.needs_repl_key()
-
-    if (cluster.has_any_server_that(server_needs_repl_key) and
-                cluster.get_repl_key() is None):
-        errors.append(
-            "** no replKey configured. replKey is required because at least "
-            "one member has 'auth' enabled.")
+    if isinstance(cluster, replicaset_cluster_type()):
+        errors.extend(validate_replicaset_cluster(cluster))
+    elif isinstance(cluster, shardset_cluster_type()):
+        errors.extend(validate_shardset_cluster(cluster))
 
     if len(errors) > 0:
         raise MongoctlException("Cluster %s configuration is not valid. "
@@ -374,6 +369,16 @@ def validate_cluster(cluster):
                                 (cluster.id , "\n".join(errors)))
 
     return cluster
+
+###############################################################################
+def validate_replicaset_cluster(cluster):
+    errors = []
+    return errors
+
+###############################################################################
+def validate_shardset_cluster(cluster):
+    errors = []
+    return errors
 
 ###############################################################################
 def lookup_validate_cluster_by_server(server):
@@ -546,14 +551,12 @@ def new_cluster(cluster_doc):
     _type = cluster_doc.get("_type")
 
     if _type is None or _type == "ReplicaSetCluster":
-        cluster_type = "mongoctl.objects.replicaset_cluster.ReplicaSetCluster"
+        clazz = replicaset_cluster_type()
     elif _type == "ShardSetCluster":
-        cluster_type = "mongoctl.objects.shardset_cluster.ShardSetCluster"
+        clazz = shardset_cluster_type()
     else:
         raise MongoctlException("Unknown cluster _type '%s' for server:\n%s" %
                                 (_type, document_pretty_string(cluster_doc)))
-
-    clazz = resolve_class(cluster_type)
     return clazz(cluster_doc)
 
 ###############################################################################
@@ -571,3 +574,10 @@ def new_replicaset_cluster_member(cluster_mem_doc):
 ###############################################################################
 def new_replicaset_cluster_member_list(docs_iteratable):
     return map(new_replicaset_cluster_member, docs_iteratable)
+
+def replicaset_cluster_type():
+    return resolve_class("mongoctl.objects.replicaset_cluster."
+                         "ReplicaSetCluster")
+
+def shardset_cluster_type():
+    return resolve_class("mongoctl.objects.shardset_cluster.ShardSetCluster")

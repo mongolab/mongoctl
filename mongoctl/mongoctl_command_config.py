@@ -1368,6 +1368,53 @@ MONGOCTL_PARSER_DEF = {
                 }
             ]
         },
+
+        #### configure-cluster ####
+        {
+            "prog": "configure-shard-cluster",
+            "group": "clusterCommands",
+            "shortDescription" : "configures a shardset cluster",
+            "description" : "configures a shardset cluster",
+            "function": "mongoctl.commands.cluster.configure.configure_shard_cluster_command",
+            "args": [
+                {
+                    "name": "cluster",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "displayName": "CLUSTER_ID",
+                    "help": "A valid cluster id"
+                },
+
+                {
+                    "name": "dryRun",
+                    "type" : "optional",
+                    "cmd_arg":  ["-n" , "--dry-run"],
+                    "nargs": 0,
+                    "help": "prints configure cluster db command to execute "
+                            "without executing it",
+                    "default": False
+                },
+
+                {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
+                }
+            ]
+        },
         #### list-clusters ####
             {
             "prog": "list-clusters",

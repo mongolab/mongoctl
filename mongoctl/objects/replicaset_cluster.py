@@ -65,7 +65,10 @@ class ReplicaSetClusterMember(DocumentWrapper):
     ###########################################################################
     # Interface Methods
     ###########################################################################
+    def get_member_type(self):
+        return ReplicaSetClusterMember
 
+    ###########################################################################
     def can_become_primary(self):
         return not self.is_arbiter() and self.get_priority() != 0
 
