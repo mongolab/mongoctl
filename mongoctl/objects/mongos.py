@@ -29,7 +29,7 @@ class MongosServer(Server):
             options_override=options_override)
 
         # Add configServers arg
-        cluster = self.get_cluster()
+        cluster = self.get_validate_cluster()
         config_addresses = ",".join(cluster.get_config_member_addresses())
         cmd_options["configdb"] = config_addresses
 

@@ -378,6 +378,9 @@ def validate_replicaset_cluster(cluster):
 ###############################################################################
 def validate_shardset_cluster(cluster):
     errors = []
+    if not cluster.config_members or len(cluster.config_members) not in [1,3]:
+        errors.append("Need 1 or 3 configServers configured in your cluster")
+
     return errors
 
 ###############################################################################

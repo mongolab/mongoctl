@@ -299,6 +299,15 @@ class Server(DocumentWrapper):
         return repository.lookup_cluster_by_server(self)
 
     ###########################################################################
+    def get_validate_cluster(self):
+        cluster = repository.lookup_cluster_by_server(self)
+        if not cluster:
+            raise MongoctlException("No cluster found for server '%s'" %
+                                    self.id)
+        repository.validate_cluster(cluster)
+        return cluster
+
+    ###########################################################################
     def is_cluster_member(self):
         return self.get_cluster() is not None
 
