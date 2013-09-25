@@ -133,7 +133,7 @@ def mongo_dump_uri(uri,
 
     server_or_cluster = repository.build_server_or_cluster_from_uri(uri)
 
-    if type(server_or_cluster) == Server:
+    if isinstance(server_or_cluster, Server):
         mongo_dump_server(server_or_cluster,
                           database=database,
                           username=username,

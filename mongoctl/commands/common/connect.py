@@ -143,10 +143,9 @@ def open_mongo_shell_to_uri(uri,
     username = username if username else uri_wrapper.username
     password = password if password else uri_wrapper.password
 
-
     server_or_cluster = repository.build_server_or_cluster_from_uri(uri)
 
-    if type(server_or_cluster) == Server:
+    if isinstance(server_or_cluster, Server):
         open_mongo_shell_to_server(server_or_cluster,
                                    database=database,
                                    username=username,

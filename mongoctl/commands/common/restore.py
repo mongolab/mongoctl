@@ -124,7 +124,7 @@ def mongo_restore_uri(uri, source,
 
     server_or_cluster = repository.build_server_or_cluster_from_uri(uri)
 
-    if type(server_or_cluster) == Server:
+    if isinstance(server_or_cluster, Server):
         mongo_restore_server(server_or_cluster, source, database=database,
                              username=username, password=password,
                              restore_options=restore_options)
