@@ -517,11 +517,7 @@ class Server(DocumentWrapper):
             db.collection_names()
             return False
         except (RuntimeError,Exception), e:
-            if ("master has changed" in str(e) or
-                    ("not master" in str(e) and not self.is_secondary())):
-                return False
-            else:
-                return True
+            return "unauthorized" in str(e)
 
     ###########################################################################
     def get_status(self, admin=False):
