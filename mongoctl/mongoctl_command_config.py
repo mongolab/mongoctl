@@ -111,6 +111,11 @@ MONGOCTL_PARSER_DEF = {
             {
             "name" :"miscCommands",
             "display": "Miscellaneous"
+        },
+
+        {
+            "name" :"shardCommands",
+            "display": "Sharding"
         }
     ],
 
@@ -1369,52 +1374,6 @@ MONGOCTL_PARSER_DEF = {
             ]
         },
 
-        #### configure-cluster ####
-        {
-            "prog": "configure-shard-cluster",
-            "group": "clusterCommands",
-            "shortDescription" : "configures a shardset cluster",
-            "description" : "configures a shardset cluster",
-            "function": "mongoctl.commands.cluster.configure.configure_shard_cluster_command",
-            "args": [
-                {
-                    "name": "cluster",
-                    "type" : "positional",
-                    "nargs": 1,
-                    "displayName": "CLUSTER_ID",
-                    "help": "A valid cluster id"
-                },
-
-                {
-                    "name": "dryRun",
-                    "type" : "optional",
-                    "cmd_arg":  ["-n" , "--dry-run"],
-                    "nargs": 0,
-                    "help": "prints configure cluster db command to execute "
-                            "without executing it",
-                    "default": False
-                },
-
-                {
-                    "name": "username",
-                    "type" : "optional",
-                    "help": "admin username",
-                    "cmd_arg": [
-                        "-u"
-                    ],
-                    "nargs": 1
-                },
-                {
-                    "name": "password",
-                    "type" : "optional",
-                    "help": "admin password",
-                    "cmd_arg": [
-                        "-p"
-                    ],
-                    "nargs": "?"
-                }
-            ]
-        },
         #### list-clusters ####
             {
             "prog": "list-clusters",
@@ -1525,34 +1484,128 @@ MONGOCTL_PARSER_DEF = {
             "function": "mongoctl.commands.misc.install.list_versions_command",
         },
         #### print-uri ####
-            {
-            "prog": "print-uri",
-            "group": "miscCommands",
-            "shortDescription" : "prints connection URI for a"
-                                 " server or cluster",
-            "description" : "Prints MongoDB connection URI of the specified"
-                            " server or clurter",
-            "function": "mongoctl.commands.misc.print_uri.print_uri_command",
+        {
+        "prog": "print-uri",
+        "group": "miscCommands",
+        "shortDescription" : "prints connection URI for a"
+                             " server or cluster",
+        "description" : "Prints MongoDB connection URI of the specified"
+                        " server or clurter",
+        "function": "mongoctl.commands.misc.print_uri.print_uri_command",
+        "args": [
+                {
+                "name": "id",
+                "type" : "positional",
+                "nargs": 1,
+                "displayName": "SERVER or CLUSTER ID",
+                "help": "Server or cluster id"
+            },
+                {
+                "name": "db",
+                "type" : "optional",
+                "help": "database name",
+                "cmd_arg": [
+                    "-d",
+                    "--db"
+                ],
+                "nargs": 1
+            }
+        ]
+        },
+
+        {
+            "prog": "add-shard",
+            "group": "shardCommands",
+            "shortDescription" : "Adds specified shard to shardset",
+            "description" : "Adds specified shard to shardset",
+            "function": "mongoctl.commands.sharding.sharding.add_shard_command",
             "args": [
-                    {
-                    "name": "id",
+                {
+                    "name": "shardId",
                     "type" : "positional",
                     "nargs": 1,
-                    "displayName": "SERVER or CLUSTER ID",
-                    "help": "Server or cluster id"
+                    "displayName": "SHARD_ID",
+                    "help": "A valid shard cluster id or shard server id"
                 },
-                    {
-                    "name": "db",
+
+                {
+                    "name": "dryRun",
                     "type" : "optional",
-                    "help": "database name",
+                    "cmd_arg":  ["-n" , "--dry-run"],
+                    "nargs": 0,
+                    "help": "prints configure cluster db command to execute "
+                            "without executing it",
+                    "default": False
+                },
+
+                {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
                     "cmd_arg": [
-                        "-d",
-                        "--db"
+                        "-u"
                     ],
                     "nargs": 1
+                },
+                {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
                 }
             ]
-            }
+        },
+
+
+        #### configure-cluster ####
+        {
+            "prog": "configure-shard-cluster",
+            "group": "shardCommands",
+            "shortDescription" : "configures a shardset cluster",
+            "description" : "configures a shardset cluster",
+            "function": "mongoctl.commands.sharding.sharding.configure_shard_cluster_command",
+            "args": [
+                {
+                    "name": "cluster",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "displayName": "CLUSTER_ID",
+                    "help": "A valid cluster id"
+                },
+
+                {
+                    "name": "dryRun",
+                    "type" : "optional",
+                    "cmd_arg":  ["-n" , "--dry-run"],
+                    "nargs": 0,
+                    "help": "prints configure cluster db command to execute "
+                            "without executing it",
+                    "default": False
+                },
+
+                {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
+                }
+            ]
+        }
 
 
         ]

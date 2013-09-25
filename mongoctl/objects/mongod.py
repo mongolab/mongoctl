@@ -192,7 +192,7 @@ class MongodServer(server.Server):
     def is_shard_server(self):
         cluster = self.get_cluster()
         return (isinstance(cluster, ShardSetCluster) and
-                cluster.has_shard_server(self))
+                cluster.has_shard(self))
 
     ###########################################################################
     def command_needs_auth(self, dbname, cmd):

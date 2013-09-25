@@ -261,6 +261,24 @@ def db_lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_ANY):
 
 
 ###############################################################################
+# Lookup by server id
+def db_lookup_cluster_by_shard(shard):
+    cluster_collection = get_mongoctl_cluster_db_collection()
+
+    query = {
+        "shards.cluster.$id": shard.id
+    }
+
+    cluster_doc = cluster_collection.find_one(query)
+
+    if cluster_doc is not None:
+        return new_cluster(cluster_doc)
+    else:
+        return None
+
+
+
+###############################################################################
 def config_lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_ANY):
     clusters = get_configured_clusters()
     lookup_type = listify(lookup_type)
@@ -274,10 +292,18 @@ def config_lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_ANY):
             result = filter(lambda c: cluster_has_config_server(c, server),
                             clusters.values())
         elif t == LOOKUP_TYPE_SHARDS:
-            result = filter(lambda c: cluster_has_shard_server(c, server),
+            result = filter(lambda c: cluster_has_shard(c, server),
                             clusters.values())
         if result:
             return result[0]
+
+###############################################################################
+def config_lookup_cluster_by_shard(shard):
+    clusters = get_configured_clusters()
+
+    result = filter(lambda c: cluster_has_shard(c, shard), clusters.values())
+    if result:
+        return result[0]
 
 ###############################################################################
 def cluster_has_config_server(cluster, server):
@@ -289,12 +315,16 @@ def cluster_has_config_server(cluster, server):
                 return cluster
 
 ###############################################################################
-def cluster_has_shard_server(cluster, server):
-    shard_servers = cluster.get_property("shardServers")
-    if shard_servers:
-        for server_doc in shard_servers:
-            server_ref = server_doc["server"]
-            if isinstance(server_ref, DBRef) and server_ref.id == server.id:
+def cluster_has_shard(cluster, shard):
+    from objects.server import Server
+    shards = cluster.get_property("shards")
+    if shards:
+        for shard_doc in shards:
+            if isinstance(shard, Server):
+                ref = shard_doc.get("server")
+            else:
+                ref = shard_doc.get("cluster")
+            if isinstance(ref, DBRef) and ref.id == shard.id:
                 return cluster
 
 ###############################################################################
@@ -406,6 +436,22 @@ def lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_ANY):
         cluster = config_lookup_cluster_by_server(server,
                                                   lookup_type=lookup_type)
 
+
+    return cluster
+
+
+###############################################################################
+def lookup_cluster_by_shard(shard):
+    validate_repositories()
+    cluster = None
+
+    ## Look for the cluster in db repo
+    if consulting_db_repository():
+        cluster = db_lookup_cluster_by_shard(shard)
+
+    ## If nothing is found then look in file repo
+    if cluster is None and has_file_repository():
+        cluster = config_lookup_cluster_by_shard(shard)
 
     return cluster
 

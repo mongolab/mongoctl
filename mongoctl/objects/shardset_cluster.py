@@ -3,6 +3,8 @@ __author__ = 'abdul'
 import mongoctl.repository as repository
 
 from cluster import Cluster
+from server import Server
+
 from base import DocumentWrapper
 from bson import DBRef
 
@@ -51,10 +53,20 @@ class ShardSetCluster(Cluster):
         return self._shards
 
     ###########################################################################
-    def has_shard_server(self, server):
-        for shard in self.shards:
-            if shard.get_server() and shard.get_server().id == server.id:
-                return True
+    def has_shard(self, shard):
+        return self.get_shard_member(shard) is not None
+
+    ###########################################################################
+    def get_shard_member(self, shard):
+        for shard_member in self.shards:
+            if ((isinstance(shard, Server) and
+                 shard_member.get_server() and
+                 shard_member.get_server().id == shard.id)
+                or
+                (isinstance(shard, Cluster) and
+                 shard_member.get_cluster() and
+                 shard_member.get_cluster().id == shard.id)):
+                return shard_member
 
     ###########################################################################
     def get_config_member_addresses(self):
@@ -73,43 +85,52 @@ class ShardSetCluster(Cluster):
         return addresses
 
     ###########################################################################
-    def get_shard_addresses(self):
-        addresses = []
-        for member in self.shards:
-            if member.get_server():
-                addresses.append(member.get_server().get_address())
-            elif member.get_cluster():
-                cluster_member_addresses = []
-                for cluster_member in member.get_cluster().get_members():
-                    cluster_member_addresses.append(
-                        cluster_member.get_server().get_address())
-                cluster_shard_address = "%s/%s" % (member.get_cluster().id,
-                                                   ",".join(cluster_member_addresses))
-                addresses.append(cluster_shard_address)
+    def get_shard_member_address(self, shard_member):
 
-        return addresses
+        if shard_member.get_server():
+            return shard_member.get_server().get_address()
+        elif shard_member.get_cluster():
+            cluster_member_addresses = []
+            for cluster_member in shard_member.get_cluster().get_members():
+                cluster_member_addresses.append(
+                    cluster_member.get_server().get_address())
+            return "%s/%s" % (shard_member.get_cluster().id,
+                              ",".join(cluster_member_addresses))
+
 
     ###########################################################################
     def configure_shardset(self):
-        mongos = self.get_any_online_mongos()
-        cmd = self.get_shardset_configure_command()
+        raise Exception("No implemented")
 
-        log_info("Configuring shardset '%s' " % self.id)
+    ###########################################################################
+    def add_shard(self, shard):
+        log_info("Adding shard '%s' to shardset '%s' " % (shard.id, self.id))
+
+        if self.is_shard_configured(shard):
+            log_info("Shard '%s' already added! Nothing to do..." % shard.id)
+            return
+
+        mongos = self.get_any_online_mongos()
+        shard_member = self.get_shard_member(shard)
+        cmd = self.get_add_shard_command(shard_member)
+
+
 
         configured_shards = self.read_configured_shards()
         log_info("Current configured shards: \n%s" %
                  document_pretty_string(configured_shards))
 
+
         log_info("Executing command \n%s\non mongos '%s'" %
                  (document_pretty_string(cmd), mongos.id))
         mongos.db_command(cmd, "admin")
 
-        log_info("Shardset '%s' configured successfully!" % self.id)
+        log_info("Shard '%s' added successfully!" % self.id)
 
     ###########################################################################
-    def get_shardset_configure_command(self):
+    def get_add_shard_command(self, shard_member):
         return {
-            "addShard": self.get_shard_url()
+            "addShard": self.get_shard_member_address(shard_member)
         }
 
     ###########################################################################
@@ -118,15 +139,17 @@ class ShardSetCluster(Cluster):
         return list(mongos.get_db("config")["shards"].find())
 
     ###########################################################################
-    def get_shard_url(self):
-        shard_addresses = self.get_shard_addresses()
-        return ",".join(shard_addresses)
+    def is_shard_configured(self, shard):
+        mongos = self.get_any_online_mongos()
+        return mongos.get_db("config")["shards"].find_one(shard.id) is not None
 
     ###########################################################################
     def get_any_online_mongos(self):
         for member in self.get_members():
             if member.get_server().is_online():
                 return member.get_server()
+
+        raise Exception("Unable to connect to a mongos")
 
     ###########################################################################
     def get_member_type(self):
