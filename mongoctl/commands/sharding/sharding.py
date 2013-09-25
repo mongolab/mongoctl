@@ -84,3 +84,46 @@ def dry_run_add_shard(shard, shardset_cluster):
 
     log_info("Executing the following command")
     log_info(document_pretty_string(db_command))
+
+
+
+###############################################################################
+# Remove shard command
+###############################################################################
+def remove_shard_command(parsed_options):
+    shard_id = parsed_options.shardId
+
+    # determine if the shard is a replicaset cluster or a server
+    shard = repository.lookup_cluster(shard_id)
+
+    if not shard:
+        shard = repository.lookup_server(shard_id)
+
+    if not shard:
+        raise MongoctlException("Unknown shard '%s'" % shard_id)
+
+    shardset_cluster = repository.config_lookup_cluster_by_shard(shard)
+
+    if not shardset_cluster:
+        raise MongoctlException("'%s' is not a shard" % shard_id)
+
+
+    if parsed_options.dryRun:
+        dry_run_remove_shard(shard, shardset_cluster)
+    else:
+        remove_shard(shard, shardset_cluster)
+
+###############################################################################
+def remove_shard(shard, shardset_cluster):
+    shardset_cluster.remove_shard(shard)
+
+###############################################################################
+def dry_run_remove_shard(shard, shardset_cluster):
+    log_info("\n************ Dry Run ************\n")
+
+    shard_member = shardset_cluster.get_shard_member(shard)
+    db_command = shardset_cluster.get_validate_remove_shard_command(
+        shard_member)
+
+    log_info("Executing the following command")
+    log_info(document_pretty_string(db_command))

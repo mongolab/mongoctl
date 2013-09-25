@@ -114,9 +114,7 @@ class ShardSetCluster(Cluster):
         shard_member = self.get_shard_member(shard)
         cmd = self.get_add_shard_command(shard_member)
 
-
-
-        configured_shards = self.read_configured_shards()
+        configured_shards = self.list_shards()
         log_info("Current configured shards: \n%s" %
                  document_pretty_string(configured_shards))
 
@@ -134,14 +132,68 @@ class ShardSetCluster(Cluster):
         }
 
     ###########################################################################
-    def read_configured_shards(self):
+    def remove_shard(self, shard):
+        log_info("Removing shard '%s' from shardset '%s' " %
+                 (shard.id, self.id))
+
+        configured_shards = self.list_shards()
+        log_info("Current configured shards: \n%s" %
+                 document_pretty_string(configured_shards))
+
         mongos = self.get_any_online_mongos()
-        return list(mongos.get_db("config")["shards"].find())
+
+        cmd = self.get_validate_remove_shard_command(shard)
+
+        log_info("Executing command \n%s\non mongos '%s'" %
+                 (document_pretty_string(cmd), mongos.id))
+
+        result = mongos.db_command(cmd, "admin")
+
+        log_info("Command result: %s" % result)
+        log_info("Shard '%s' removed successfully!" % self.id)
+
+
+    ###########################################################################
+    def get_validate_remove_shard_command(self, shard):
+        if not self.is_shard_configured(shard):
+            raise Exception("Bad remove shard attempt. Shard '%s' has not"
+                            " been added yet" % shard.id)
+
+        # TODO: re-enable this when  is_last_shard works properly
+        # check if its last shard and raise error if so
+        ##if self.is_last_shard(shard):
+          ##  raise Exception("Bad remove shard attempt. Shard '%s' is the last"
+            ##                " shard" % shard.id)
+        shard_member = self.get_shard_member(shard)
+
+        return {
+            "removeShard": shard_member.get_shard_id()
+        }
+
+    ###########################################################################
+    def get_remove_shard_command(self, shard):
+        return {
+            "removeShard": shard.id
+        }
+
+    ###########################################################################
+    def list_shards(self):
+        mongos = self.get_any_online_mongos()
+        return mongos.db_command({"listShards": 1}, "admin")
 
     ###########################################################################
     def is_shard_configured(self, shard):
-        mongos = self.get_any_online_mongos()
-        return mongos.get_db("config")["shards"].find_one(shard.id) is not None
+        shard_list = self.list_shards()
+        if shard_list and shard_list.get("shards"):
+            for sh in shard_list["shards"]:
+                if shard.id == sh["_id"]:
+                    return True
+
+    ###########################################################################
+    def is_last_shard(self, shard):
+        # TODO: implement
+        pass
+
 
     ###########################################################################
     def get_any_online_mongos(self):
@@ -154,8 +206,6 @@ class ShardSetCluster(Cluster):
     ###########################################################################
     def get_member_type(self):
         return ShardMember
-
-
 
 ###############################################################################
 # ShardMember Class
@@ -182,8 +232,6 @@ class ShardMember(DocumentWrapper):
 
         return self._server
 
-
-
     ###########################################################################
     def get_cluster(self):
         cluster_doc = self.get_property("cluster")
@@ -197,8 +245,15 @@ class ShardMember(DocumentWrapper):
 
         return self._cluster
 
+    ###########################################################################
+    def get_shard_id(self):
 
+        if self.get_server():
+            return self.get_server().id
+        elif self.get_cluster():
+            return self.get_cluster().id
 
+    ###########################################################################
 
 
 

@@ -1559,7 +1559,51 @@ MONGOCTL_PARSER_DEF = {
             ]
         },
 
+        {
+            "prog": "remove-shard",
+            "group": "shardCommands",
+            "shortDescription": "Removes shard from shardset",
+            "description": "Removes shard from shardset",
+            "function": "mongoctl.commands.sharding.sharding.remove_shard_command",
+            "args": [
+                {
+                    "name": "shardId",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "displayName": "SHARD_ID",
+                    "help": "A valid shard cluster id or shard server id"
+                },
 
+                {
+                    "name": "dryRun",
+                    "type" : "optional",
+                    "cmd_arg":  ["-n" , "--dry-run"],
+                    "nargs": 0,
+                    "help": "prints configure cluster db command to execute "
+                            "without executing it",
+                    "default": False
+                },
+
+                {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
+                }
+            ]
+        },
         #### configure-cluster ####
         {
             "prog": "configure-shard-cluster",
