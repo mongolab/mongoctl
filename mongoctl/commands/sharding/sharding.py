@@ -108,14 +108,17 @@ def remove_shard_command(parsed_options):
         raise MongoctlException("'%s' is not a shard" % shard_id)
 
 
+    dest = getattr(parsed_options, "unshardedDataDestination")
+    synchronized = getattr(parsed_options, "synchronized")
+
     if parsed_options.dryRun:
         dry_run_remove_shard(shard, shardset_cluster)
     else:
-        remove_shard(shard, shardset_cluster)
+        shardset_cluster.remove_shard(shard,
+                                      unsharded_data_dest_id=dest,
+                                      synchronized=synchronized)
 
-###############################################################################
-def remove_shard(shard, shardset_cluster):
-    shardset_cluster.remove_shard(shard)
+
 
 ###############################################################################
 def dry_run_remove_shard(shard, shardset_cluster):

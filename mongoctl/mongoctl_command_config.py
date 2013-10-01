@@ -1579,8 +1579,27 @@ MONGOCTL_PARSER_DEF = {
                     "type" : "optional",
                     "cmd_arg":  ["-n" , "--dry-run"],
                     "nargs": 0,
-                    "help": "prints configure cluster db command to execute "
+                    "help": "prints db command to execute "
                             "without executing it",
+                    "default": False
+                },
+
+                {
+                    "name": "unshardedDataDestination",
+                    "displayName": "SHARD_ID",
+                    "type" : "optional",
+                    "cmd_arg":  ["--move-unsharded-data-to"],
+                    "nargs": 1,
+                    "help": "Moves unsharded to data to specified shard id",
+                    "default": None
+                },
+
+                {
+                    "name": "synchronized",
+                    "type" : "optional",
+                    "cmd_arg": ["--synchronized"],
+                    "nargs": 0,
+                    "help": "synchronized",
                     "default": False
                 },
 

@@ -10,6 +10,8 @@ from bson import DBRef
 
 from mongoctl.mongoctl_logging import log_info
 from mongoctl.utils import document_pretty_string
+
+import time
 ###############################################################################
 # ShardSet Cluster Class
 ###############################################################################
@@ -68,6 +70,14 @@ class ShardSetCluster(Cluster):
                  shard_member.get_cluster().id == shard.id)):
                 return shard_member
 
+    ###########################################################################
+    def get_shard_member_by_shard_id(self, shard_id):
+        for shard_member in self.shards:
+            if ((shard_member.get_server() and
+                         shard_member.get_server().id == shard_id)
+                or (shard_member.get_cluster() and
+                            shard_member.get_cluster().id == shard_id)):
+                return shard_member
     ###########################################################################
     def get_config_member_addresses(self):
         addresses = []
@@ -132,7 +142,8 @@ class ShardSetCluster(Cluster):
         }
 
     ###########################################################################
-    def remove_shard(self, shard):
+    def remove_shard(self, shard, unsharded_data_dest_id=None,
+                     synchronized=False):
         log_info("Removing shard '%s' from shardset '%s' " %
                  (shard.id, self.id))
 
@@ -140,18 +151,43 @@ class ShardSetCluster(Cluster):
         log_info("Current configured shards: \n%s" %
                  document_pretty_string(configured_shards))
 
-        mongos = self.get_any_online_mongos()
+        completed = False
+        while not completed:
+            result = self._do_remove_shard(shard, unsharded_data_dest_id)
+            completed = synchronized and (result["state"] == "completed" or
+                                          not self.is_shard_configured(shard))
+            if not completed:
+                time.sleep(2)
 
+    ###########################################################################
+
+    def _do_remove_shard(self, shard, unsharded_data_dest_id=None):
         cmd = self.get_validate_remove_shard_command(shard)
+        mongos = self.get_any_online_mongos()
 
         log_info("Executing command \n%s\non mongos '%s'" %
                  (document_pretty_string(cmd), mongos.id))
 
         result = mongos.db_command(cmd, "admin")
 
-        log_info("Command result: %s" % result)
-        log_info("Shard '%s' removed successfully!" % self.id)
+        log_info("Command result: \n%s" % result)
 
+        if "dbsToMove" in result and unsharded_data_dest_id:
+            dest_shard_member = self.get_shard_member_by_shard_id(
+                unsharded_data_dest_id)
+
+            if not dest_shard_member:
+                raise Exception("No such shard '%s' in shardset '%s' " %
+                                (unsharded_data_dest_id, self.id))
+
+            dest_shard = dest_shard_member.get_shard()
+            self.move_dbs_primary(result["dbsToMove"], dest_shard)
+
+
+        if result.get('state') == "completed":
+            log_info("Shard '%s' removed successfully!" % self.id)
+
+        return result
 
     ###########################################################################
     def get_validate_remove_shard_command(self, shard):
@@ -203,6 +239,25 @@ class ShardSetCluster(Cluster):
 
         raise Exception("Unable to connect to a mongos")
 
+
+    ###########################################################################
+    def move_dbs_primary(self, db_names, dest_shard):
+        log_info("Moving databases %s primary to shard '%s'" %
+                 (db_names, dest_shard.id))
+        mongos = self.get_any_online_mongos()
+
+        for db_name in db_names:
+            move_cmd = {
+                "movePrimary": db_name,
+                "to": dest_shard.id
+            }
+            log_info("Executing movePrimary command:\n%s\non mongos '%s'" %
+                     (document_pretty_string(move_cmd), mongos.id))
+
+            result = mongos.db_command(move_cmd, "admin")
+
+            log_info("Move result: %s" % document_pretty_string(result))
+
     ###########################################################################
     def get_member_type(self):
         return ShardMember
@@ -247,13 +302,13 @@ class ShardMember(DocumentWrapper):
 
     ###########################################################################
     def get_shard_id(self):
-
-        if self.get_server():
-            return self.get_server().id
-        elif self.get_cluster():
-            return self.get_cluster().id
+        return self.get_shard().id
 
     ###########################################################################
+    def get_shard(self):
 
-
+        if self.get_server():
+            return self.get_server()
+        elif self.get_cluster():
+            return self.get_cluster()
 
