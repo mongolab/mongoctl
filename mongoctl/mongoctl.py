@@ -4277,12 +4277,20 @@ class Server(DocumentWrapper):
         return username, password
 
     ###########################################################################
-    def is_online(self):
+    def is_online(self, retry=False, num_tries=1):
+        log_verbose("Checking if server '%s' is online " % self.get_id())
         try:
             self.new_db_connection()
             return True
         except Exception, e:
-            return False
+            log_verbose("Server '%s' seems to be offline: %s" %
+                        (self.get_id(), e))
+            if retry and num_tries < 3:
+                log_verbose("Retry check is online again in 1 second...")
+                time.sleep(1)
+                return self.is_online(retry=retry, num_tries=num_tries+1)
+            else:
+                return False
 
     ###########################################################################
     def is_administrable(self):
@@ -4492,7 +4500,7 @@ class Server(DocumentWrapper):
     ###########################################################################
     def is_master_command(self, num_tries=1):
         try:
-            if self.is_online():
+            if self.is_online(retry=True):
                 result = self.db_command({"isMaster" : 1}, "admin")
                 return result
 
@@ -4502,8 +4510,9 @@ class Server(DocumentWrapper):
 
             if num_tries < 3:
                 log_warning(msg)
+                log_verbose("Trying isMaster again in 1 second")
                 time.sleep(1)
-                self.is_master(num_tries=num_tries+1)
+                return self.is_master(num_tries=num_tries+1)
             else:
                 log_error(msg)
 
