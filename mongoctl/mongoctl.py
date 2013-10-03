@@ -222,12 +222,14 @@ def do_main(args):
 def start_command(parsed_options):
     options_override = extract_mongod_options(parsed_options)
 
+    rs_add = parsed_options.rsAdd or parsed_options.rsAddNoInit
     if parsed_options.dryRun:
         dry_run_start_server_cmd(parsed_options.server, options_override)
     else:
         start_server(parsed_options.server,
                      options_override=options_override,
-                     rs_add=parsed_options.rsAdd,
+                     rs_add=rs_add,
+                     no_init=parsed_options.rsAddNoInit,
                      install_compatible=parsed_options.installCompatible)
 
 ###############################################################################
@@ -518,11 +520,14 @@ def list_versions_command(parsed_options):
 ###############################################################################
 # start server
 ###############################################################################
-def start_server(server_id, options_override=None, rs_add=False,
+def start_server(server_id, options_override=None,
+                 rs_add=False,
+                 no_init=False,
                  install_compatible=False):
     do_start_server(lookup_and_validate_server(server_id),
                     options_override=options_override,
                     rs_add=rs_add,
+                    no_init=no_init,
                     install_compatible=install_compatible)
 
 ###############################################################################
@@ -530,8 +535,11 @@ __mongod_pid__ = None
 __current_server__ = None
 
 ###############################################################################
-def do_start_server(server, options_override=None, rs_add=False,
-                            install_compatible=False):
+def do_start_server(server,
+                    options_override=None,
+                    rs_add=False,
+                    install_compatible=False,
+                    no_init=False):
     # ensure that the start was issued locally. Fail otherwise
     validate_local_op(server, "start")
 
@@ -569,7 +577,7 @@ def do_start_server(server, options_override=None, rs_add=False,
 
         # prepare the server
         prepare_server(server)
-        maybe_config_server_repl_set(server, rs_add=rs_add)
+        maybe_config_server_repl_set(server, rs_add=rs_add, no_init=no_init)
     except Exception,e:
         log_error("Unable to fully prepare server '%s'. Cause: %s \n"
                   "Stop server now if more preparation is desired..." %
@@ -622,7 +630,7 @@ def _pre_server_start(server, options_override=None):
 
 
 ###############################################################################
-def maybe_config_server_repl_set(server, rs_add=False):
+def maybe_config_server_repl_set(server, rs_add=False, no_init=False):
     # if the server belongs to a replica set cluster,
     # then prompt the user to init the replica set IF not already initialized
     # AND server is NOT an Arbiter
@@ -638,10 +646,15 @@ def maybe_config_server_repl_set(server, rs_add=False):
             log_info("Replica set cluster '%s' has not been initialized yet." %
                      cluster.get_id())
             if cluster.get_member_for(server).can_become_primary():
-                if rs_add:
-                    cluster.initialize_replicaset(server)
+                if not no_init:
+                    if rs_add:
+                        cluster.initialize_replicaset(server)
+                    else:
+                        prompt_init_replica_cluster(cluster, server)
                 else:
-                    prompt_init_replica_cluster(cluster, server)
+                    log_warning("Replicaset is not initialized and you "
+                                "specified --rs-add-nonit. Not adding to "
+                                "replicaset...")
             else:
                 log_info("Skipping replica set initialization because "
                          "server '%s' cannot be elected primary." %

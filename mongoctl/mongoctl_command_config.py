@@ -161,6 +161,16 @@ MONGOCTL_PARSER_DEF = {
                             "its not added yet",
                     "default": False
                 },
+                {
+                    "name": "rsAddNoInit",
+                    "type" : "optional",
+                    "cmd_arg": "--rs-add-noinit",
+                    "nargs": 0,
+                    "help": "Automatically add server to an "
+                            "initialized replicaset conf if "
+                            "its not added yet",
+                    "default": False
+                },
                     {
                     "name": "installCompatible",
                     "type" : "optional",
