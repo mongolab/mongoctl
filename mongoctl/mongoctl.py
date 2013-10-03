@@ -4490,15 +4490,22 @@ class Server(DocumentWrapper):
             return get_document_property(master_result, "secondary")
 
     ###########################################################################
-    def is_master_command(self):
+    def is_master_command(self, num_tries=1):
         try:
             if self.is_online():
                 result = self.db_command({"isMaster" : 1}, "admin")
                 return result
 
         except(Exception, RuntimeError),e:
-            log_verbose("isMaster command failed on server '%s'. Cause %s" %
-                        (self.get_id(), e))
+            msg = ("isMaster command failed on server '%s'. Cause %s" %
+                   (self.get_id(), e))
+
+            if num_tries < 3:
+                log_warning(msg)
+                time.sleep(1)
+                self.is_master(num_tries=num_tries+1)
+            else:
+                log_error(msg)
 
     ###########################################################################
     def read_replicaset_name(self):
