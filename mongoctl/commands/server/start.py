@@ -54,12 +54,14 @@ def start_command(parsed_options):
     server = repository.lookup_and_validate_server(server_id)
     options_override = extract_server_options(server, parsed_options)
 
+    rs_add = parsed_options.rsAdd or parsed_options.rsAddNoInit
     if parsed_options.dryRun:
         dry_run_start_server_cmd(server, options_override)
     else:
         start_server(server,
                      options_override=options_override,
-                     rs_add=parsed_options.rsAdd)
+                     rs_add=rs_add,
+                     no_init=parsed_options.rsAddNoInit)
 
 
 
@@ -89,17 +91,18 @@ def dry_run_start_server_cmd(server, options_override=None):
 ###############################################################################
 # start server
 ###############################################################################
-def start_server(server, options_override=None, rs_add=False):
+def start_server(server, options_override=None, rs_add=False, no_init=False):
     do_start_server(server,
                     options_override=options_override,
-                    rs_add=rs_add)
+                    rs_add=rs_add,
+                    no_init=no_init)
 
 ###############################################################################
 __mongod_pid__ = None
 __current_server__ = None
 
 ###############################################################################
-def do_start_server(server, options_override=None, rs_add=False):
+def do_start_server(server, options_override=None, rs_add=False, no_init=False):
     # ensure that the start was issued locally. Fail otherwise
     server.validate_local_op("start")
 
@@ -133,7 +136,7 @@ def do_start_server(server, options_override=None, rs_add=False):
 
     server_pid = start_server_process(server, options_override)
 
-    _post_server_start(server, server_pid)
+    _post_server_start(server, server_pid, rs_add=rs_add, no_init=no_init)
 
     # Note: The following block has to be the last block
     # because server_process.communicate() will not return unless you
@@ -192,7 +195,8 @@ def _post_mongod_server_start(server, server_pid, **kwargs):
 
         # prepare the server
         prepare_mongod_server(server)
-        maybe_config_server_repl_set(server, rs_add=kwargs.get("rs_add"))
+        maybe_config_server_repl_set(server, rs_add=kwargs.get("rs_add"),
+                                     no_init=kwargs.get("no_init"))
     except Exception,e:
         log_error("Unable to fully prepare server '%s'. Cause: %s \n"
                   "Stop server now if more preparation is desired..." %
@@ -224,7 +228,7 @@ def shall_we_terminate(mongod_pid):
     return condemned
 
 ###############################################################################
-def maybe_config_server_repl_set(server, rs_add=False):
+def maybe_config_server_repl_set(server, rs_add=False, no_init=False):
     # if the server belongs to a replica set cluster,
     # then prompt the user to init the replica set IF not already initialized
     # AND server is NOT an Arbiter
@@ -240,10 +244,15 @@ def maybe_config_server_repl_set(server, rs_add=False):
             log_info("Replica set cluster '%s' has not been initialized yet." %
                      cluster.id)
             if cluster.get_member_for(server).can_become_primary():
-                if rs_add:
-                    cluster.initialize_replicaset(server)
+                if not no_init:
+                    if rs_add:
+                        cluster.initialize_replicaset(server)
+                    else:
+                        prompt_init_replica_cluster(cluster, server)
                 else:
-                    prompt_init_replica_cluster(cluster, server)
+                    log_warning("Replicaset is not initialized and you "
+                                "specified --rs-add-nonit. Not adding to "
+                                "replicaset...")
             else:
                 log_info("Skipping replica set initialization because "
                          "server '%s' cannot be elected primary." %
@@ -259,7 +268,7 @@ def maybe_config_server_repl_set(server, rs_add=False):
             else:
                 log_verbose("Server '%s' is already added to the replicaset"
                             " conf of cluster '%s'." %
-                            (server.id,cluster.id))
+                            (server.id, cluster.id))
 
 
 ###############################################################################
