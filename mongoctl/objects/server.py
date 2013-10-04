@@ -518,7 +518,7 @@ class Server(DocumentWrapper):
             db.collection_names()
             return False
         except (RuntimeError,Exception), e:
-            return "unauthorized" in str(e)
+            return "authorized" in str(e)
 
     ###########################################################################
     def get_status(self, admin=False):
