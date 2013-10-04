@@ -3883,6 +3883,7 @@ class Server(DocumentWrapper):
         self.__seed_users__ = None
         self.__login_users__ = {}
         self.__mongo_version__ = None
+        self._connection_address = None
 
     ###########################################################################
     # Properties
@@ -4313,7 +4314,7 @@ class Server(DocumentWrapper):
     ###########################################################################
     def is_use_local(self):
         return (self.get_address() is None or
-               is_assumed_local_server(self.get_id())
+                is_assumed_local_server(self.get_id())
                 or self.is_local())
 
     ###########################################################################
@@ -4417,10 +4418,25 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_connection_address(self):
-        if(self.is_use_local()):
-            return self.get_local_address()
-        else:
-            return self.get_address()
+
+        if self._connection_address:
+            return self._connection_address
+
+        # try to get the first working connection address
+        if (self.is_use_local() and
+                self.has_connectivity_on(self.get_local_address())):
+            self._connection_address = self.get_local_address()
+        elif self.has_connectivity_on(self.get_address()):
+            self._connection_address = self.get_address()
+
+        # use old logic
+        if not self._connection_address:
+            if self.is_use_local():
+                self._connection_address = self.get_local_address()
+            else:
+                self._connection_address = self.get_address()
+
+        return self._connection_address
 
     ###########################################################################
     def get_mongo_uri_template(self, db=None):
@@ -4446,6 +4462,19 @@ class Server(DocumentWrapper):
             error_msg = "Cannot connect to '%s'. Cause: %s" %\
                         (address , e)
             raise MongoctlException(error_msg,cause=e)
+
+    ###########################################################################
+    def has_connectivity_on(self, address):
+
+        try:
+            log_verbose("Checking if server '%s' is accessible on "
+                        "address '%s'" % (self.get_id(), address))
+            self.make_db_connection(address)
+            return True
+        except Exception,e:
+            log_verbose("Check failed for server '%s' is accessible on "
+                        "address '%s': %s" % (self.get_id(), address, e))
+            return False
 
     ###########################################################################
     def get_rs_config(self):
