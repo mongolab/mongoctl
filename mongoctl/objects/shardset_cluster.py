@@ -110,7 +110,13 @@ class ShardSetCluster(Cluster):
 
     ###########################################################################
     def configure_shardset(self):
-        raise Exception("No implemented")
+        sh_list = self.list_shards()
+        if sh_list and sh_list.get("shards"):
+            raise Exception("Cannot configure a shardset that has been "
+                            "already configured")
+
+        for shard_member in self.shards:
+            self.add_shard(shard_member.get_shard())
 
     ###########################################################################
     def add_shard(self, shard):
