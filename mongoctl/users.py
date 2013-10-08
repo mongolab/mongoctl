@@ -45,7 +45,7 @@ def get_global_login_user(server, dbname):
                 dbname != "local"):
         global_login_server = repository.lookup_server(__global_login_user__["serverId"])
         global_login_cluster = global_login_server.get_replicaset_cluster()
-        cluster = server.get_replicaset_cluster(server)
+        cluster = server.get_replicaset_cluster()
         if (global_login_cluster and cluster and
                     global_login_cluster.id == cluster.id):
             return __global_login_user__
