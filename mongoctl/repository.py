@@ -8,7 +8,7 @@ import config
 from bson import DBRef
 
 from errors import MongoctlException
-from mongoctl_logging import log_warning, log_verbose, log_info
+from mongoctl_logging import log_warning, log_verbose, log_info, log_exception
 from mongo_uri_tools import parse_mongo_uri
 from utils import (
     resolve_class, document_pretty_string, is_valid_member_address, listify
@@ -58,6 +58,7 @@ def get_mongoctl_database():
         __mongoctl_db__ = conn[dbname]
         return __mongoctl_db__
     except Exception, e:
+        log_exception(e)
         __mongoctl_db__ = "OFFLINE"
         log_warning("\n*************\n"
                     "Will not be using database repository for configurations"
