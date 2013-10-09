@@ -33,7 +33,8 @@ def tail_server_log(server):
         tail_cmd = ["tail", "-f", logpath]
         log_verbose("Executing command: %s" % (" ".join(tail_cmd)))
         return create_subprocess(tail_cmd)
-    except Exception,e:
+    except Exception, e:
+        log_exception(e)
         log_error("Unable to tail server log file. Cause: %s" % e)
         return None
 
@@ -43,5 +44,6 @@ def stop_tailing(log_tailer):
         if log_tailer:
             log_verbose("-- Killing tail log path subprocess")
             log_tailer.terminate()
-    except Exception,e:
+    except Exception, e:
+        log_exception(e)
         log_verbose("Failed to kill tail subprocess. Cause: %s" % e)

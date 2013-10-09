@@ -135,6 +135,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
             return True
         except Exception, e:
             log_error("%s" % e)
+            log_exception(e)
             return False
 
     ###########################################################################
@@ -243,6 +244,7 @@ class ReplicaSetClusterMember(DocumentWrapper):
                            "'%s' map to the same host." % (h1, h2))
 
             except Exception, e:
+                log_exception(e)
                 err = "%s" % e
 
         if err:
@@ -485,7 +487,8 @@ class ReplicaSetCluster(Cluster):
             log_info("New replica set configuration:\n%s" %
                      document_pretty_string(self.read_rs_config()))
             return True
-        except Exception,e:
+        except Exception, e:
+            log_exception(e)
             raise MongoctlException("Unable to initialize "
                                     "replica set cluster '%s'. Cause: %s" %
                                     (self.id,e) )
@@ -579,7 +582,8 @@ class ReplicaSetCluster(Cluster):
                      document_pretty_string(realized_config))
 
             return True
-        except Exception,e:
+        except Exception, e:
+            log_exception(e)
             raise MongoctlException("Unable to reconfigure "
                                     "replica set cluster '%s'. Cause: %s " %
                                     (self.id,e) )

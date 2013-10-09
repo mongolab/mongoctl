@@ -114,6 +114,7 @@ def mongo_stop_server(server, pid, force=False):
         else:
             return True
     except Exception, e:
+        log_exception(e)
         log_error("Failed to gracefully stop server '%s'. Cause: %s" %
                   (server.id, e))
         return False
@@ -195,7 +196,8 @@ def step_server_down(server, force=False):
         server.disconnecting_db_command(cmd, "admin")
         log_info("Server '%s' stepped down successfully!" % server.id)
         return True
-    except (Exception), e:
+    except Exception, e:
+        log_exception(e)
         log_error("Failed to step down server '%s'. Cause: %s" %
                   (server.id, e))
         return False

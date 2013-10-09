@@ -2,8 +2,10 @@ __author__ = 'abdul'
 
 import json
 import urllib
+import mongoctl_globals
+
 from utils import *
-from mongoctl_logging import *
+
 from minify_json import minify_json
 from errors import MongoctlException
 
@@ -12,15 +14,13 @@ from bson import json_util
 ###############################################################################
 # CONSTS
 ###############################################################################
-DEFAULT_CONF_ROOT = "~/.mongoctl"
-
 MONGOCTL_CONF_FILE_NAME = "mongoctl.config"
 
 
 ###############################################################################
 # Config root / files stuff
 ###############################################################################
-__config_root__ = DEFAULT_CONF_ROOT
+__config_root__ = mongoctl_globals.DEFAULT_CONF_ROOT
 
 def _set_config_root(root_path):
     if not is_url(root_path) and not dir_exists(root_path):

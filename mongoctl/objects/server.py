@@ -7,7 +7,9 @@ import mongoctl.repository as repository
 from base import DocumentWrapper
 from mongoctl.utils import resolve_path, document_pretty_string, is_host_local
 from pymongo.errors import AutoReconnect
-from mongoctl.mongoctl_logging import log_verbose, log_error, log_warning
+from mongoctl.mongoctl_logging import (
+    log_verbose, log_error, log_warning, log_exception, log_debug
+    )
 from mongoctl.mongo_version import version_obj
 
 from mongoctl.config import get_default_users
@@ -331,7 +333,8 @@ class Server(DocumentWrapper):
         try:
             result = self.db_command(cmd, dbname)
             return result
-        except (Exception),e:
+        except Exception, e:
+            log_exception(e)
             if "timed out" in str(e):
                 log_warning("Command %s is taking a while to complete. "
                             "This is not necessarily bad. " %
@@ -472,6 +475,7 @@ class Server(DocumentWrapper):
             self.new_db_connection()
             return True
         except Exception, e:
+            log_exception(e)
             return False
 
     ###########################################################################
@@ -500,6 +504,7 @@ class Server(DocumentWrapper):
             server_host = self.get_host_address()
             return server_host is None or is_host_local(server_host)
         except Exception, e:
+            log_exception(e)
             log_error("Unable to resolve address '%s' for server '%s'."
                       " Cause: %s" %
                       (self.get_host_address(), self.id, e))
@@ -512,13 +517,20 @@ class Server(DocumentWrapper):
         NOTE: we stopped depending on is_auth() since its only a configuration
         and may not be accurate
         """
+        log_debug("Checking if server '%s' needs to auth on  db '%s'...." %
+                  (self.id, dbname))
         try:
             conn = self.new_db_connection()
             db = conn[dbname]
             db.collection_names()
-            return False
+            result = False
         except (RuntimeError,Exception), e:
-            return "authorized" in str(e)
+            log_exception(e)
+            result = "authorized" in str(e)
+
+        log_debug("needs_to_auth check for server '%s'  on db '%s' : %s" %
+                  (self.id, dbname, result))
+        return result
 
     ###########################################################################
     def get_status(self, admin=False):
@@ -533,7 +545,8 @@ class Server(DocumentWrapper):
                 server_summary = self.get_server_status_summary()
                 status["serverStatusSummary"] = server_summary
 
-        except (RuntimeError, Exception),e:
+        except (RuntimeError, Exception), e:
+            log_exception(e)
             self.sever_db_connection()   # better luck next time!
             status['connection'] = False
             status['error'] = "%s" % e
@@ -596,7 +609,8 @@ class Server(DocumentWrapper):
             return Connection(address,
                               socketTimeoutMS=CONN_TIMEOUT,
                               connectTimeoutMS=CONN_TIMEOUT)
-        except Exception,e:
+        except Exception, e:
+            log_exception(e)
             error_msg = "Cannot connect to '%s'. Cause: %s" % \
                         (address, e)
             raise MongoctlException(error_msg,cause=e)
@@ -609,7 +623,8 @@ class Server(DocumentWrapper):
                         "address '%s'" % (self.id, address))
             self.make_db_connection(address)
             return True
-        except Exception,e:
+        except Exception, e:
+            log_exception(e)
             log_verbose("Check failed for server '%s' is accessible on "
                         "address '%s': %s" % (self.id, address, e))
             return False
@@ -619,6 +634,7 @@ class Server(DocumentWrapper):
         try:
             return self.get_db('local')['system.replset'].find_one()
         except (Exception,RuntimeError), e:
+            log_exception(e)
             if type(e) == MongoctlException:
                 raise e
             else:

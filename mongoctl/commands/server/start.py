@@ -180,6 +180,7 @@ def _pre_mongod_server_start(server, options_override=None):
         try:
             os.remove(lock_file_path)
         except Exception, e:
+            log_exception(e)
             raise MongoctlException("Error while trying to delete '%s'. "
                                     "Cause: %s" % (lock_file_path, e))
 
@@ -197,7 +198,8 @@ def _post_mongod_server_start(server, server_pid, **kwargs):
         prepare_mongod_server(server)
         maybe_config_server_repl_set(server, rs_add=kwargs.get("rs_add"),
                                      no_init=kwargs.get("no_init"))
-    except Exception,e:
+    except Exception, e:
+        log_exception(e)
         log_error("Unable to fully prepare server '%s'. Cause: %s \n"
                   "Stop server now if more preparation is desired..." %
                   (server.id, e))
@@ -585,6 +587,7 @@ def mongoctl_signal_handler(signal_val, frame):
                 log_verbose("Killing child process '%s'" % child_process )
                 child_process.terminate()
         except Exception, e:
+            log_exception(e)
             log_verbose("Unable to kill child process '%s': Cause: %s" %
                         (child_process, e))
 

@@ -39,7 +39,7 @@ import objects.server
 
 from dargparse import dargparse
 from mongoctl_logging import (
-    log_error, log_info, turn_logging_verbose_on, log_verbose
+    log_error, log_info, turn_logging_verbose_on, log_verbose, log_exception
 )
 
 from mongoctl_command_config import MONGOCTL_PARSER_DEF
@@ -68,7 +68,11 @@ def main(args):
         do_main(args)
     except MongoctlException,e:
         log_error(e)
+        log_exception(e)
         exit(1)
+    except Exception, e:
+        log_exception(e)
+        raise
 
 ###############################################################################
 def do_main(args):

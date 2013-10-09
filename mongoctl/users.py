@@ -2,7 +2,7 @@ __author__ = 'abdul'
 
 import repository
 
-from mongoctl_logging import log_info, log_verbose, log_warning
+from mongoctl_logging import log_info, log_verbose, log_warning, log_exception
 from pymongo.errors import OperationFailure, AutoReconnect
 from errors import MongoctlException
 from prompt import read_password
@@ -103,7 +103,8 @@ def should_seed_users(server):
             if connection[dbname]['system.users'].find_one():
                 return False
         return True
-    except Exception,e:
+    except Exception, e:
+        log_exception(e)
         return False
 
 ###############################################################################
@@ -115,7 +116,8 @@ def should_seed_db_users(server, dbname):
             return False
         else:
             return True
-    except Exception,e:
+    except Exception, e:
+        log_exception(e)
         return False
 
 ###############################################################################
@@ -151,6 +153,7 @@ def _mongo_add_user(db, username, password, read_only=False, num_tries=1):
         else:
             raise ofe
     except AutoReconnect, ar:
+        log_exception(ar)
         if num_tries < 3:
             log_warning("_mongo_add_user: Caught a AutoReconnect error. %s " %
                         ar)
@@ -183,7 +186,8 @@ def setup_server_db_users(server, dbname, db_users):
         if not any_new_user_added:
             log_verbose("No new users added for database '%s'" % dbname)
         return any_new_user_added
-    except Exception,e:
+    except Exception, e:
+        log_exception(e)
         raise MongoctlException(
             "Error while setting up users for '%s'" \
             " database on server '%s'."
@@ -236,7 +240,8 @@ def setup_server_admin_users(server):
         # create the rest of the users
         count_new_users += setup_db_users(server, admin_db, admin_users[1:])
         return count_new_users
-    except Exception,e:
+    except Exception, e:
+        log_exception(e)
         raise MongoctlException(
             "Error while setting up admin users on server '%s'."
             "\n Cause: %s" % (server.id, e))
@@ -250,6 +255,7 @@ def setup_server_local_users(server):
         if not local_db['system.users'].find_one():
             seed_local_users = True
     except Exception, e:
+        log_exception(e)
         pass
 
     if not seed_local_users:
@@ -265,7 +271,8 @@ def setup_server_local_users(server):
             return setup_db_users(server, local_db, local_users)
         else:
             return 0
-    except Exception,e:
+    except Exception, e:
+        log_exception(e)
         raise MongoctlException(
             "Error while setting up local users on server '%s'."
             "\n Cause: %s" % (server.id, e))

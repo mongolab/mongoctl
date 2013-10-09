@@ -11,7 +11,7 @@ import mongoctl.config as config
 from mongoctl.prompt import prompt_execute_task, is_interactive_mode
 
 from mongoctl.utils import ensure_dir, dir_exists
-from mongoctl.mongoctl_logging import log_info , log_error
+from mongoctl.mongoctl_logging import log_info, log_error, log_exception
 
 from mongoctl.errors import MongoctlException
 
@@ -136,6 +136,7 @@ def do_install_mongodb(os_name, bits, version):
             log_info("MongoDB %s installed successfully!" % version)
             return install_dir
         except Exception, e:
+            log_exception(e)
             log_error("Failed to install MongoDB '%s'. Cause: %s" %
                       (version, e))
 

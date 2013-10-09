@@ -262,6 +262,7 @@ def get_exe_version_tuples(executables):
             exe_version = mongo_exe_version(mongo_exe)
             exe_ver_tuples.append((mongo_exe, exe_version))
         except Exception, e:
+            log_exception(e)
             log_verbose("Skipping executable '%s': %s" % (mongo_exe, e))
 
     return exe_ver_tuples
@@ -298,6 +299,7 @@ def mongo_exe_version(mongo_exe):
             raise MongoctlException("Cannot parse mongo version from the"
                                     " output of '%s --version'" % mongo_exe)
     except Exception, e:
+        log_exception(e)
         raise MongoctlException("Unable to get mongo version of '%s'."
                                 " Cause: %s" % (mongo_exe, e))
 

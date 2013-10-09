@@ -1,11 +1,11 @@
 __author__ = 'abdul'
 
 
-import mongoctl.repository as repository
+
 import server
 
 from mongoctl.utils import resolve_path
-from mongoctl.mongoctl_logging import log_verbose
+from mongoctl.mongoctl_logging import log_verbose, log_debug, log_exception
 
 from bson.son import SON
 from mongoctl.errors import MongoctlException
@@ -223,6 +223,9 @@ class MongodServer(server.Server):
         try:
             return self.get_db('local')['system.replset'].find_one()
         except (Exception,RuntimeError), e:
+            log_debug("Error whille trying to read rs config from "
+                      "server '%s': " % (self.id, e))
+            log_exception(e)
             if type(e) == MongoctlException:
                 raise e
             else:
@@ -237,8 +240,9 @@ class MongodServer(server.Server):
             rs_status =  self.db_command(rs_status_cmd, 'admin')
             return rs_status
         except (Exception,RuntimeError), e:
-            log_verbose("Cannot get rs status from server '%s'. cause: %s" %
+            log_debug("Cannot get rs status from server '%s'. cause: %s" %
                         (self.id, e))
+            log_exception(e)
             return None
 
     ###########################################################################
@@ -250,8 +254,10 @@ class MongodServer(server.Server):
                     if 'self' in member and member['self']:
                         return member
             except (Exception,RuntimeError), e:
-                log_verbose("Cannot get member rs status from server '%s'. cause: %s" %
-                            (self.id, e))
+                log_debug("Cannot get member rs status from server '%s'."
+                          " cause: %s" % (self.id, e))
+                log_exception(e)
+
                 return None
 
     ###########################################################################
