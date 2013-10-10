@@ -111,6 +111,11 @@ MONGOCTL_PARSER_DEF = {
             {
             "name" :"miscCommands",
             "display": "Miscellaneous"
+        },
+
+        {
+            "name" :"shardCommands",
+            "display": "Sharding"
         }
     ],
 
@@ -123,7 +128,7 @@ MONGOCTL_PARSER_DEF = {
             #"usage" : generate default usage
             "shortDescription" : "start a server",
             "description" : "Starts a specific server.",
-            "function": "mongoctl.mongoctl.start_command",
+            "function": "mongoctl.commands.server.start.start_command",
             "args":[
 
                     {
@@ -171,16 +176,6 @@ MONGOCTL_PARSER_DEF = {
                             "its not added yet",
                     "default": False
                 },
-                    {
-                    "name": "installCompatible",
-                    "type" : "optional",
-                    "cmd_arg": "--install-mongodb",
-                    "nargs": 0,
-                    "help": "Automatically installs MongoDB compatible with "
-                            "server if no compatible installation found",
-                    "default": False
-                },
-
                     {
                     "name": "username",
                     "type" : "optional",
@@ -313,16 +308,6 @@ MONGOCTL_PARSER_DEF = {
                     "help": "alternative directory for UNIX domain sockets "
                             "(defaults to /tmp)"
                 },
-
-                    {
-                    "name": "fork",
-                    "type" : "optional",
-                    "cmd_arg":  "--fork",
-                    "nargs": 0,
-                    "help": "noop; mongoctl will always fork the mongod process",
-                    "default": None
-                },
-
                     {
                     "name": "auth",
                     "type" : "optional",
@@ -665,7 +650,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "serverCommands",
             "shortDescription" : "stop a server",
             "description" : "Stops a specific server.",
-            "function": "mongoctl.mongoctl.stop_command",
+            "function": "mongoctl.commands.server.stop.stop_command",
             "args":[
                     {   "name": "server",
                         "type" : "positional",
@@ -715,7 +700,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "serverCommands",
             "shortDescription" : "restart a server",
             "description" : "Restarts a specific server.",
-            "function": "mongoctl.mongoctl.restart_command",
+            "function": "mongoctl.commands.server.restart.restart_command",
             "args":[
                     {   "name": "server",
                         "type" : "positional",
@@ -758,9 +743,9 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "status",
             "group": "serverCommands",
-            "shortDescription" : "retrieve status of server",
-            "description" : "Retrieves the status of a server",
-            "function": "mongoctl.mongoctl.status_command",
+            "shortDescription" : "retrieve status of server or a cluster",
+            "description" : "Retrieves the status of a server or a cluster",
+            "function": "mongoctl.commands.common.status.status_command",
             "args":[
                     {   "name": "id",
                         "type" : "positional",
@@ -800,7 +785,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "serverCommands",
             "shortDescription" : "show list of configured servers",
             "description" : "Show list of configured servers.",
-            "function": "mongoctl.mongoctl.list_servers_command"
+            "function": "mongoctl.commands.server.list_servers.list_servers_command"
         },
         #### show-server ####
             {
@@ -808,7 +793,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "serverCommands",
             "shortDescription" : "show server's configuration",
             "description" : "Shows the configuration for a specific server.",
-            "function": "mongoctl.mongoctl.show_server_command" ,
+            "function": "mongoctl.commands.server.show.show_server_command" ,
             "args":[
                     {   "name": "server",
                         "type" : "positional",
@@ -829,7 +814,7 @@ MONGOCTL_PARSER_DEF = {
                             "   (a) a mongodb URI (e.g. mongodb://localhost:27017[/mydb])\n"
                             "   (b) <server-id>[/<db>]\n"
                             "   (c) <cluster-id>[/<db>]\n",
-            "function": "mongoctl.mongoctl.connect_command",
+            "function": "mongoctl.commands.common.connect.connect_command",
             "args": [
                     {
                     "name": "dbAddress",
@@ -937,7 +922,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "serverCommands",
             "shortDescription" : "tails a server's log file",
             "description" : "Tails server's log file. Works only on local host",
-            "function": "mongoctl.mongoctl.tail_log_command",
+            "function": "mongoctl.commands.server.tail_log.tail_log_command",
             "args": [
                     {
                     "name": "server",
@@ -970,7 +955,7 @@ MONGOCTL_PARSER_DEF = {
                             "   (a) a mongodb URI (e.g. mongodb://localhost:27017[/mydb])\n"
                             "   (b) <server-id>[/<db>]\n"
                             "   (c) <cluster-id>[/<db>]\n",
-            "function": "mongoctl.mongoctl.dump_command",
+            "function": "mongoctl.commands.common.dump.dump_command",
             "args": [
                     {
                     "name": "target",
@@ -1146,7 +1131,7 @@ MONGOCTL_PARSER_DEF = {
                             "   (a) a mongodb URI (e.g. mongodb://localhost:27017[/mydb])\n"
                             "   (b) <server-id>[/<db>]\n"
                             "   (c) <cluster-id>[/<db>]\n",
-            "function": "mongoctl.mongoctl.restore_command",
+            "function": "mongoctl.commands.common.restore.restore_command",
             "args": [
                     {
                     "name": "destination",
@@ -1300,7 +1285,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "serverCommands",
             "shortDescription" : "Resyncs a secondary member",
             "description" : "Resyncs a secondary member",
-            "function": "mongoctl.mongoctl.resync_secondary_command",
+            "function": "mongoctl.commands.server.resync_secondary.resync_secondary_command",
             "args": [
                     {
                     "name": "server",
@@ -1348,7 +1333,7 @@ MONGOCTL_PARSER_DEF = {
                             "This command is \nused both to initiate the "
                             "cluster for the first time \nand to reconfigure "
                             "the cluster.",
-            "function": "mongoctl.mongoctl.configure_cluster_command",
+            "function": "mongoctl.commands.cluster.configure.configure_cluster_command",
             "args": [
                     {
                     "name": "cluster",
@@ -1398,13 +1383,14 @@ MONGOCTL_PARSER_DEF = {
                 }
             ]
         },
+
         #### list-clusters ####
             {
             "prog": "list-clusters",
             "group": "clusterCommands",
             "shortDescription" : "show list of configured clusters",
             "description" : "Show list of configured servers",
-            "function": "mongoctl.mongoctl.list_clusters_command"
+            "function": "mongoctl.commands.cluster.list_clusters.list_clusters_command"
         },
 
         #### show-cluster ####
@@ -1413,7 +1399,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "clusterCommands",
             "shortDescription" : "show cluster's configuration",
             "description" : "Shows specific cluster's configuration",
-            "function": "mongoctl.mongoctl.show_cluster_command",
+            "function": "mongoctl.commands.cluster.show.show_cluster_command",
             "args": [
                     {
                     "name": "cluster",
@@ -1433,7 +1419,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "adminCommands",
             "shortDescription" : "install MongoDB",
             "description" : "install MongoDB",
-            "function": "mongoctl.mongoctl.install_command",
+            "function": "mongoctl.commands.misc.install.install_command",
             "args": [
                     {
                     "name": "version",
@@ -1452,7 +1438,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "adminCommands",
             "shortDescription" : "uninstall MongoDB",
             "description" : "uninstall MongoDB",
-            "function": "mongoctl.mongoctl.uninstall_command",
+            "function": "mongoctl.commands.misc.install.uninstall_command",
             "args": [
                     {
                     "name": "version",
@@ -1469,7 +1455,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "adminCommands",
             "shortDescription" : "install MongoDB",
             "description" : "install MongoDB",
-            "function": "mongoctl.mongoctl.install_command",
+            "function": "mongoctl.commands.misc.install.install_command",
             "args": [
                     {
                     "name": "version",
@@ -1486,7 +1472,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "adminCommands",
             "shortDescription" : "uninstall MongoDB",
             "description" : "uninstall MongoDB",
-            "function": "mongoctl.mongoctl.uninstall_command",
+            "function": "mongoctl.commands.misc.install.uninstall_command",
             "args": [
                     {
                     "name": "version",
@@ -1505,37 +1491,194 @@ MONGOCTL_PARSER_DEF = {
                                  " this machine",
             "description" : "list all available MongoDB installations on"
                             " this machine",
-            "function": "mongoctl.mongoctl.list_versions_command",
+            "function": "mongoctl.commands.misc.install.list_versions_command",
         },
         #### print-uri ####
-            {
-            "prog": "print-uri",
-            "group": "miscCommands",
-            "shortDescription" : "prints connection URI for a"
-                                 " server or cluster",
-            "description" : "Prints MongoDB connection URI of the specified"
-                            " server or clurter",
-            "function": "mongoctl.mongoctl.print_uri_command",
+        {
+        "prog": "print-uri",
+        "group": "miscCommands",
+        "shortDescription" : "prints connection URI for a"
+                             " server or cluster",
+        "description" : "Prints MongoDB connection URI of the specified"
+                        " server or clurter",
+        "function": "mongoctl.commands.misc.print_uri.print_uri_command",
+        "args": [
+                {
+                "name": "id",
+                "type" : "positional",
+                "nargs": 1,
+                "displayName": "SERVER or CLUSTER ID",
+                "help": "Server or cluster id"
+            },
+                {
+                "name": "db",
+                "type" : "optional",
+                "help": "database name",
+                "cmd_arg": [
+                    "-d",
+                    "--db"
+                ],
+                "nargs": 1
+            }
+        ]
+        },
+
+        {
+            "prog": "add-shard",
+            "group": "shardCommands",
+            "shortDescription" : "Adds specified shard to shardset",
+            "description" : "Adds specified shard to shardset",
+            "function": "mongoctl.commands.sharding.sharding.add_shard_command",
             "args": [
-                    {
-                    "name": "id",
+                {
+                    "name": "shardId",
                     "type" : "positional",
                     "nargs": 1,
-                    "displayName": "SERVER or CLUSTER ID",
-                    "help": "Server or cluster id"
+                    "displayName": "SHARD_ID",
+                    "help": "A valid shard cluster id or shard server id"
                 },
-                    {
-                    "name": "db",
+
+                {
+                    "name": "dryRun",
                     "type" : "optional",
-                    "help": "database name",
+                    "cmd_arg":  ["-n" , "--dry-run"],
+                    "nargs": 0,
+                    "help": "prints configure cluster db command to execute "
+                            "without executing it",
+                    "default": False
+                },
+
+                {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
                     "cmd_arg": [
-                        "-d",
-                        "--db"
+                        "-u"
                     ],
                     "nargs": 1
+                },
+                {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
                 }
             ]
-            }
+        },
+
+        {
+            "prog": "remove-shard",
+            "group": "shardCommands",
+            "shortDescription": "Removes shard from shardset",
+            "description": "Removes shard from shardset",
+            "function": "mongoctl.commands.sharding.sharding.remove_shard_command",
+            "args": [
+                {
+                    "name": "shardId",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "displayName": "SHARD_ID",
+                    "help": "A valid shard cluster id or shard server id"
+                },
+
+                {
+                    "name": "dryRun",
+                    "type" : "optional",
+                    "cmd_arg":  ["-n" , "--dry-run"],
+                    "nargs": 0,
+                    "help": "prints db command to execute "
+                            "without executing it",
+                    "default": False
+                },
+
+                {
+                    "name": "unshardedDataDestination",
+                    "displayName": "SHARD_ID",
+                    "type" : "optional",
+                    "cmd_arg":  ["--move-unsharded-data-to"],
+                    "nargs": 1,
+                    "help": "Moves unsharded to data to specified shard id",
+                    "default": None
+                },
+
+                {
+                    "name": "synchronized",
+                    "type" : "optional",
+                    "cmd_arg": ["--synchronized"],
+                    "nargs": 0,
+                    "help": "synchronized",
+                    "default": False
+                },
+
+                {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
+                }
+            ]
+        },
+        #### configure-cluster ####
+        {
+            "prog": "configure-shard-cluster",
+            "group": "shardCommands",
+            "shortDescription" : "configures a shardset cluster",
+            "description" : "configures a shardset cluster",
+            "function": "mongoctl.commands.sharding.sharding.configure_shard_cluster_command",
+            "args": [
+                {
+                    "name": "cluster",
+                    "type" : "positional",
+                    "nargs": 1,
+                    "displayName": "CLUSTER_ID",
+                    "help": "A valid cluster id"
+                },
+
+                {
+                    "name": "dryRun",
+                    "type" : "optional",
+                    "cmd_arg":  ["-n" , "--dry-run"],
+                    "nargs": 0,
+                    "help": "prints configure cluster db command to execute "
+                            "without executing it",
+                    "default": False
+                },
+
+                {
+                    "name": "username",
+                    "type" : "optional",
+                    "help": "admin username",
+                    "cmd_arg": [
+                        "-u"
+                    ],
+                    "nargs": 1
+                },
+                {
+                    "name": "password",
+                    "type" : "optional",
+                    "help": "admin password",
+                    "cmd_arg": [
+                        "-p"
+                    ],
+                    "nargs": "?"
+                }
+            ]
+        }
 
 
         ]

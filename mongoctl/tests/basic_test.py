@@ -23,11 +23,6 @@
 
 
 import unittest
-import commands
-import json
-import inspect
-import os
-import shutil
 
 from mongoctl.tests.test_base import MongoctlTestBase
 

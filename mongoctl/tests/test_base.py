@@ -29,10 +29,9 @@ import commands
 import inspect
 import os
 import shutil
-import mongoctl
+import mongoctl.mongoctl as mongoctl_main
+from mongoctl.utils import is_pid_alive, kill_process
 import traceback
-
-from mongoctl import mongoctl
 
 ###############################################################################
 # Constants
@@ -94,10 +93,10 @@ class MongoctlTestBase(unittest.TestCase):
             if pid == '':
                 continue
             pid = int(pid)
-            if mongoctl.is_pid_alive(pid):
+            if is_pid_alive(pid):
                 print ("PID for server %s is still alive. Killing..." %
                        server_id)
-                mongoctl.kill_process(pid, force=True)
+                kill_process(pid, force=True)
 
     ###########################################################################
     # This should be overridden by inheritors
@@ -140,7 +139,7 @@ class MongoctlTestBase(unittest.TestCase):
         print "++++++++++ Testing command : %s" % cmd
 
         try:
-            return mongoctl.do_main(cmd.split(" ")[1:])
+            return mongoctl_main.do_main(cmd.split(" ")[1:])
         except Exception, e:
             print("Error while executing test command '%s'. Cause: %s " %
                   (cmd, e))
@@ -154,7 +153,7 @@ class MongoctlTestBase(unittest.TestCase):
         print "Quiet Executing command : %s" % cmd
 
         try:
-            return mongoctl.do_main(cmd.split(" ")[1:])
+            return mongoctl_main.do_main(cmd.split(" ")[1:])
         except Exception, e:
             print("WARNING: failed to quiet execute command '%s'. Cause: %s " %
                   (cmd, e))
