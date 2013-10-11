@@ -15,6 +15,8 @@ from mongoctl.utils import call_command
 from mongoctl.objects.server import Server
 
 from mongoctl.objects.mongod import MongodServer
+from mongoctl.objects.replicaset_cluster import ReplicaSetCluster
+from mongoctl.objects.shardset_cluster import ShardSetCluster
 
 ###############################################################################
 # CONSTS
@@ -116,20 +118,38 @@ def open_mongo_shell_to_cluster(cluster,
                                 password=None,
                                 shell_options={},
                                 js_files=[]):
-    log_info("Locating primary server for cluster '%s'..." % cluster.id)
-    primary_member = cluster.get_primary_member()
-    if primary_member:
-        primary_server = primary_member.get_server()
-        log_info("Connecting to primary server '%s'" % primary_server.id)
-        open_mongo_shell_to_server(primary_server,
+
+    server = None
+    if isinstance(cluster, ReplicaSetCluster):
+        log_info("Locating primary server for replicaset cluster '%s'..."
+                 % cluster.id)
+        primary_member = cluster.get_primary_member()
+        if primary_member:
+            server = primary_member.get_server()
+            log_info("Connecting to primary server '%s'" % server.id)
+
+        else:
+            log_error("No primary server found for replicaset cluster '%s'" %
+                      cluster.id)
+
+    elif isinstance(cluster, ShardSetCluster):
+        log_error("Finding an online mongos for shardset cluster '%s'" %
+                  cluster.id)
+        server = cluster.get_any_online_mongos()
+        if server:
+            log_info("Connecting to mongos server '%s'" % server.id)
+        else:
+            log_error("Could not locate a mongos for shardset cluster '%s'" %
+                      cluster.id)
+
+    if server:
+        open_mongo_shell_to_server(server,
                                    database=database,
                                    username=username,
                                    password=password,
                                    shell_options=shell_options,
                                    js_files=js_files)
-    else:
-        log_error("No primary server found for cluster '%s'" %
-                  cluster.id)
+
 
 ###############################################################################
 def open_mongo_shell_to_uri(uri,
