@@ -236,6 +236,9 @@ class ShardSetCluster(Cluster):
         # TODO: implement
         pass
 
+    ###########################################################################
+    def get_default_server(self):
+        return self.get_any_online_mongos()
 
     ###########################################################################
     def get_any_online_mongos(self):

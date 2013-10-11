@@ -292,6 +292,16 @@ class ReplicaSetCluster(Cluster):
     # Interface Methods
     ###########################################################################
 
+    def get_default_server(self):
+        return self.get_primary_server()
+
+    ###########################################################################
+    def get_primary_server(self):
+        primary_member = self.get_primary_member()
+        if primary_member:
+            return primary_member.get_server()
+
+    ###########################################################################
     def get_primary_member(self):
         for member in self.get_members():
             if member.get_server().is_primary():

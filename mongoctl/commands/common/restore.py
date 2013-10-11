@@ -164,18 +164,17 @@ def mongo_restore_cluster(cluster, source,
                           password=None,
                           restore_options=None):
     repository.validate_cluster(cluster)
-    log_info("Locating primary server for cluster '%s'..." % cluster.id)
-    primary_member = cluster.get_primary_member()
-    if primary_member:
-        primary_server = primary_member.get_server()
-        log_info("Restoring primary server '%s'" % primary_server.id)
-        mongo_restore_server(primary_server, source,
+    log_info("Locating default server for cluster '%s'..." % cluster.id)
+    default_server = cluster.get_default_server()
+    if default_server:
+        log_info("Restoring default server '%s'" % default_server.id)
+        mongo_restore_server(default_server, source,
                              database=database,
                              username=username,
                              password=password,
                              restore_options=restore_options)
     else:
-        raise MongoctlException("No primary server found for cluster '%s'" %
+        raise MongoctlException("No default server found for cluster '%s'" %
                                 cluster.id)
 
 ###############################################################################

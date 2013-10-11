@@ -119,37 +119,19 @@ def open_mongo_shell_to_cluster(cluster,
                                 shell_options={},
                                 js_files=[]):
 
-    server = None
-    if isinstance(cluster, ReplicaSetCluster):
-        log_info("Locating primary server for replicaset cluster '%s'..."
-                 % cluster.id)
-        primary_member = cluster.get_primary_member()
-        if primary_member:
-            server = primary_member.get_server()
-            log_info("Connecting to primary server '%s'" % server.id)
-
-        else:
-            log_error("No primary server found for replicaset cluster '%s'" %
-                      cluster.id)
-
-    elif isinstance(cluster, ShardSetCluster):
-        log_error("Finding an online mongos for shardset cluster '%s'" %
-                  cluster.id)
-        server = cluster.get_any_online_mongos()
-        if server:
-            log_info("Connecting to mongos server '%s'" % server.id)
-        else:
-            log_error("Could not locate a mongos for shardset cluster '%s'" %
-                      cluster.id)
-
-    if server:
-        open_mongo_shell_to_server(server,
+    log_info("Locating default server for cluster '%s'..." % cluster.id)
+    default_server = cluster.get_default_server()
+    if default_server:
+        log_info("Connecting to server '%s'" % default_server.id)
+        open_mongo_shell_to_server(default_server,
                                    database=database,
                                    username=username,
                                    password=password,
                                    shell_options=shell_options,
                                    js_files=js_files)
-
+    else:
+        log_error("No default server found for cluster '%s'" %
+                  cluster.id)
 
 ###############################################################################
 def open_mongo_shell_to_uri(uri,

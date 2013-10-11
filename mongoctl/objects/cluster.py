@@ -68,4 +68,8 @@ class Cluster(DocumentWrapper):
         """
             Needs to be overridden
         """
-
+    ###########################################################################
+    def get_default_server(self):
+        """
+            Needs to be overridden
+        """

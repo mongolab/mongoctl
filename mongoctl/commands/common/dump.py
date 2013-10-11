@@ -201,18 +201,17 @@ def mongo_dump_cluster_primary(cluster,
                                username=None,
                                password=None,
                                dump_options=None):
-    log_info("Locating primary server for cluster '%s'..." % cluster.id)
-    primary_member = cluster.get_primary_member()
-    if primary_member:
-        primary_server = primary_member.get_server()
-        log_info("Dumping current primary '%s'..." % primary_server.id)
-        mongo_dump_server(primary_server,
+    log_info("Locating default server for cluster '%s'..." % cluster.id)
+    default_server = cluster.get_default_server()
+    if default_server:
+        log_info("Dumping default server '%s'..." % default_server.id)
+        mongo_dump_server(default_server,
                           database=database,
                           username=username,
                           password=password,
                           dump_options=dump_options)
     else:
-        raise MongoctlException("No primary found for cluster '%s'" %
+        raise MongoctlException("No default server found for cluster '%s'" %
                                 cluster.id)
 
 
