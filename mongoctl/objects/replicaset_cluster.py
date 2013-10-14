@@ -653,10 +653,12 @@ class ReplicaSetCluster(Cluster):
 
         members = self.get_members()
         length = len(members)
-        for i in range(0, length):
-            member = members[i]
+        for member in members:
             # basic validation
             member.validate()
+
+        for i in range(0, length):
+            member = members[i]
             # validate member against other members
             for j in range(i+1, length):
                 member.validate_against_other(members[j])
