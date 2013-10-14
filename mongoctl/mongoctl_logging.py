@@ -37,8 +37,8 @@ def get_logger():
     log_dir = utils.resolve_path(os.path.join(conf_dir, LOG_DIR))
     utils.ensure_dir(log_dir)
 
-    logger.setLevel(_logging_level)
 
+    logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter("%(levelname)8s | %(asctime)s | %(message)s")
     logfile = os.path.join(log_dir, log_file_name)
     fh = TimedRotatingFileHandler(logfile, backupCount=50, when="midnight")
@@ -53,6 +53,7 @@ def get_logger():
         sh = logging.StreamHandler(sys.stdout)
         std_formatter = logging.Formatter("%(message)s")
         sh.setFormatter(std_formatter)
+        sh.setLevel(_logging_level)
         logging.getLogger().addHandler(sh)
 
     return logger
