@@ -17,7 +17,7 @@ from mongoctl.prompt import prompt_execute_task
 # Constants
 ###############################################################################
 
-MAX_SHUTDOWN_WAIT = 20
+MAX_SHUTDOWN_WAIT = 45
 
 ###############################################################################
 # stop command
