@@ -10,7 +10,7 @@ from mongoctl.utils import to_string
 def list_clusters_command(parsed_options):
     clusters = repository.lookup_all_clusters()
     if not clusters or len(clusters) < 1:
-        log_info("No clusters configured");
+        log_info("No clusters configured")
         return
 
     # sort clusters by id

@@ -224,7 +224,7 @@ class MongodServer(server.Server):
             return self.get_db('local')['system.replset'].find_one()
         except (Exception,RuntimeError), e:
             log_debug("Error whille trying to read rs config from "
-                      "server '%s': " % (self.id, e))
+                      "server '%s': %s" % (self.id, e))
             log_exception(e)
             if type(e) == MongoctlException:
                 raise e

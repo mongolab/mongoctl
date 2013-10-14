@@ -163,7 +163,7 @@ def uninstall_mongodb(version):
     def rm_mongodb():
         log_info("Deleting '%s'" % mongo_installation)
         shutil.rmtree(mongo_installation)
-        log_info("MongoDB '%s' Uninstalled successfully!" % version);
+        log_info("MongoDB '%s' Uninstalled successfully!" % version)
 
     prompt_execute_task("Proceed uninstall?" , rm_mongodb)
 
@@ -174,8 +174,9 @@ def fetch_latest_stable_version():
         return response.read().strip()
     else:
         raise MongoctlException("Unable to fetch MongoDB latest stable version"
-                                " from '%s' (Response code %)" %
+                                " from '%s' (Response code %s)" %
                                 (LATEST_VERSION_FILE_URL, response.getcode()))
+
 ###############################################################################
 def get_mongo_installation(version_str):
     # get all mongod installation dirs and return the one

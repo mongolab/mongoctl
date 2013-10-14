@@ -5,7 +5,6 @@ from mongoctl.utils import document_pretty_string
 from mongoctl.mongoctl_logging import log_info
 
 from mongoctl.objects.shardset_cluster import ShardSetCluster
-from mongoctl.objects.replicaset_cluster import ReplicaSetCluster
 
 from mongoctl.errors import MongoctlException
 

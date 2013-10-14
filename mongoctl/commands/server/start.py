@@ -448,13 +448,13 @@ def _negotiate_process_limit(set_resource, desired_limit, soft, hard):
 # MONGOD Start Command functions
 ###############################################################################
 def generate_start_command(server, options_override=None):
-    command = []
-
     """
         Check if we need to use numactl if we are running on a NUMA box.
         10gen recommends using numactl on NUMA. For more info, see
         http://www.mongodb.org/display/DOCS/NUMA
         """
+    command = []
+
     if mongod_needs_numactl():
         log_info("Running on a NUMA machine...")
         command = apply_numactl(command)

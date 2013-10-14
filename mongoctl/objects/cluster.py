@@ -1,6 +1,5 @@
 __author__ = 'abdul'
 
-import mongoctl.repository as repository
 from base import DocumentWrapper
 
 

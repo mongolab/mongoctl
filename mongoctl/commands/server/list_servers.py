@@ -9,7 +9,7 @@ from mongoctl.utils import to_string
 def list_servers_command(parsed_options):
     servers = repository.lookup_all_servers()
     if not servers or len(servers) < 1:
-        log_info("No servers have been configured.");
+        log_info("No servers have been configured.")
         return
 
     servers = sorted(servers, key=lambda s: s.id)

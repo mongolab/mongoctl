@@ -15,8 +15,6 @@ from mongoctl.utils import call_command
 from mongoctl.objects.server import Server
 
 from mongoctl.objects.mongod import MongodServer
-from mongoctl.objects.replicaset_cluster import ReplicaSetCluster
-from mongoctl.objects.shardset_cluster import ShardSetCluster
 
 ###############################################################################
 # CONSTS
