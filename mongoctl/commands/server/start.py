@@ -217,7 +217,7 @@ def prepare_mongod_server(server):
     # setup the local users
     users.setup_server_local_users(server)
 
-    if not server.is_cluster_member():
+    if not server.is_cluster_member() or server.is_config_server():
         users.setup_server_users(server)
 
 ###############################################################################
