@@ -6,6 +6,7 @@ from mongoctl_logging import log_info, log_verbose, log_warning, log_exception
 from pymongo.errors import OperationFailure, AutoReconnect
 from errors import MongoctlException
 from prompt import read_password
+import pymongo.auth
 
 ###############################################################################
 __global_login_user__ = {
@@ -130,7 +131,7 @@ def setup_db_users(server, db, db_users):
         if not password:
             password = read_seed_password(db.name, username)
 
-        _mongo_add_user(db, username, password)
+        _mongo_add_user(server, db, username, password)
         # if there is no login user for this db then set it to this new one
         db_login_user = server.get_login_user(db.name)
         if not db_login_user:
@@ -141,17 +142,19 @@ def setup_db_users(server, db, db_users):
     return count_new_users
 
 ###############################################################################
-def _mongo_add_user(db, username, password, read_only=False, num_tries=1):
+def _mongo_add_user(server, db, username, password, read_only=False, num_tries=1):
     try:
-
-        db.add_user(username, password, read_only)
+        kwargs = {}
+        if server.get_mongo_version() == "2.5.3":
+            kwargs = _make_2_6_dev_add_user_kwargs(db, username, password)
+        db.add_user(username, password, read_only, **kwargs)
     except OperationFailure, ofe:
         # This is a workaround for PYTHON-407. i.e. catching a harmless
         # error that is raised after adding the first
         if "login" in str(ofe):
             pass
         else:
-            raise ofe
+            raise
     except AutoReconnect, ar:
         log_exception(ar)
         if num_tries < 3:
@@ -163,12 +166,30 @@ def _mongo_add_user(db, username, password, read_only=False, num_tries=1):
                          "no need to retry")
             else:
                 log_warning("_mongo_add_user: re-trying ...")
-                _mongo_add_user(db, username, password, read_only=read_only,
-                                num_tries=num_tries+1)
+                _mongo_add_user(server, db, username, password,
+                                read_only=read_only, num_tries=num_tries+1)
         else:
             raise
 
 
+###############################################################################
+def _make_2_6_dev_add_user_kwargs(db, username, password):
+    pwd_hash = pymongo.auth._password_digest(username, password)
+    return {
+        "db": db.name,
+        "roles": [
+            {
+                "role": "root",
+                "db": db.name,
+                "hasRole": True,
+                "canDelegate": False
+            }
+        ],
+        "credentials": {
+            "MONGODB-CR": pwd_hash
+        }
+
+    }
 
 ###############################################################################
 def setup_server_db_users(server, dbname, db_users):
