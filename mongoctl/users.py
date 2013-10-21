@@ -7,6 +7,7 @@ from pymongo.errors import OperationFailure, AutoReconnect
 from errors import MongoctlException
 from prompt import read_password
 import pymongo.auth
+import mongo_version
 
 ###############################################################################
 __global_login_user__ = {
@@ -142,10 +143,15 @@ def setup_db_users(server, db, db_users):
     return count_new_users
 
 ###############################################################################
-def _mongo_add_user(server, db, username, password, read_only=False, num_tries=1):
+DEV_2_6_VERSION = mongo_version.version_obj("2.5.3")
+
+###############################################################################
+def _mongo_add_user(server, db, username, password, read_only=False,
+                    num_tries=1):
     try:
         kwargs = {}
-        if server.get_mongo_version() == "2.5.3":
+        version = server.get_mongo_version_obj()
+        if version and version >= DEV_2_6_VERSION:
             kwargs = _make_2_6_dev_add_user_kwargs(db, username, password)
         db.add_user(username, password, read_only, **kwargs)
     except OperationFailure, ofe:
