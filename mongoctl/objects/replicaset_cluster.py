@@ -741,6 +741,16 @@ class ReplicaSetCluster(Cluster):
     ###########################################################################
     def read_rs_config(self):
 
+        # first attempt to read the conf from the primary server
+
+        log_debug("Attempting to read rs conf for cluster %s" % self.id)
+        log_debug("Locating primary server...")
+        primary_member = self.get_primary_member()
+        if primary_member:
+            return primary_member.read_rs_config()
+
+        log_debug("No primary server found. Iterate on all members "
+                  "until an rs conf is found...")
         # iterate on all members until you get a non null rs-config
         # Read from arbiters only when needed so skip members until the end
 
