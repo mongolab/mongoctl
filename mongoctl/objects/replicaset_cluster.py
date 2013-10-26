@@ -747,9 +747,11 @@ class ReplicaSetCluster(Cluster):
         log_debug("Locating primary server...")
         primary_member = self.get_primary_member()
         if primary_member:
-            log_debug("Reading rs conf from primary server %s" %
+            log_debug("Reading rs conf from primary server %s." %
                       primary_member.get_server().id)
-            return primary_member.read_rs_config()
+            rs_conf = primary_member.read_rs_config()
+            log_debug("RS CONF: %s" % document_pretty_string(rs_conf))
+            return rs_conf
 
         log_debug("No primary server found. Iterate on all members "
                   "until an rs conf is found...")
@@ -771,6 +773,7 @@ class ReplicaSetCluster(Cluster):
             rs_conf = arb.read_rs_config()
             if rs_conf is not None:
                 return rs_conf
+
     ###########################################################################
     def get_replica_mongo_uri_template(self, db=None):
 
