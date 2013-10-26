@@ -747,6 +747,8 @@ class ReplicaSetCluster(Cluster):
         log_debug("Locating primary server...")
         primary_member = self.get_primary_member()
         if primary_member:
+            log_debug("Reading rs conf from primary server %s" %
+                      primary_member.get_server().id)
             return primary_member.read_rs_config()
 
         log_debug("No primary server found. Iterate on all members "
