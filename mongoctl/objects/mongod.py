@@ -38,18 +38,24 @@ class MongodServer(server.Server):
 
     def get_db_path(self):
         dbpath = self.get_cmd_option("dbpath")
-        if dbpath is None:
+        if not dbpath:
+            dbpath = super(MongodServer, self).get_server_home()
+        if not dbpath:
             dbpath = DEFAULT_DBPATH
 
         return resolve_path(dbpath)
 
     ###########################################################################
-    def get_root_path(self):
+    def get_server_home(self):
         """
             Override!
         :return:
         """
-        return self.get_db_path()
+        home_dir = super(MongodServer, self).get_server_home()
+        if not home_dir:
+            home_dir = self.get_db_path()
+
+        return home_dir
 
     ###########################################################################
     def export_cmd_options(self, options_override=None):

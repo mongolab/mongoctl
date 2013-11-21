@@ -298,8 +298,11 @@ def prompt_add_member_to_replica(replica_cluster, server):
 
 ###############################################################################
 def _start_server_process_4real(server, options_override=None):
-    server_dir_exists = mk_server_dir(server)
-    first_time = not server_dir_exists
+    mk_server_home_dir(server)
+    # if the pid file is not created yet then this is the first time this
+    # server is started (or at least by mongoctl)
+
+    first_time = os.path.exists(server.get_pid_file_path())
 
     # generate key file if needed
     if server.needs_repl_key():
@@ -523,17 +526,18 @@ def get_numactl_exe():
 
 
 ###############################################################################
-def mk_server_dir(server):
-    # ensure the dbpath dir exists
-    server_dir = server.get_root_path()
-    log_verbose("Ensuring that server's root path '%s' exists..." % server_dir)
-    if ensure_dir(server.get_root_path()):
-        log_verbose("server root path %s already exists!" % server_dir)
-        return True
-    else:
-        log_verbose("server root path '%s' created successfully" % server_dir)
-        return False
+def mk_server_home_dir(server):
+    # ensure server home dir exists if it has one
+    server_dir = server.get_server_home()
 
+    if not server_dir:
+        return
+
+    log_verbose("Ensuring that server's home dir '%s' exists..." % server_dir)
+    if ensure_dir(server_dir):
+        log_verbose("server home dir %s already exists!" % server_dir)
+    else:
+        log_verbose("server home dir '%s' created successfully" % server_dir)
 
 ###############################################################################
 def get_generate_key_file(server):
