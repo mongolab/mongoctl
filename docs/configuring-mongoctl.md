@@ -10,7 +10,7 @@ Below is the default configuration generated via the installation:
 
 ```
 {
-   "mongoDBInstallationsDirectory": "~/mongodb"
+   "mongoDBInstallationsDirectory": "~/mongodb",
 
    "fileRepository": {
       "servers": "servers.config", // servers file name
