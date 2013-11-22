@@ -10,7 +10,7 @@ from mongoctl.mongoctl_logging import log_verbose, log_debug, log_exception
 from bson.son import SON
 from mongoctl.errors import MongoctlException
 from replicaset_cluster import ReplicaSetCluster, get_member_repl_lag
-from shardset_cluster import ShardSetCluster
+from sharded_cluster import ShardedCluster
 ###############################################################################
 # CONSTANTS
 ###############################################################################
@@ -191,13 +191,13 @@ class MongodServer(server.Server):
     ###########################################################################
     def is_config_server(self):
         cluster = self.get_cluster()
-        return (isinstance(cluster, ShardSetCluster) and
+        return (isinstance(cluster, ShardedCluster) and
                 cluster.has_config_server(self))
 
     ###########################################################################
     def is_shard_server(self):
         cluster = self.get_cluster()
-        return (isinstance(cluster, ShardSetCluster) and
+        return (isinstance(cluster, ShardedCluster) and
                 cluster.has_shard(self))
 
     ###########################################################################

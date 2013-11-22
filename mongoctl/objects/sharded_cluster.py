@@ -15,7 +15,7 @@ import time
 ###############################################################################
 # ShardSet Cluster Class
 ###############################################################################
-class ShardSetCluster(Cluster):
+class ShardedCluster(Cluster):
 
     ###########################################################################
     # Constructor and other init methods

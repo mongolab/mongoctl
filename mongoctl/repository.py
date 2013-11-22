@@ -391,8 +391,8 @@ def validate_cluster(cluster):
 
     if isinstance(cluster, replicaset_cluster_type()):
         errors.extend(validate_replicaset_cluster(cluster))
-    elif isinstance(cluster, shardset_cluster_type()):
-        errors.extend(validate_shardset_cluster(cluster))
+    elif isinstance(cluster, sharded_cluster_type()):
+        errors.extend(validate_sharded_cluster(cluster))
 
     if len(errors) > 0:
         raise MongoctlException("Cluster %s configuration is not valid. "
@@ -407,7 +407,7 @@ def validate_replicaset_cluster(cluster):
     return errors
 
 ###############################################################################
-def validate_shardset_cluster(cluster):
+def validate_sharded_cluster(cluster):
     errors = []
     if not cluster.config_members or len(cluster.config_members) not in [1,3]:
         errors.append("Need 1 or 3 configServers configured in your cluster")
@@ -602,8 +602,8 @@ def new_cluster(cluster_doc):
 
     if _type is None or _type == "ReplicaSetCluster":
         clazz = replicaset_cluster_type()
-    elif _type == "ShardSetCluster":
-        clazz = shardset_cluster_type()
+    elif _type == "ShardedCluster":
+        clazz = sharded_cluster_type()
     else:
         raise MongoctlException("Unknown cluster _type '%s' for server:\n%s" %
                                 (_type, document_pretty_string(cluster_doc)))
@@ -629,5 +629,5 @@ def replicaset_cluster_type():
     return resolve_class("mongoctl.objects.replicaset_cluster."
                          "ReplicaSetCluster")
 
-def shardset_cluster_type():
-    return resolve_class("mongoctl.objects.shardset_cluster.ShardSetCluster")
+def sharded_cluster_type():
+    return resolve_class("mongoctl.objects.sharded_cluster.ShardedCluster")
