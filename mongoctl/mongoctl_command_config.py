@@ -1526,8 +1526,8 @@ MONGOCTL_PARSER_DEF = {
         {
             "prog": "add-shard",
             "group": "shardCommands",
-            "shortDescription" : "Adds specified shard to shardset",
-            "description" : "Adds specified shard to shardset",
+            "shortDescription" : "Adds specified shard to sharded cluster",
+            "description" : "Adds specified shard to sharded cluster",
             "function": "mongoctl.commands.sharding.sharding.add_shard_command",
             "args": [
                 {
@@ -1572,8 +1572,8 @@ MONGOCTL_PARSER_DEF = {
         {
             "prog": "remove-shard",
             "group": "shardCommands",
-            "shortDescription": "Removes shard from shardset",
-            "description": "Removes shard from shardset",
+            "shortDescription": "Removes shard from sharded cluster",
+            "description": "Removes shard from sharded cluster",
             "function": "mongoctl.commands.sharding.sharding.remove_shard_command",
             "args": [
                 {
@@ -1637,8 +1637,8 @@ MONGOCTL_PARSER_DEF = {
         {
             "prog": "configure-shard-cluster",
             "group": "shardCommands",
-            "shortDescription" : "configures a shardset cluster",
-            "description" : "configures a shardset cluster",
+            "shortDescription" : "configures a sharded cluster",
+            "description" : "configures a sharded cluster",
             "function": "mongoctl.commands.sharding.sharding.configure_shard_cluster_command",
             "args": [
                 {
