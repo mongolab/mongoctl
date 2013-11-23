@@ -101,7 +101,7 @@ def remove_shard_command(parsed_options):
     if not shard:
         raise MongoctlException("Unknown shard '%s'" % shard_id)
 
-    sharded_cluster = repository.config_lookup_cluster_by_shard(shard)
+    sharded_cluster = repository.lookup_cluster_by_shard(shard)
 
     if not sharded_cluster:
         raise MongoctlException("'%s' is not a shard" % shard_id)
