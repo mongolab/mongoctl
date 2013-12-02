@@ -197,8 +197,10 @@ class MongodServer(server.Server):
     ###########################################################################
     def is_shard_server(self):
         cluster = self.get_cluster()
-        return (isinstance(cluster, ShardedCluster) and
-                cluster.has_shard(self))
+        if isinstance(cluster, ShardedCluster):
+            return cluster.has_shard(self)
+        elif isinstance(cluster, ReplicaSetCluster):
+            return cluster.is_shard_member()
 
     ###########################################################################
     def command_needs_auth(self, dbname, cmd):

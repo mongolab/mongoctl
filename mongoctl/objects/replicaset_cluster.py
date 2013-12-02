@@ -794,6 +794,13 @@ class ReplicaSetCluster(Cluster):
         return ("mongodb://%s%s%s" % (creds, ",".join(server_uri_templates),
                                       db))
 
+    ###########################################################################
+    def get_sharded_cluster(self):
+        return repository.lookup_cluster_by_shard(self)
+
+    ###########################################################################
+    def is_shard_member(self):
+        return self.get_sharded_cluster() is not None
 
 ###############################################################################
 def get_member_repl_lag(member_status, master_status):
