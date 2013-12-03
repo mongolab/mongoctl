@@ -775,26 +775,6 @@ class ReplicaSetCluster(Cluster):
                 return rs_conf
 
     ###########################################################################
-    def get_replica_mongo_uri_template(self, db=None):
-
-        if not db:
-            if self.get_repl_key():
-                db = "/[dbname]"
-            else:
-                db = ""
-        else:
-            db = "/" + db
-
-        server_uri_templates = []
-        for member in self.get_members():
-            server = member.get_server()
-            server_uri_templates.append(server.get_address_display())
-
-        creds = "[dbuser]:[dbpass]@" if self.get_repl_key() else ""
-        return ("mongodb://%s%s%s" % (creds, ",".join(server_uri_templates),
-                                      db))
-
-    ###########################################################################
     def get_sharded_cluster(self):
         return repository.lookup_cluster_by_shard(self)
 
