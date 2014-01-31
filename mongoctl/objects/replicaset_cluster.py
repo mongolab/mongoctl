@@ -574,23 +574,31 @@ class ReplicaSetCluster(Cluster):
                      " issued successfully." % self.id)
 
             # Probably need to reconnect.  May not be primary any more.
+            desired_cfg_version = desired_config['version']
+
+            def got_the_memo(cur_cfg=None):
+                current_config = cur_cfg or self.read_rs_config()
+                # might've gotten None if nobody answers & tells us, so:
+                current_cfg_version = (current_config['version']
+                                       if current_config else 0)
+                version_diff = (current_cfg_version - desired_cfg_version)
+                return ((version_diff == 0) or
+                        # force => mongo adds large random # to 'version'.
+                        (force and version_diff >= 0))
+
             realized_config = self.read_rs_config()
-            if realized_config['version'] != desired_config['version']:
-                log_verbose("Really? Config version unchanged? "
-                            "Let me double-check that ...")
-                def got_the_memo():
-                    version_diff = (self.read_rs_config()['version'] -
-                                    desired_config['version'])
-                    return ((version_diff == 0) or
-                            # force => mongo adds large random # to 'version'.
-                            (force and version_diff >= 0))
+            if got_the_memo(realized_config):
+                log_verbose("Really? Config version %s? "
+                            "Let me double-check that ..." %
+                            "unchanged" if realized_config else "unavailable")
+
                 if not wait_for(got_the_memo, timeout=45, sleep_duration=5):
                     raise Exception("New config version not detected!")
                     # Finally! Resample.
                 realized_config = self.read_rs_config()
+
             log_info("New replica set configuration:\n %s" %
                      document_pretty_string(realized_config))
-
             return True
         except Exception, e:
             log_exception(e)
