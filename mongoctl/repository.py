@@ -507,16 +507,26 @@ def get_activity_collection():
 def new_server(server_doc):
     _type = server_doc.get("_type")
 
-    if _type is None or _type == "mongod":
-        server_type = "mongoctl.objects.mongod.MongodServer"
-    elif _type == "mongos":
-        server_type = "mongoctl.objects.mongos.MongosServer"
+    if _type is None or _type in SERVER_TYPE_MAP:
+        clazz = resolve_class(SERVER_TYPE_MAP.get(_type,
+                                                  MONGOD_SERVER_CLASS_NAME))
     else:
         raise MongoctlException("Unknown server _type '%s' for server:\n%s" %
                                 (_type, document_pretty_string(server_doc)))
 
-    clazz = resolve_class(server_type)
     return clazz(server_doc)
+
+MONGOD_SERVER_CLASS_NAME = "mongoctl.objects.mongod.MongodServer"
+MONGOS_ROUTER_CLASS_NAME = "mongoctl.objects.mongos.MongosServer"
+SERVER_TYPE_MAP = {
+    "Mongod": MONGOD_SERVER_CLASS_NAME,
+    "ConfigMongod": MONGOD_SERVER_CLASS_NAME,
+    "Mongos": MONGOS_ROUTER_CLASS_NAME,
+    # === XXX deprecated XXX ===
+    "mongod": MONGOD_SERVER_CLASS_NAME,  # XXX deprecated
+    "mongos": MONGOS_ROUTER_CLASS_NAME,  # XXX deprecated
+}
+
 
 ###############################################################################
 def build_server_from_address(address):
