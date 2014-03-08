@@ -109,18 +109,18 @@ class ShardedCluster(Cluster):
 
 
     ###########################################################################
-    def configure_shardset(self):
+    def configure_sharded_cluster(self):
         sh_list = self.list_shards()
         if sh_list and sh_list.get("shards"):
-            raise Exception("Cannot configure a shardset that has been "
-                            "already configured")
+            log_info("Shard cluster already configured. Will only be adding"
+                     " new shards as needed...")
 
         for shard_member in self.shards:
             self.add_shard(shard_member.get_shard())
 
     ###########################################################################
     def add_shard(self, shard):
-        log_info("Adding shard '%s' to shardset '%s' " % (shard.id, self.id))
+        log_info("Adding shard '%s' to ShardedCluster '%s' " % (shard.id, self.id))
 
         if self.is_shard_configured(shard):
             log_info("Shard '%s' already added! Nothing to do..." % shard.id)
@@ -150,7 +150,7 @@ class ShardedCluster(Cluster):
     ###########################################################################
     def remove_shard(self, shard, unsharded_data_dest_id=None,
                      synchronized=False):
-        log_info("Removing shard '%s' from shardset '%s' " %
+        log_info("Removing shard '%s' from ShardedCluster '%s' " %
                  (shard.id, self.id))
 
         configured_shards = self.list_shards()
@@ -183,7 +183,7 @@ class ShardedCluster(Cluster):
                 unsharded_data_dest_id)
 
             if not dest_shard_member:
-                raise Exception("No such shard '%s' in shardset '%s' " %
+                raise Exception("No such shard '%s' in ShardedCluster '%s' " %
                                 (unsharded_data_dest_id, self.id))
 
             dest_shard = dest_shard_member.get_shard()

@@ -13,28 +13,28 @@ from mongoctl.errors import MongoctlException
 ###############################################################################
 # configure shard cluster command
 ###############################################################################
-def configure_shard_cluster_command(parsed_options):
+def configure_sharded_cluster_command(parsed_options):
     cluster_id = parsed_options.cluster
     cluster = repository.lookup_and_validate_cluster(cluster_id)
 
     if not isinstance(cluster, ShardedCluster):
-        raise MongoctlException("Cluster '%s' is not a shardset cluster" %
+        raise MongoctlException("Cluster '%s' is not a ShardedCluster cluster" %
                                 cluster.id)
 
     if parsed_options.dryRun:
-        dry_run_configure_shard_cluster(cluster)
+        dry_run_configure_sharded_cluster(cluster)
     else:
-        configure_shard_cluster(cluster)
+        configure_sharded_cluster(cluster)
 
 ###############################################################################
 # ShardedCluster Methods
 ###############################################################################
 
-def configure_shard_cluster(cluster):
-    cluster.configure_shardset()
+def configure_sharded_cluster(cluster):
+    cluster.configure_sharded_cluster()
 
 ###############################################################################
-def dry_run_configure_shard_cluster(cluster):
+def dry_run_configure_sharded_cluster(cluster):
 
     log_info("\n************ Dry Run ************\n")
 

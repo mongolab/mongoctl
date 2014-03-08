@@ -1639,7 +1639,7 @@ MONGOCTL_PARSER_DEF = {
             "group": "shardCommands",
             "shortDescription" : "configures a sharded cluster",
             "description" : "configures a sharded cluster",
-            "function": "mongoctl.commands.sharding.sharding.configure_shard_cluster_command",
+            "function": "mongoctl.commands.sharding.sharding.configure_sharded_cluster_command",
             "args": [
                 {
                     "name": "cluster",
