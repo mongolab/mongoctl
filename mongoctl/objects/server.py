@@ -45,6 +45,9 @@ CONN_TIMEOUT = 10000
 
 REPL_KEY_SUPPORTED_VERSION = '2.0.0'
 
+EDITION_COMMUNITY = "community"
+EDITION_ENTERPRISE = "enterprise"
+
 ###############################################################################
 # Server Class
 ###############################################################################
