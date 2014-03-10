@@ -118,7 +118,7 @@ def do_install_mongodb(os_name, bits, version, edition):
                (url, response.getcode(), version))
         raise MongoctlException(msg)
 
-    mongo_dir_name = "mongodb-%s-%s" % (platform_spec, version)
+    mongo_dir_name = archive_name.replace(".tgz", "")
     install_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
 
     ensure_dir(mongodb_installs_dir)
