@@ -19,7 +19,7 @@ from mongoctl.utils import call_command, which
 
 from mongoctl.mongo_version import version_obj
 from mongoctl.commands.command_utils import find_all_executables
-
+from mongoctl.objects.server import EDITION_COMMUNITY, EDITION_ENTERPRISE
 ###############################################################################
 # CONSTS
 ###############################################################################
@@ -31,7 +31,8 @@ LATEST_VERSION_FILE_URL = "https://raw.github.com/mongolab/mongoctl/master/" \
 # install command
 ###############################################################################
 def install_command(parsed_options):
-    install_mongodb(version=parsed_options.version)
+    edition = parsed_options.edition or EDITION_COMMUNITY
+    install_mongodb(version=parsed_options.version, edition=edition)
 
 ###############################################################################
 # uninstall command
@@ -60,7 +61,7 @@ def list_versions_command(parsed_options):
 ###############################################################################
 # install_mongodb
 ###############################################################################
-def install_mongodb(version):
+def install_mongodb(version, edition=EDITION_COMMUNITY):
 
     bits = platform.architecture()[0].replace("bit", "")
     os_name = platform.system().lower()
@@ -68,10 +69,10 @@ def install_mongodb(version):
     if os_name == 'darwin' and platform.mac_ver():
         os_name = "osx"
 
-    return do_install_mongodb(os_name, bits, version)
+    return do_install_mongodb(os_name, bits, version, edition=edition)
 
 ###############################################################################
-def do_install_mongodb(os_name, bits, version):
+def do_install_mongodb(os_name, bits, version, edition):
 
     if version is None:
         version = fetch_latest_stable_version()
@@ -92,7 +93,6 @@ def do_install_mongodb(os_name, bits, version):
              "mongoDBInstallationsDirectory (%s)..." % (os_name, bits,
                                                         mongodb_installs_dir))
 
-
     mongo_installation = get_mongo_installation(version)
 
     if mongo_installation is not None: # no-op
@@ -100,9 +100,14 @@ def do_install_mongodb(os_name, bits, version):
                  "Nothing to do." % (version, mongo_installation))
         return mongo_installation
 
-    archive_name = "mongodb-%s-%s.tgz" % (platform_spec, version)
-    url = "http://fastdl.mongodb.org/%s/%s" % (os_name, archive_name)
 
+    os_dist_name, os_dist_version = get_os_dist_info()
+
+    url = get_download_url(os_name, platform_spec, os_dist_name,
+                           os_dist_version, version, edition)
+
+
+    archive_name = url.split("/")[-1]
     # Validate if the version exists
     response = urllib.urlopen(url)
 
@@ -244,6 +249,37 @@ def extract_archive(archive_name):
     tar_cmd = ['tar', 'xvf', archive_name]
     call_command(tar_cmd)
 
+###############################################################################
+def get_os_dist_info():
+    """
+        Returns true if the current os supports fsfreeze that is os running
+        Ubuntu 12.04 or later and there is an fsfreeze exe in PATH
+    """
 
+    distribution = platform.dist()
+    dist_name = distribution[0].lower()
+    dist_version_str = distribution[1]
+    if dist_name and dist_version_str:
+        return dist_name, dist_version_str
+    else:
+        return None, None
+
+###############################################################################
+def get_download_url(os_name, platform_spec, os_dist_name, os_dist_version,
+                     mongo_version, edition):
+
+    if edition == EDITION_COMMUNITY:
+        archive_name = "mongodb-%s-%s.tgz" % (platform_spec, mongo_version)
+        domain = "fastdl.mongodb.org"
+    elif edition == EDITION_ENTERPRISE:
+        archive_name = ("mongodb-%s-subscription-%s%s-%s.tgz" %
+                        (platform_spec, os_dist_name,
+                         os_dist_version.replace('.', ''),
+                         mongo_version))
+        domain = "downloads.mongodb.com"
+    else:
+        raise MongoctlException("Unknown mongodb edition '%s'" % edition)
+
+    return "http://%s/%s/%s" % (domain, os_name, archive_name)
 
 

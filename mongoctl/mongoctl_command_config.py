@@ -1463,6 +1463,16 @@ MONGOCTL_PARSER_DEF = {
                     "nargs": "?",
                     "displayName": "VERSION",
                     "help": "MongoDB version to install"
+                },
+
+                {
+                    "name": "edition",
+                    "type" : "optional",
+                    "help": "edition (community (default) or enterprise)",
+                    "cmd_arg": [
+                        "--edition"
+                    ],
+                    "nargs": 1
                 }
             ]
         },
