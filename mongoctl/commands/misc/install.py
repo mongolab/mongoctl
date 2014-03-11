@@ -89,8 +89,14 @@ def do_install_mongodb(os_name, bits, version, edition):
 
     platform_spec = get_validate_platform_spec(os_name, bits)
 
-    log_info("Running install for %s %sbit to "
+    os_dist_name, os_dist_version = get_os_dist_info()
+    if os_dist_name:
+        dist_info = "(%s %s)" % (os_dist_name, os_dist_version)
+    else:
+        dist_info = ""
+    log_info("Running install for %s %sbit %s to "
              "mongoDBInstallationsDirectory (%s)..." % (os_name, bits,
+                                                        dist_info,
                                                         mongodb_installs_dir))
 
     mongo_installation = get_mongo_installation(version)
@@ -99,9 +105,6 @@ def do_install_mongodb(os_name, bits, version, edition):
         log_info("You already have MongoDB %s installed ('%s'). "
                  "Nothing to do." % (version, mongo_installation))
         return mongo_installation
-
-
-    os_dist_name, os_dist_version = get_os_dist_info()
 
     url = get_download_url(os_name, platform_spec, os_dist_name,
                            os_dist_version, version, edition)
