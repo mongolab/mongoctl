@@ -562,14 +562,14 @@ def get_server_executable(server):
 
 ###############################################################################
 def get_mongod_executable(server):
-    mongod_exe = get_mongo_executable(server.get_mongo_version(),
+    mongod_exe = get_mongo_executable(server.get_mongo_version_obj(),
                                       'mongod',
                                       version_check_pref=VERSION_PREF_EXACT)
     return mongod_exe.path
 
 ###############################################################################
 def get_mongos_executable(server):
-    mongos_exe = get_mongo_executable(server.get_mongo_version(),
+    mongos_exe = get_mongo_executable(server.get_mongo_version_obj(),
                                       'mongos',
                                       version_check_pref=VERSION_PREF_EXACT)
     return mongos_exe.path

@@ -105,7 +105,7 @@ def open_mongo_shell_to_server(server,
                            database,
                            username,
                            password,
-                           server.get_mongo_version(),
+                           server.get_mongo_version_obj(),
                            shell_options,
                            js_files)
 

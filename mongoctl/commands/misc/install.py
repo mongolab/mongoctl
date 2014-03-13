@@ -49,12 +49,12 @@ def list_versions_command(parsed_options):
 
     bar = "-" * 80
     print bar
-    formatter = "%-20s %s"
-    print formatter % ("VERSION", "LOCATION")
+    formatter = "%-20s %-20s %s"
+    print formatter % ("VERSION", "EDITION", "LOCATION")
     print bar
 
     for install_dir,version in mongo_installations:
-        print formatter % (version, install_dir)
+        print formatter % (version, version.edition, install_dir)
     print "\n"
 
 

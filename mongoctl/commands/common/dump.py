@@ -169,7 +169,7 @@ def mongo_dump_server(server,
                   database=database,
                   username=username,
                   password=password,
-                  server_version=server.get_mongo_version(),
+                  server_version=server.get_mongo_version_obj(),
                   dump_options=dump_options)
 
 ###############################################################################

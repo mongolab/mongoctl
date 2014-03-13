@@ -8,7 +8,7 @@ from mongoctl.mongoctl_logging import *
 from mongoctl import config
 from mongoctl.errors import MongoctlException
 from mongoctl.utils import is_exe, which, resolve_path, execute_command
-from mongoctl.mongo_version import version_obj
+from mongoctl.mongo_version import version_obj, MongoEdition
 from mongoctl.mongo_uri_tools import is_mongo_uri
 
 ###############################################################################
@@ -43,15 +43,17 @@ def extract_mongo_exe_options(parsed_args, supported_options):
 
 
 ###############################################################################
-def get_mongo_executable(server_version,
+def get_mongo_executable(server_version_obj,
                          executable_name,
                          version_check_pref=VERSION_PREF_EXACT):
 
     mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
     mongo_installs_dir = config.get_mongodb_installs_dir()
+    version_str = server_version_obj and server_version_obj.version_str
+    mongo_edition = server_version_obj and (server_version_obj.edition or
+                                            MongoEdition.COMMUNITY)
 
-
-    ver_disp = "[Unspecified]" if server_version is None else server_version
+    ver_disp = "[Unspecified]" if version_str is None else version_str
     log_verbose("Looking for a compatible %s for mongoVersion=%s." %
                 (executable_name, ver_disp))
     exe_version_tuples = find_all_executables(executable_name)
@@ -59,7 +61,7 @@ def get_mongo_executable(server_version,
     if len(exe_version_tuples) > 0:
         selected_exe = best_executable_match(executable_name,
                                              exe_version_tuples,
-                                             server_version,
+                                             server_version_obj,
                                              version_check_pref=
                                              version_check_pref)
         if selected_exe is not None:
@@ -71,13 +73,15 @@ def get_mongo_executable(server_version,
 
     ## ok nothing found at all. wtf case
     msg = ("Unable to find a compatible '%s' executable "
-           "for version %s. You may need to run 'mongoctl install-mongodb %s'"
-           " to install it.\n\n"
+           "for version %s (edition %s). You may need to run 'mongoctl "
+           "install-mongodb %s %s' to install it.\n\n"
            "Here is your enviroment:\n\n"
            "$PATH=%s\n\n"
            "$MONGO_HOME=%s\n\n"
            "mongoDBInstallationsDirectory=%s (in mongoctl.config)" %
-           (executable_name, ver_disp, ver_disp,
+           (executable_name, ver_disp, mongo_edition, ver_disp,
+            "--edition %s" % mongo_edition if
+            mongo_edition != MongoEdition.COMMUNITY else "",
             os.getenv("PATH"),
             mongo_home,
             mongo_installs_dir))
@@ -129,18 +133,18 @@ def add_to_executables_found(executables_found, executable):
 ###############################################################################
 def best_executable_match(executable_name,
                           exe_version_tuples,
-                          version_str,
+                          version_object,
                           version_check_pref=VERSION_PREF_EXACT):
-    version = version_obj(version_str)
+
     match_func = exact_exe_version_match
 
     exe_versions_str = exe_version_tuples_to_strs(exe_version_tuples)
 
     log_verbose("Found the following %s's. Selecting best match "
-                "for version %s\n%s" %(executable_name, version_str,
+                "for version %s\n%s" %(executable_name, version_object,
                                        exe_versions_str))
 
-    if version is None:
+    if version_object is None:
         log_verbose("mongoVersion is null. "
                     "Selecting default %s" % executable_name)
         match_func = default_match
@@ -151,7 +155,7 @@ def best_executable_match(executable_name,
     elif version_check_pref == VERSION_PREF_EXACT_OR_MINOR:
         match_func = exact_or_minor_exe_version_match
 
-    return match_func(executable_name, exe_version_tuples, version)
+    return match_func(executable_name, exe_version_tuples, version_object)
 
 ###############################################################################
 def default_match(executable_name, exe_version_tuples, version):
@@ -285,23 +289,27 @@ def get_mongo_home_exe(mongo_home, executable_name):
 
 ###############################################################################
 def mongo_exe_version(mongo_exe):
+    mongod_path = os.path.join(os.path.dirname(mongo_exe), "mongod")
+
     try:
         re_expr = "v?((([0-9]+)\.([0-9]+)\.([0-9]+))([^, ]*))"
-        vers_spew = execute_command([mongo_exe, "--version"])
+        vers_spew = execute_command([mongod_path, "--version"])
         # only take first line of spew
         vers_spew = vers_spew.split('\n')[0]
         vers_grep = re.findall(re_expr, vers_spew)
         full_version = vers_grep[-1][0]
-        result = version_obj(full_version)
+        edition = (MongoEdition.ENTERPRISE if "subscription" in
+                                              vers_spew else None)
+        result = version_obj(full_version, edition=edition)
         if result is not None:
             return result
         else:
             raise MongoctlException("Cannot parse mongo version from the"
-                                    " output of '%s --version'" % mongo_exe)
+                                    " output of '%s --version'" % mongod_path)
     except Exception, e:
         log_exception(e)
         raise MongoctlException("Unable to get mongo version of '%s'."
-                                " Cause: %s" % (mongo_exe, e))
+                                " Cause: %s" % (mongod_path, e))
 
 ###############################################################################
 class MongoExeObject():

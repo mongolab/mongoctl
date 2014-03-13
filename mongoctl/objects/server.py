@@ -192,10 +192,14 @@ class Server(DocumentWrapper):
         return self.__mongo_version__
 
     ###########################################################################
+    def get_mongo_edition(self):
+        return self.get_property("mongoEdition")
+
+    ###########################################################################
     def get_mongo_version_obj(self):
         version_str = self.get_mongo_version()
         if version_str is not None:
-            return version_obj(version_str)
+            return version_obj(version_str, edition=self.get_mongo_edition())
         else:
             return None
 

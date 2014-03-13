@@ -154,7 +154,7 @@ def mongo_restore_server(server, source,
                      database=database,
                      username=username,
                      password=password,
-                     server_version=server.get_mongo_version(),
+                     server_version=server.get_mongo_version_obj(),
                      restore_options=restore_options)
 
 ###############################################################################
