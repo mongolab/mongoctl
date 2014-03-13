@@ -295,8 +295,8 @@ def mongo_exe_version(mongo_exe):
         re_expr = "v?((([0-9]+)\.([0-9]+)\.([0-9]+))([^, ]*))"
         vers_spew = execute_command([mongod_path, "--version"])
         # only take first line of spew
-        vers_spew = vers_spew.split('\n')[0]
-        vers_grep = re.findall(re_expr, vers_spew)
+        vers_spew_line = vers_spew.split('\n')[0]
+        vers_grep = re.findall(re_expr, vers_spew_line)
         full_version = vers_grep[-1][0]
         edition = (MongoEdition.ENTERPRISE if "subscription" in
                                               vers_spew else None)
