@@ -162,7 +162,8 @@ def uninstall_mongodb(version_number, edition=None):
 
     if mongo_installation is None: # no-op
         msg = ("Cannot find a MongoDB installation for version '%s'. Please"
-               " use list-versions to see all possible versions " % version_number)
+               " use list-versions to see all possible versions " %
+               version_info)
         log_info(msg)
         return
 
