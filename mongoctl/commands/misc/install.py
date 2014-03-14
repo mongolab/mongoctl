@@ -5,13 +5,13 @@ import platform
 import urllib
 import shutil
 
-from mongoctl.mongo_version import is_valid_version, is_valid_version_info
+from mongoctl.mongo_version import is_valid_version_info
 
 import mongoctl.config as config
 from mongoctl.prompt import prompt_execute_task, is_interactive_mode
 
 from mongoctl.utils import ensure_dir, dir_exists
-from mongoctl.mongoctl_logging import log_info, log_error, log_exception
+from mongoctl.mongoctl_logging import *
 
 from mongoctl.errors import MongoctlException
 
@@ -80,13 +80,16 @@ def install_mongodb(version_number, edition=None):
 ###############################################################################
 def do_install_mongodb(os_name, bits, version_info):
 
-
     mongodb_installs_dir = config.get_mongodb_installs_dir()
     if not mongodb_installs_dir:
         raise MongoctlException("No mongoDBInstallationsDirectory configured"
                                 " in mongoctl.config")
 
     platform_spec = get_validate_platform_spec(os_name, bits)
+
+    log_verbose("INSTALL_MONGODB: OS='%s' , BITS='%s' , VERSION='%s', "
+                "PLATFORM_SPEC='%s'" % (os_name, bits, version_info,
+                                        platform_spec))
 
     os_dist_name, os_dist_version = get_os_dist_info()
     if os_dist_name:
