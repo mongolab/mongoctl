@@ -25,6 +25,8 @@
 
 __author__ = 'abdul'
 
+import version
+
 MONGOCTL_PARSER_DEF = {
     "prog": "mongoctl",
     "usage": "Usage: mongoctl [<options>] <command> [<command-args>]",
@@ -86,6 +88,16 @@ MONGOCTL_PARSER_DEF = {
                 "--config-root"
             ],
             "nargs": 1
+        },
+
+        {
+            "name": "version",
+            "type" : "optional",
+            "cmd_arg":  "--version",
+            "nargs": 0,
+            "help": "print version",
+            "action": "version",
+            "version": "mongoctl %s" % version.MONGOCTL_VERSION
         }
 
     ],
