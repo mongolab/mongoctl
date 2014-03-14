@@ -20,7 +20,7 @@ logger = None
 _log_to_stdout = True
 _logging_level = logging.INFO
 
-VERBOSE = 5
+VERBOSE = 15
 logging.addLevelName(VERBOSE, "VERBOSE")
 
 ###############################################################################
