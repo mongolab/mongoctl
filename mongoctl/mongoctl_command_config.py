@@ -1500,6 +1500,16 @@ MONGOCTL_PARSER_DEF = {
                     "nargs": 1,
                     "displayName": "VERSION",
                     "help": "MongoDB version to uninstall"
+                } ,
+
+                {
+                    "name": "edition",
+                    "type" : "optional",
+                    "help": "edition (community (default) or enterprise)",
+                    "cmd_arg": [
+                        "--edition"
+                    ],
+                    "nargs": 1
                 }
             ]
         },

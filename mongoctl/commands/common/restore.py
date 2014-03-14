@@ -16,7 +16,7 @@ from mongoctl.errors import MongoctlException
 
 from mongoctl.utils import call_command
 from mongoctl.objects.server import Server
-from mongoctl.mongo_version import version_obj, MongoctlNormalizedVersion
+from mongoctl.mongo_version import make_version_info, VersionInfo
 
 ###############################################################################
 # CONSTS
@@ -154,7 +154,7 @@ def mongo_restore_server(server, source,
                      database=database,
                      username=username,
                      password=password,
-                     server_version=server.get_mongo_version_obj(),
+                     server_version=server.get_mongo_version_info(),
                      restore_options=restore_options)
 
 ###############################################################################
@@ -214,7 +214,7 @@ def do_mongo_restore(source,
     # ignore authenticationDatabase option is server_version is less than 2.4.0
     if (restore_options and "authenticationDatabase" in restore_options and
             server_version and
-                version_obj(server_version) < MongoctlNormalizedVersion("2.4.0")):
+                make_version_info(server_version) < VersionInfo("2.4.0")):
         restore_options.pop("authenticationDatabase", None)
 
     # append shell options
@@ -243,7 +243,7 @@ def get_mongo_restore_executable(server_version):
                                        version_check_pref=
                                        VERSION_PREF_EXACT_OR_MINOR)
     # Warn the user if it is not an exact match (minor match)
-    if server_version and version_obj(server_version) != restore_exe.version:
+    if server_version and make_version_info(server_version) != restore_exe.version:
         log_warning("Using mongorestore '%s' that does not exactly match"
                     "server version '%s'" % (restore_exe.version,
                                              server_version))

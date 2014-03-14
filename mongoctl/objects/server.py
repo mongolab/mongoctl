@@ -10,7 +10,7 @@ from pymongo.errors import AutoReconnect
 from mongoctl.mongoctl_logging import (
     log_verbose, log_error, log_warning, log_exception, log_debug
     )
-from mongoctl.mongo_version import version_obj
+from mongoctl.mongo_version import make_version_info
 
 from mongoctl.config import get_default_users
 from mongoctl.errors import MongoctlException
@@ -196,10 +196,11 @@ class Server(DocumentWrapper):
         return self.get_property("mongoEdition")
 
     ###########################################################################
-    def get_mongo_version_obj(self):
-        version_str = self.get_mongo_version()
-        if version_str is not None:
-            return version_obj(version_str, edition=self.get_mongo_edition())
+    def get_mongo_version_info(self):
+        version_number = self.get_mongo_version()
+        if version_number is not None:
+            return make_version_info(version_number,
+                                     edition=self.get_mongo_edition())
         else:
             return None
 
@@ -711,9 +712,9 @@ class Server(DocumentWrapper):
          We need a repl key if you are auth + a cluster member +
          version is None or >= 2.0.0
         """
-        version = self.get_mongo_version_obj()
+        version = self.get_mongo_version_info()
         return (version is None or
-                version >= version_obj(REPL_KEY_SUPPORTED_VERSION))
+                version >= make_version_info(REPL_KEY_SUPPORTED_VERSION))
 
     ###########################################################################
     def get_pid(self):

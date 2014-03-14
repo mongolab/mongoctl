@@ -8,7 +8,7 @@ from mongoctl.mongoctl_logging import *
 from mongoctl import config
 from mongoctl.errors import MongoctlException
 from mongoctl.utils import is_exe, which, resolve_path, execute_command
-from mongoctl.mongo_version import version_obj, MongoEdition
+from mongoctl.mongo_version import make_version_info, MongoEdition
 from mongoctl.mongo_uri_tools import is_mongo_uri
 
 ###############################################################################
@@ -43,17 +43,17 @@ def extract_mongo_exe_options(parsed_args, supported_options):
 
 
 ###############################################################################
-def get_mongo_executable(server_version_obj,
+def get_mongo_executable(version_info,
                          executable_name,
                          version_check_pref=VERSION_PREF_EXACT):
 
     mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
     mongo_installs_dir = config.get_mongodb_installs_dir()
-    version_str = server_version_obj and server_version_obj.version_str
-    mongo_edition = server_version_obj and (server_version_obj.edition or
+    version_number = version_info and version_info.version_number
+    mongo_edition = version_info and (version_info.edition or
                                             MongoEdition.COMMUNITY)
 
-    ver_disp = "[Unspecified]" if version_str is None else version_str
+    ver_disp = "[Unspecified]" if version_number is None else version_number
     log_verbose("Looking for a compatible %s for mongoVersion=%s." %
                 (executable_name, ver_disp))
     exe_version_tuples = find_all_executables(executable_name)
@@ -61,7 +61,7 @@ def get_mongo_executable(server_version_obj,
     if len(exe_version_tuples) > 0:
         selected_exe = best_executable_match(executable_name,
                                              exe_version_tuples,
-                                             server_version_obj,
+                                             version_info,
                                              version_check_pref=
                                              version_check_pref)
         if selected_exe is not None:
@@ -300,7 +300,7 @@ def mongo_exe_version(mongo_exe):
         full_version = vers_grep[-1][0]
         edition = (MongoEdition.ENTERPRISE if "subscription" in
                                               vers_spew else None)
-        result = version_obj(full_version, edition=edition)
+        result = make_version_info(full_version, edition=edition)
         if result is not None:
             return result
         else:

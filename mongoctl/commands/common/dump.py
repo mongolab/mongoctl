@@ -17,7 +17,7 @@ from mongoctl.errors import MongoctlException
 
 from mongoctl.utils import call_command
 from mongoctl.objects.server import Server
-from mongoctl.mongo_version import version_obj, MongoctlNormalizedVersion
+from mongoctl.mongo_version import make_version_info, VersionInfo
 
 
 ###############################################################################
@@ -169,7 +169,7 @@ def mongo_dump_server(server,
                   database=database,
                   username=username,
                   password=password,
-                  server_version=server.get_mongo_version_obj(),
+                  server_version=server.get_mongo_version_info(),
                   dump_options=dump_options)
 
 ###############################################################################
@@ -274,7 +274,7 @@ def do_mongo_dump(host=None,
     # ignore authenticationDatabase option is server_version is less than 2.4.0
     if (dump_options and "authenticationDatabase" in dump_options and
             server_version and
-                version_obj(server_version) < MongoctlNormalizedVersion("2.4.0")):
+                make_version_info(server_version) < VersionInfo("2.4.0")):
         dump_options.pop("authenticationDatabase", None)
 
     # append shell options
@@ -307,7 +307,7 @@ def get_mongo_dump_executable(server_version):
                                     version_check_pref=
                                     VERSION_PREF_EXACT_OR_MINOR)
     # Warn the user if it is not an exact match (minor match)
-    if server_version and version_obj(server_version) != dump_exe.version:
+    if server_version and make_version_info(server_version) != dump_exe.version:
         log_warning("Using mongodump '%s' that does not exactly match "
                     "server version '%s'" % (dump_exe.version, server_version))
 
