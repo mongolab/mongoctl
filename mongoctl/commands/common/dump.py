@@ -169,7 +169,7 @@ def mongo_dump_server(server,
                   database=database,
                   username=username,
                   password=password,
-                  server_version=server.get_mongo_version_info(),
+                  version_info=server.get_mongo_version_info(),
                   dump_options=dump_options)
 
 ###############################################################################
@@ -245,12 +245,12 @@ def do_mongo_dump(host=None,
                   database=None,
                   username=None,
                   password=None,
-                  server_version=None,
+                  version_info=None,
                   dump_options=None):
 
 
     # create dump command with host and port
-    dump_cmd = [get_mongo_dump_executable(server_version)]
+    dump_cmd = [get_mongo_dump_executable(version_info)]
 
     if host:
         dump_cmd.extend(["--host", host])
@@ -271,10 +271,9 @@ def do_mongo_dump(host=None,
         if password:
             dump_cmd.append(password)
 
-    # ignore authenticationDatabase option is server_version is less than 2.4.0
+    # ignore authenticationDatabase option is version_info is less than 2.4.0
     if (dump_options and "authenticationDatabase" in dump_options and
-            server_version and
-                make_version_info(server_version) < VersionInfo("2.4.0")):
+            version_info and version_info < VersionInfo("2.4.0")):
         dump_options.pop("authenticationDatabase", None)
 
     # append shell options
@@ -301,14 +300,14 @@ def extract_mongo_dump_options(parsed_args):
                                      SUPPORTED_MONGO_DUMP_OPTIONS)
 
 ###############################################################################
-def get_mongo_dump_executable(server_version):
-    dump_exe = get_mongo_executable(server_version,
+def get_mongo_dump_executable(version_info):
+    dump_exe = get_mongo_executable(version_info,
                                     'mongodump',
                                     version_check_pref=
                                     VERSION_PREF_EXACT_OR_MINOR)
     # Warn the user if it is not an exact match (minor match)
-    if server_version and make_version_info(server_version) != dump_exe.version:
+    if version_info and version_info != dump_exe.version:
         log_warning("Using mongodump '%s' that does not exactly match "
-                    "server version '%s'" % (dump_exe.version, server_version))
+                    "server version '%s'" % (dump_exe.version, version_info))
 
     return dump_exe.path

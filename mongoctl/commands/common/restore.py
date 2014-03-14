@@ -154,7 +154,7 @@ def mongo_restore_server(server, source,
                      database=database,
                      username=username,
                      password=password,
-                     server_version=server.get_mongo_version_info(),
+                     version_info=server.get_mongo_version_info(),
                      restore_options=restore_options)
 
 ###############################################################################
@@ -185,12 +185,12 @@ def do_mongo_restore(source,
                      database=None,
                      username=None,
                      password=None,
-                     server_version=None,
+                     version_info=None,
                      restore_options=None):
 
 
     # create restore command with host and port
-    restore_cmd = [get_mongo_restore_executable(server_version)]
+    restore_cmd = [get_mongo_restore_executable(version_info)]
 
     if host:
         restore_cmd.extend(["--host", host])
@@ -211,10 +211,9 @@ def do_mongo_restore(source,
         if password:
             restore_cmd.append(password)
 
-    # ignore authenticationDatabase option is server_version is less than 2.4.0
+    # ignore authenticationDatabase option is version_info is less than 2.4.0
     if (restore_options and "authenticationDatabase" in restore_options and
-            server_version and
-                make_version_info(server_version) < VersionInfo("2.4.0")):
+            version_info and version_info < make_version_info("2.4.0")):
         restore_options.pop("authenticationDatabase", None)
 
     # append shell options
@@ -237,16 +236,16 @@ def do_mongo_restore(source,
 
 
 ###############################################################################
-def get_mongo_restore_executable(server_version):
-    restore_exe = get_mongo_executable(server_version,
+def get_mongo_restore_executable(version_info):
+    restore_exe = get_mongo_executable(version_info,
                                        'mongorestore',
                                        version_check_pref=
                                        VERSION_PREF_EXACT_OR_MINOR)
     # Warn the user if it is not an exact match (minor match)
-    if server_version and make_version_info(server_version) != restore_exe.version:
+    if version_info and version_info != restore_exe.version:
         log_warning("Using mongorestore '%s' that does not exactly match"
                     "server version '%s'" % (restore_exe.version,
-                                             server_version))
+                                             version_info))
 
     return restore_exe.path
 
