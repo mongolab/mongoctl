@@ -319,7 +319,12 @@ class ReplicaSetCluster(Cluster):
 
     ###########################################################################
     def get_status(self):
-        primary_server = self.get_primary_member().get_server()
+        primary_server = self.get_primary_server()
+
+        if not primary_server:
+            raise MongoctlException("Unable to determine primary member for"
+                                    " cluster '%s'" % self.id)
+
         master_status = primary_server.get_member_rs_status()
         primary_server_address = master_status['name']
 
