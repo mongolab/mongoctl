@@ -87,7 +87,8 @@ class Cluster(DocumentWrapper):
         server_uri_templates = []
         for member in self.get_members():
             server = member.get_server()
-            server_uri_templates.append(server.get_address_display())
+            if not server.is_arbiter():
+                server_uri_templates.append(server.get_address_display())
 
         creds = "[<dbuser>:<dbpass>@]" if self.get_repl_key() else ""
         return ("mongodb://%s%s%s" % (creds, ",".join(server_uri_templates),
