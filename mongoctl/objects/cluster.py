@@ -87,7 +87,7 @@ class Cluster(DocumentWrapper):
         server_uri_templates = []
         for member in self.get_members():
             server = member.get_server()
-            if not server.is_arbiter():
+            if not server.is_arbiter_server():
                 server_uri_templates.append(server.get_address_display())
 
         creds = "[<dbuser>:<dbpass>@]" if self.get_repl_key() else ""
