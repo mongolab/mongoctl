@@ -592,7 +592,7 @@ class ReplicaSetCluster(Cluster):
                         (force and version_diff >= 0))
 
             realized_config = self.read_rs_config()
-            if got_the_memo(realized_config):
+            if not got_the_memo(realized_config):
                 log_verbose("Really? Config version %s? "
                             "Let me double-check that ..." %
                             "unchanged" if realized_config else "unavailable")
