@@ -72,7 +72,7 @@ def setup_server_users(server):
 
     for dbname, db_seed_users in seed_users.items():
         # create the admin ones last so we won't have an auth issue
-        if (dbname == "admin"):
+        if dbname in ["admin", "local"]:
             continue
         count_new_users += setup_server_db_users(server, dbname, db_seed_users)
 
@@ -142,18 +142,20 @@ def setup_db_users(server, db, db_users):
 
     return count_new_users
 
+
 ###############################################################################
-DEV_2_6_VERSION = mongo_version.make_version_info("2.5.3")
+VERSION_2_6 = mongo_version.make_version_info("2.6.0")
+
+###############################################################################
+def server_supports_local_users(server):
+    version = server.get_mongo_version_info()
+    return version and version < VERSION_2_6
 
 ###############################################################################
 def _mongo_add_user(server, db, username, password, read_only=False,
                     num_tries=1):
     try:
-        kwargs = {}
-        version = server.get_mongo_version_info()
-        if version and version >= DEV_2_6_VERSION:
-            kwargs = _make_2_6_dev_add_user_kwargs(db, username, password)
-        db.add_user(username, password, read_only, **kwargs)
+        db.add_user(username, password, read_only)
     except OperationFailure, ofe:
         # This is a workaround for PYTHON-407. i.e. catching a harmless
         # error that is raised after adding the first
@@ -177,25 +179,6 @@ def _mongo_add_user(server, db, username, password, read_only=False,
         else:
             raise
 
-
-###############################################################################
-def _make_2_6_dev_add_user_kwargs(db, username, password):
-    pwd_hash = pymongo.auth._password_digest(username, password)
-    return {
-        "db": db.name,
-        "roles": [
-            {
-                "role": "root",
-                "db": db.name,
-                "hasRole": True,
-                "canDelegate": False
-            }
-        ],
-        "credentials": {
-            "MONGODB-CR": pwd_hash
-        }
-
-    }
 
 ###############################################################################
 def setup_server_db_users(server, dbname, db_users):
