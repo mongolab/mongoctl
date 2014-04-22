@@ -1125,6 +1125,15 @@ MONGOCTL_PARSER_DEF = {
                     "cmd_arg":  "--authenticationDatabase",
                     "nargs": 1,
                     "help": "user source (defaults to dbname). 2.4.x or greater only."
+                },
+
+                    {
+                    "name": "dumpDbUsersAndRoles",
+                    "type" : "optional",
+                    "cmd_arg":  "--dumpDbUsersAndRoles",
+                    "nargs": 0,
+                    "help": "Dump user and role definitions for the given "
+                            "database. 2.6.x or greater only."
                 }
 
             ]
@@ -1287,6 +1296,15 @@ MONGOCTL_PARSER_DEF = {
                     "cmd_arg":  "--authenticationDatabase",
                     "nargs": 1,
                     "help": "user source (defaults to dbname). 2.4.x or greater only."
+                },
+
+                {
+                    "name": "restoreDbUsersAndRoles",
+                    "type": "optional",
+                    "cmd_arg":  "--restoreDbUsersAndRoles",
+                    "nargs": 0,
+                    "help": "Restore user and role definitions for the given "
+                            "database. 2.6.x or greater only."
                 }
 
             ]

@@ -32,7 +32,8 @@ SUPPORTED_MONGO_RESTORE_OPTIONS = [
     "oplogReplay",
     "keepIndexVersion",
     "verbose",
-    "authenticationDatabase"
+    "authenticationDatabase",
+    "restoreDbUsersAndRoles"
 ]
 
 
@@ -215,6 +216,11 @@ def do_mongo_restore(source,
     if (restore_options and "authenticationDatabase" in restore_options and
             version_info and version_info < make_version_info("2.4.0")):
         restore_options.pop("authenticationDatabase", None)
+
+    # ignore restoreDbUsersAndRoles option is version_info is less than 2.6.0
+    if (restore_options and "restoreDbUsersAndRoles" in restore_options and
+            version_info and version_info < make_version_info("2.6.0")):
+        restore_options.pop("restoreDbUsersAndRoles", None)
 
     # append shell options
     if restore_options:

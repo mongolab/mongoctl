@@ -35,7 +35,8 @@ SUPPORTED_MONGO_DUMP_OPTIONS = [
     "forceTableScan",
     "ipv6",
     "verbose",
-    "authenticationDatabase"
+    "authenticationDatabase",
+    "dumpDbUsersAndRoles"
 ]
 
 
@@ -276,6 +277,11 @@ def do_mongo_dump(host=None,
             version_info and version_info < VersionInfo("2.4.0")):
         dump_options.pop("authenticationDatabase", None)
 
+    # ignore dumpDbUsersAndRoles option is version_info is less than 2.6.0
+    if (dump_options and "dumpDbUsersAndRoles" in dump_options and
+            version_info and version_info < VersionInfo("2.6.0")):
+        dump_options.pop("dumpDbUsersAndRoles", None)
+
     # append shell options
     if dump_options:
         dump_cmd.extend(options_to_command_args(dump_options))
@@ -284,7 +290,7 @@ def do_mongo_dump(host=None,
     cmd_display =  dump_cmd[:]
     # mask user/password
     if username:
-        cmd_display[cmd_display.index("-u") + 1] =  "****"
+        cmd_display[cmd_display.index("-u") + 1] = "****"
         if password:
             cmd_display[cmd_display.index("-p") + 1] =  "****"
 
