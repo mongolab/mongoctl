@@ -130,9 +130,6 @@ class MongodServer(server.Server):
     def set_auth(self,auth):
         self.set_cmd_option("auth", auth)
 
-    ###########################################################################
-    def is_config_server(self):
-        return self.get_cmd_option("configsvr")
 
     ###########################################################################
     def is_administrable(self):
@@ -191,8 +188,10 @@ class MongodServer(server.Server):
     ###########################################################################
     def is_config_server(self):
         cluster = self.get_cluster()
-        return (isinstance(cluster, ShardedCluster) and
-                cluster.has_config_server(self))
+
+        return ((isinstance(cluster, ShardedCluster) and
+                 cluster.has_config_server(self)) or
+                self.get_cmd_option("configsvr"))
 
     ###########################################################################
     def is_shard_server(self):
