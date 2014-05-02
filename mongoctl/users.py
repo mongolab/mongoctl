@@ -70,18 +70,19 @@ def setup_server_users(server):
 
     count_new_users = 0
 
-    for dbname, db_seed_users in seed_users.items():
-        # create the admin ones last so we won't have an auth issue
-        if dbname in ["admin", "local"]:
-            continue
-        count_new_users += setup_server_db_users(server, dbname, db_seed_users)
-
     # Note: If server member of a replica then don't setup admin
     # users because primary server will do that at replinit
 
     # Now create admin ones
     if not server.is_slave():
         count_new_users += setup_server_admin_users(server)
+
+    for dbname, db_seed_users in seed_users.items():
+        # create the admin ones last so we won't have an auth issue
+        if dbname in ["admin", "local"]:
+            continue
+        count_new_users += setup_server_db_users(server, dbname, db_seed_users)
+
 
     if count_new_users > 0:
         log_info("Added %s users." % count_new_users)
