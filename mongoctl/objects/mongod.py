@@ -5,7 +5,8 @@ __author__ = 'abdul'
 import server
 
 from mongoctl.utils import resolve_path
-from mongoctl.mongoctl_logging import log_verbose, log_debug, log_exception
+from mongoctl.mongoctl_logging import log_verbose, log_debug, log_exception, \
+    log_warning
 
 from bson.son import SON
 from mongoctl.errors import MongoctlException
@@ -154,7 +155,8 @@ class MongodServer(server.Server):
         server_summary = {
             "host": server_status['host'],
             "connections": server_status['connections'],
-            "version": server_status['version']
+            "version": server_status['version'],
+            "uptime": server_status['uptime']
         }
         return server_summary
 
@@ -291,6 +293,17 @@ class MongodServer(server.Server):
         except(Exception, RuntimeError),e:
             log_verbose("isMaster command failed on server '%s'. Cause %s" %
                         (self.id, e))
+
+    ###########################################################################
+    def is_reporting_incomplete_ismaster(self):
+        is_master = self.is_master_command()
+        if 'setName' not in is_master:
+            if 'secondary' in is_master:
+                log_warning("ismaster returning an incomplete result: %s"
+                            % is_master)
+                return True
+
+        return False
 
     ###########################################################################
     def read_replicaset_name(self):

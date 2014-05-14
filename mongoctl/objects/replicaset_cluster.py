@@ -426,9 +426,34 @@ class ReplicaSetCluster(Cluster):
         read_replicaset_name()
         """
 
+        # it's possible isMaster returns an "incomplete" result if we
+        # query a replica set member while it's loading the replica set config
+        # https://jira.mongodb.org/browse/SERVER-13458
+        # let's try to detect this state before proceeding
+        # seems like if the "secondary" field is present, but "setName" isn't,
+        # it's a good indicator that we just need to wait a bit
+        # add an uptime check in for good measure
+
         for member in self.get_members():
-            if member.get_server().read_replicaset_name():
+            if member.get_server().get_server_status_summary()['uptime'] < 2:
+                log_verbose("The server just started, giving it a short 2 "
+                            "second allowance to load a possible replica "
+                            "set config...")
+                time.sleep(2)
+
+            server = member.get_server()
+            if server.read_replicaset_name():
                 return True
+            elif server.is_reporting_incomplete_ismaster():
+
+                def is_reporting_valid_ismaster():
+                    return not server.is_reporting_incomplete_ismaster()
+
+                wait_for(is_reporting_valid_ismaster, timeout=30, grace=False)
+
+                # now try once more to get the replica set name
+                if server.read_replicaset_name():
+                    return True
 
         return False
 
