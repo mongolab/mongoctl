@@ -100,14 +100,14 @@ def open_mongo_shell_to_server(server,
                                                       password)
 
 
-
     do_open_mongo_shell_to(server.get_connection_address(),
-                           database,
-                           username,
-                           password,
-                           server.get_mongo_version_info(),
-                           shell_options,
-                           js_files)
+                           database=database,
+                           username=username,
+                           password=password,
+                           server_version=server.get_mongo_version_info(),
+                           shell_options=shell_options,
+                           js_files=js_files,
+                           ssl=server.use_ssl())
 
 ###############################################################################
 def open_mongo_shell_to_cluster(cluster,
@@ -167,7 +167,8 @@ def do_open_mongo_shell_to(address,
                            password=None,
                            server_version=None,
                            shell_options={},
-                           js_files=[]):
+                           js_files=[],
+                           ssl=False):
 
     # default database to admin
     database = database if database else "admin"
@@ -188,6 +189,10 @@ def do_open_mongo_shell_to(address,
     # append js files
     if js_files:
         connect_cmd.extend(js_files)
+
+    # ssl options
+    if ssl:
+        connect_cmd.append("--ssl")
 
     cmd_display =  connect_cmd[:]
     # mask user/password

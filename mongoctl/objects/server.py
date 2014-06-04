@@ -104,6 +104,18 @@ class Server(DocumentWrapper):
             return resolve_path(kf)
 
     ###########################################################################
+    def use_ssl(self):
+        return self.get_cmd_option("sslMode") is not None
+
+    ###########################################################################
+    def ssl_key_file(self):
+        return self.get_cmd_option("sslKeyFile") is not None
+
+    ###########################################################################
+    def ssl_cert_file(self):
+        return self.get_cmd_option("sslCertFile") is not None
+
+    ###########################################################################
     def get_default_key_file_path(self):
         return self.get_server_file_path("keyFile", KEY_FILE_NAME)
 
@@ -620,9 +632,19 @@ class Server(DocumentWrapper):
     def make_db_connection(self, address):
 
         try:
-            return Connection(address,
-                              socketTimeoutMS=CONN_TIMEOUT,
-                              connectTimeoutMS=CONN_TIMEOUT)
+            kwargs = {
+                "socketTimeoutMS": CONN_TIMEOUT,
+                "connectTimeoutMS": CONN_TIMEOUT,
+                "ssl": self.use_ssl()
+            }
+
+            if self.ssl_key_file():
+                kwargs["ssl_keyfile"] = self.ssl_key_file()
+            if self.ssl_cert_file():
+                kwargs["ssl_certfile"] =  self.ssl_cert_file()
+
+
+            return Connection(address, **kwargs)
         except Exception, e:
             log_exception(e)
             error_msg = "Cannot connect to '%s'. Cause: %s" % \
