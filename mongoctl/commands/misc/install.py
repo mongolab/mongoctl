@@ -5,7 +5,6 @@ import platform
 import urllib
 import shutil
 
-from mongoctl.mongo_version import is_valid_version_info
 
 import mongoctl.config as config
 from mongoctl.prompt import prompt_execute_task, is_interactive_mode
@@ -17,7 +16,7 @@ from mongoctl.errors import MongoctlException
 
 from mongoctl.utils import call_command, which
 
-from mongoctl.mongo_version import make_version_info
+from mongoctl.mongo_version import make_version_info, is_valid_version_info
 from mongoctl.commands.command_utils import find_all_executables
 from mongoctl.objects.server import EDITION_COMMUNITY, EDITION_ENTERPRISE
 ###############################################################################
@@ -271,6 +270,7 @@ def get_os_dist_info():
         return None, None
 
 ###############################################################################
+VERSION_2_6_1 = make_version_info("2.6.1")
 def get_download_url(os_name, platform_spec, os_dist_name, os_dist_version,
                      version_info):
 
@@ -280,11 +280,18 @@ def get_download_url(os_name, platform_spec, os_dist_name, os_dist_version,
         archive_name = "mongodb-%s-%s.tgz" % (platform_spec, mongo_version)
         domain = "fastdl.mongodb.org"
     elif edition == EDITION_ENTERPRISE:
-        archive_name = ("mongodb-%s-subscription-%s%s-%s.tgz" %
-                        (platform_spec, os_dist_name,
+        if version_info and version_info >= VERSION_2_6_1:
+            domain = "downloads.10gen.com"
+            rel_name = "enterprise"
+        else:
+            rel_name = "subscription"
+            domain = "downloads.mongodb.com"
+
+        archive_name = ("mongodb-%s-%s-%s%s-%s.tgz" %
+                        (platform_spec, rel_name, os_dist_name,
                          os_dist_version.replace('.', ''),
                          mongo_version))
-        domain = "downloads.mongodb.com"
+
     else:
         raise MongoctlException("Unknown mongodb edition '%s'" % edition)
 
