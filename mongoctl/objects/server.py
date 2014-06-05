@@ -590,6 +590,18 @@ class Server(DocumentWrapper):
         }
         return server_summary
 
+
+    ###########################################################################
+    def get_uptime(self):
+        server_status = self._server_status_command()
+        if server_status:
+            return server_status.get("uptime")
+
+    ###########################################################################
+    def _server_status_command(self):
+        if self.is_online():
+            return self.db_command(SON([('serverStatus', 1)]), "admin")
+
     ###########################################################################
     def get_db_connection(self):
         if self.__db_connection__ is None:
@@ -634,9 +646,11 @@ class Server(DocumentWrapper):
         try:
             kwargs = {
                 "socketTimeoutMS": CONN_TIMEOUT,
-                "connectTimeoutMS": CONN_TIMEOUT,
-                "ssl": self.use_ssl()
+                "connectTimeoutMS": CONN_TIMEOUT
             }
+
+            if self.use_ssl():
+                kwargs["ssl"] = True
 
             if self.ssl_key_file():
                 kwargs["ssl_keyfile"] = self.ssl_key_file()

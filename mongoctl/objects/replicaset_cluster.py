@@ -422,8 +422,7 @@ class ReplicaSetCluster(Cluster):
     ###########################################################################
     def is_replicaset_initialized(self):
         """
-        iterate on all members you get a member with a non-null
-        read_replicaset_name()
+        iterate on all members and check if any has joined the replica
         """
 
         # it's possible isMaster returns an "incomplete" result if we
@@ -435,25 +434,16 @@ class ReplicaSetCluster(Cluster):
         # add an uptime check in for good measure
 
         for member in self.get_members():
-            if member.get_server().get_server_status_summary()['uptime'] < 2:
+            server = member.get_server()
+            uptime = server.get_uptime()
+            if uptime and uptime < 2:
                 log_verbose("The server just started, giving it a short 2 "
                             "second allowance to load a possible replica "
                             "set config...")
                 time.sleep(2)
 
-            server = member.get_server()
-            if server.read_replicaset_name():
+            if server.has_joined_replica():
                 return True
-            elif server.is_reporting_incomplete_ismaster():
-
-                def is_reporting_valid_ismaster():
-                    return not server.is_reporting_incomplete_ismaster()
-
-                wait_for(is_reporting_valid_ismaster, timeout=30, grace=False)
-
-                # now try once more to get the replica set name
-                if server.read_replicaset_name():
-                    return True
 
         return False
 

@@ -150,17 +150,6 @@ class MongodServer(server.Server):
         return status
 
     ###########################################################################
-    def get_server_status_summary(self):
-        server_status = self.db_command(SON([('serverStatus', 1)]), "admin")
-        server_summary = {
-            "host": server_status['host'],
-            "connections": server_status['connections'],
-            "version": server_status['version'],
-            "uptime": server_status['uptime']
-        }
-        return server_summary
-
-    ###########################################################################
     def get_rs_status_summary(self):
         if self.is_replicaset_member():
             member_rs_status = self.get_member_rs_status()
@@ -306,10 +295,12 @@ class MongodServer(server.Server):
         return False
 
     ###########################################################################
-    def read_replicaset_name(self):
+    def has_joined_replica(self):
         master_result = self.is_master_command()
         if master_result:
-            return "setName" in master_result and master_result["setName"]
+            return (master_result.get("setName") or
+                    master_result.get("ismaster") or
+                    master_result.get("arbiterOnly"))
 
     ###########################################################################
     def get_repl_lag(self, master_status):
