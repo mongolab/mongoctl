@@ -48,6 +48,10 @@ REPL_KEY_SUPPORTED_VERSION = '2.0.0'
 EDITION_COMMUNITY = "community"
 EDITION_ENTERPRISE = "enterprise"
 
+# SSL_OFF global flag to for turning off ssl
+# TODO this is temporary and should be deleted
+SSL_OFF = False
+
 ###############################################################################
 # Server Class
 ###############################################################################
@@ -105,7 +109,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def use_ssl(self):
-        return self.get_cmd_option("sslMode") is not None
+        return not SSL_OFF and self.get_cmd_option("sslMode") is not None
 
     ###########################################################################
     def ssl_key_file(self):
@@ -649,14 +653,14 @@ class Server(DocumentWrapper):
                 "connectTimeoutMS": CONN_TIMEOUT
             }
 
-            if self.use_ssl():
+            use_ssl = self.use_ssl()
+            if use_ssl:
                 kwargs["ssl"] = True
 
-            if self.ssl_key_file():
+            if use_ssl and self.ssl_key_file():
                 kwargs["ssl_keyfile"] = self.ssl_key_file()
-            if self.ssl_cert_file():
+            if use_ssl and self.ssl_cert_file():
                 kwargs["ssl_certfile"] =  self.ssl_cert_file()
-
 
             return Connection(address, **kwargs)
         except Exception, e:

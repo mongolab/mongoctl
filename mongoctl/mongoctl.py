@@ -121,6 +121,10 @@ def do_main(args):
     elif no_all:
         say_no_to_everything()
 
+    # set the global SSL_OFF flag
+    if parsed_args.sslOff:
+        objects.server.SSL_OFF = True
+
     # set conf root if specified
     if parsed_args.configRoot is not None:
         config._set_config_root(parsed_args.configRoot)

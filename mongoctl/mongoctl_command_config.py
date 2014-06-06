@@ -98,7 +98,19 @@ MONGOCTL_PARSER_DEF = {
             "help": "print version",
             "action": "version",
             "version": "mongoctl %s" % version.MONGOCTL_VERSION
-        }
+        },
+
+        {
+            "name": "sslOff",
+            "type": "optional",
+            "help": "does not attempt to make any ssl connection",
+            "cmd_arg": [
+                "--ssl-off"
+            ],
+            "nargs": 0,
+            "action": "store_true",
+            "default": False
+        },
 
     ],
 
