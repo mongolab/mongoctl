@@ -329,6 +329,7 @@ def _start_server_process_4real(server, options_override=None):
                                       stdout=child_process_out,
                                       preexec_fn=server_process_preexec)
 
+    # check if the process was created successfully
 
     if server.is_fork():
         __mongod_pid__ = get_forked_mongod_pid(parent_mongod)
