@@ -333,7 +333,7 @@ def options_to_command_args(args):
     # append the arg name and val as needed
         if not arg_val:
             continue
-        elif arg_val == True:
+        elif arg_val is True:
             command_args.append("--%s" % arg_name)
         else:
             command_args.append("--%s" % arg_name)
