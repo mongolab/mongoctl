@@ -52,6 +52,10 @@ EDITION_ENTERPRISE = "enterprise"
 # TODO this is temporary and should be deleted
 SSL_OFF = False
 
+# A global config that is set through --use-alt-address option that will use
+# a different "address" property of when making connections to servers
+USE_ALT_ADDRESS = None
+
 ###############################################################################
 # Server Class
 ###############################################################################
@@ -139,6 +143,13 @@ class Server(DocumentWrapper):
     ###########################################################################
     def get_address(self):
         address = self.get_property("address")
+
+        if USE_ALT_ADDRESS:
+            address = self.get_property(USE_ALT_ADDRESS)
+            if not address:
+                raise MongoctlException(
+                    "No alternative address '%s' found in server '%s'" %
+                    (USE_ALT_ADDRESS, self.id))
 
         if address is not None:
             if address.find(":") > 0:

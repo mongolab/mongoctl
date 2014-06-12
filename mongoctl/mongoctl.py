@@ -125,6 +125,12 @@ def do_main(args):
     if parsed_args.sslOff:
         objects.server.SSL_OFF = True
 
+    # set the global USE_ALT_ADDRESS field
+    if parsed_args.useAltAddress:
+        use_alt_address = parsed_args.useAltAddress
+        log_info("Using alternative address '%s'..." % use_alt_address)
+        objects.server.USE_ALT_ADDRESS = use_alt_address
+
     # set conf root if specified
     if parsed_args.configRoot is not None:
         config._set_config_root(parsed_args.configRoot)

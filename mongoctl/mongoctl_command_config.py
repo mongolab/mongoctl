@@ -112,6 +112,18 @@ MONGOCTL_PARSER_DEF = {
             "default": False
         },
 
+        {
+            "name": "useAltAddress",
+            "type": "optional",
+            "help": "Name of alternative address property to use when "
+                    "connecting to servers instead of the 'address' property",
+            "cmd_arg": [
+                "--use-alt-address"
+            ],
+            "nargs": 1,
+            "default": None
+        },
+
     ],
 
     "child_groups": [
