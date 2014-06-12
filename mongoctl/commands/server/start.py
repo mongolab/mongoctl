@@ -330,7 +330,6 @@ def _start_server_process_4real(server, options_override=None):
                                       preexec_fn=server_process_preexec)
 
 
-
     if server.is_fork():
         __mongod_pid__ = get_forked_mongod_pid(parent_mongod)
     else:
@@ -343,9 +342,14 @@ def _start_server_process_4real(server, options_override=None):
 def get_forked_mongod_pid(parent_mongod):
     output = parent_mongod.communicate()[0]
     pid_re_expr = "forked process: ([0-9]+)"
-    pid_str = re.search(pid_re_expr, output).groups()[0]
+    pid_str_search = re.search(pid_re_expr, output)
+    if pid_str_search:
+        pid_str = pid_str_search.groups()[0]
+        return int(pid_str)
+    else:
+        raise MongoctlException("Could not start the server. Check output: "
+                                "%s" % output)
 
-    return int(pid_str)
 
 ###############################################################################
 def start_server_process(server,options_override=None):
