@@ -598,9 +598,11 @@ class Server(DocumentWrapper):
     ###########################################################################
     def get_server_status_summary(self):
         server_status = self.db_command(SON([('serverStatus', 1)]), "admin")
+        connections = server_status['connections']
+        del(connections['totalCreated'])
         server_summary = {
             "host": server_status['host'],
-            "connections": server_status['connections'],
+            "connections": connections,
             "version": server_status['version']
         }
         return server_summary
