@@ -325,24 +325,26 @@ class ReplicaSetCluster(Cluster):
             raise MongoctlException("Unable to determine primary member for"
                                     " cluster '%s'" % self.id)
 
+        rs_config_members = primary_server.get_rs_config()['members']
+
         master_status = primary_server.get_member_rs_status()
         primary_server_address = master_status['name']
-
         rs_status_members = primary_server.get_rs_status()['members']
+
         other_members = []
-        for m in rs_status_members:
-            if not m.get("self", False):
-                address = m.get("name")
+        for rs_status_m in rs_status_members:
+            if not rs_status_m.get("self", False):
+                address = rs_status_m.get("name")
                 member = {
                     "address": address,
-                    "stateStr": m.get("stateStr")
+                    "stateStr": rs_status_m.get("stateStr")
                 }
-                if m.get("errmsg", None):
-                    member['errmsg'] = m['errmsg']
-                if m.get("stateStr", None) in ["STARTUP2", "SECONDARY",
+                if rs_status_m.get("errmsg", None):
+                    member['errmsg'] = rs_status_m['errmsg']
+                if rs_status_m.get("stateStr", None) in ["STARTUP2", "SECONDARY",
                                                "RECOVERING"]:
                     # compute lag
-                    lag_in_secs = get_member_repl_lag(m, master_status)
+                    lag_in_secs = get_member_repl_lag(rs_status_m, master_status)
                     # compute lag description
                     hours, remainder = divmod(lag_in_secs, 3600)
                     minutes, seconds = divmod(remainder, 60)
@@ -359,6 +361,18 @@ class ReplicaSetCluster(Cluster):
                         "value": lag_in_secs,
                         "description": desc
                     }
+
+                for rs_config_m in rs_config_members:
+                    if rs_config_m['host'] == rs_status_m['name']:
+                        if rs_config_m.get("priority", 1) != 1:
+                            member['priority'] = rs_config_m['priority']
+                        if rs_config_m.get("votes", 1) != 1:
+                            member['votes'] = rs_config_m['votes']
+                        if rs_config_m.get("hidden", False) != False:
+                            member['hidden'] = rs_config_m['hidden'] 
+                        if rs_config_m.get("tags"):
+                            member['tags'] = rs_config_m['tags'] 
+
                 other_members.append(member)
         return {
             "primary": {
@@ -367,7 +381,6 @@ class ReplicaSetCluster(Cluster):
                 "serverStatusSummary":
                     primary_server.get_server_status_summary()
             },
-            #"replSetConfig": primary_server.get_rs_config(),
             "otherMembers": other_members
         }
 
