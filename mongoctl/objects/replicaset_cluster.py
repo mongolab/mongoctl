@@ -448,12 +448,6 @@ class ReplicaSetCluster(Cluster):
 
         for member in self.get_members():
             server = member.get_server()
-            uptime = server.get_uptime()
-            if uptime and uptime < 2:
-                log_verbose("The server just started, giving it a short 2 "
-                            "second allowance to load a possible replica "
-                            "set config...")
-                time.sleep(2)
 
             if server.has_joined_replica():
                 return True

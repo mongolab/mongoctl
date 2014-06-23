@@ -1,6 +1,6 @@
 __author__ = 'abdul'
 
-import os
+import time
 import stat
 import subprocess
 import re
@@ -194,6 +194,8 @@ def _post_server_start(server, server_pid, **kwargs):
 def _post_mongod_server_start(server, server_pid, **kwargs):
     try:
 
+        # sleep for a couple of seconds for the server to catch
+        time.sleep(2)
         # prepare the server
         prepare_mongod_server(server)
         maybe_config_server_repl_set(server, rs_add=kwargs.get("rs_add"),
