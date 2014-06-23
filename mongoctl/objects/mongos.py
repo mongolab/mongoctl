@@ -34,3 +34,7 @@ class MongosServer(Server):
         cmd_options["configdb"] = config_addresses
 
         return cmd_options
+
+    ###########################################################################
+    def is_cluster_connection_member(self):
+        return True

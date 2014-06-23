@@ -353,6 +353,14 @@ class Server(DocumentWrapper):
         return self.get_cluster() is not None
 
     ###########################################################################
+    def is_cluster_connection_member(self):
+        """
+        Override!
+        :return: true if the server should be included in a cluster connection
+        """
+        pass
+
+    ###########################################################################
     # DB Methods
     ###########################################################################
 

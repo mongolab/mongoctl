@@ -160,6 +160,10 @@ class MongodServer(server.Server):
                 }
 
     ###########################################################################
+    def is_cluster_connection_member(self):
+        return not self.is_arbiter_server()
+
+    ###########################################################################
     def is_arbiter_server(self):
         cluster = self.get_cluster()
         return (isinstance(cluster, ReplicaSetCluster) and
