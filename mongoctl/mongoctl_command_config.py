@@ -1483,11 +1483,12 @@ MONGOCTL_PARSER_DEF = {
 
                 {
                     "name": "edition",
-                    "type" : "optional",
+                    "type": "optional",
                     "help": "edition (community (default) or enterprise)",
                     "cmd_arg": [
                         "--edition"
                     ],
+                    "hidden": True,
                     "nargs": 1
                 }
             ]

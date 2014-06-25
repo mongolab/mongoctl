@@ -131,7 +131,7 @@ setup(
     url='https://github.com/mongolab/mongoctl',
     license='MIT',
     install_requires=[
-        'dargparse',
+        'dargparse>=0.2.5',
         'pymongo>=2.4.2',
         'verlib==0.1']
 
