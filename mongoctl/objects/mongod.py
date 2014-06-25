@@ -288,23 +288,13 @@ class MongodServer(server.Server):
                         (self.id, e))
 
     ###########################################################################
-    def is_reporting_incomplete_ismaster(self):
-        is_master = self.is_master_command()
-        if 'setName' not in is_master:
-            if 'secondary' in is_master:
-                log_warning("ismaster returning an incomplete result: %s"
-                            % is_master)
-                return True
-
-        return False
-
-    ###########################################################################
     def has_joined_replica(self):
         master_result = self.is_master_command()
         if master_result:
             return (master_result.get("setName") or
                     master_result.get("ismaster") or
-                    master_result.get("arbiterOnly"))
+                    master_result.get("arbiterOnly") or
+                    master_result.get("secondary"))
 
     ###########################################################################
     def get_repl_lag(self, master_status):
