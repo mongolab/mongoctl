@@ -607,7 +607,10 @@ class Server(DocumentWrapper):
     def get_server_status_summary(self):
         server_status = self.db_command(SON([('serverStatus', 1)]), "admin")
         connections = server_status['connections']
-        del(connections['totalCreated'])
+        # remove totalCreated if it exists
+        if "totalCreated" in connections:
+            del(connections["totalCreated"])
+
         server_summary = {
             "host": server_status['host'],
             "connections": connections,
