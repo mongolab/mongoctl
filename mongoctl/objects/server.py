@@ -67,10 +67,10 @@ class Server(DocumentWrapper):
     ###########################################################################
     def __init__(self, server_doc):
         DocumentWrapper.__init__(self, server_doc)
-        self.__db_connection__ = None
-        self.__seed_users__ = None
-        self.__login_users__ = {}
-        self.__mongo_version__ = None
+        self._db_connection = None
+        self._seed_users = None
+        self._mongo_version = None
+        self._cluster = None
         self._connection_address = None
 
     ###########################################################################
@@ -207,16 +207,16 @@ class Server(DocumentWrapper):
         Gets mongo version of the server if it is running. Otherwise return
          version configured in mongoVersion property
         """
-        if self.__mongo_version__:
-            return self.__mongo_version__
+        if self._mongo_version:
+            return self._mongo_version
 
         if self.is_online():
             mongo_version = self.get_db_connection().server_info()['version']
         else:
             mongo_version = self.get_property("mongoVersion")
 
-        self.__mongo_version__ = mongo_version
-        return self.__mongo_version__
+        self._mongo_version = mongo_version
+        return self._mongo_version
 
     ###########################################################################
     def get_mongo_edition(self):
@@ -284,20 +284,20 @@ class Server(DocumentWrapper):
     ###########################################################################
     def get_seed_users(self):
 
-        if self.__seed_users__ is None:
+        if self._seed_users is None:
             seed_users = self.get_property('seedUsers')
 
             ## This hidden for internal user and should not be documented
             if not seed_users:
                 seed_users = get_default_users()
 
-            self.__seed_users__ = seed_users
+            self._seed_users = seed_users
 
-        return self.__seed_users__
+        return self._seed_users
 
     ###########################################################################
     def get_login_user(self, dbname):
-        login_user =  self.__login_users__.get(dbname)
+        login_user =  users.get_server_login_user(self, dbname)
         # if no login user found then check global login
 
         if not login_user:
@@ -322,10 +322,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def set_login_user(self, dbname, username, password):
-        self.__login_users__[dbname] = {
-            "username": username,
-            "password": password
-        }
+        users.set_server_login_user(self, dbname, username, password)
 
     ###########################################################################
     def get_admin_users(self):
@@ -337,11 +334,13 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_cluster(self):
-        return repository.lookup_cluster_by_server(self)
+        if self._cluster is None:
+            self._cluster = repository.lookup_cluster_by_server(self)
+        return self._cluster
 
     ###########################################################################
     def get_validate_cluster(self):
-        cluster = repository.lookup_cluster_by_server(self)
+        cluster = self.get_cluster()
         if not cluster:
             raise MongoctlException("No cluster found for server '%s'" %
                                     self.id)
@@ -372,7 +371,7 @@ class Server(DocumentWrapper):
             log_verbose("This is an expected exception that happens after "
                         "disconnecting db commands: %s" % e)
         finally:
-            self.__db_connection__ = None
+            self._db_connection = None
 
     ###########################################################################
     def timeout_maybe_db_command(self, cmd, dbname):
@@ -388,7 +387,7 @@ class Server(DocumentWrapper):
             else:
                 raise
         finally:
-            self.__db_connection__ = None
+            self._db_connection = None
 
     ###########################################################################
     def db_command(self, cmd, dbname):
@@ -429,9 +428,7 @@ class Server(DocumentWrapper):
         # ALSO use admin if this is 'local' db for mongodb >= 2.6.0
         if ((not never_auth_with_admin and
                 not login_user and
-                    dbname not in ["admin", "local"]) or
-                (dbname == "local" and
-                     not users.server_supports_local_users(self))):
+                    dbname != "admin")):
             # if this passes then we are authed!
             admin_db = self.get_db("admin", retry=retry)
             return admin_db.connection[dbname]
@@ -632,15 +629,15 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_db_connection(self):
-        if self.__db_connection__ is None:
-            self.__db_connection__  = self.new_db_connection()
-        return self.__db_connection__
+        if self._db_connection is None:
+            self._db_connection  = self.new_db_connection()
+        return self._db_connection
 
     ###########################################################################
     def sever_db_connection(self):
-        if self.__db_connection__ is not None:
-            self.__db_connection__.close()
-        self.__db_connection__ = None
+        if self._db_connection is not None:
+            self._db_connection.close()
+        self._db_connection = None
 
     ###########################################################################
     def new_db_connection(self):
@@ -684,7 +681,7 @@ class Server(DocumentWrapper):
             if use_ssl and self.ssl_key_file():
                 kwargs["ssl_keyfile"] = self.ssl_key_file()
             if use_ssl and self.ssl_cert_file():
-                kwargs["ssl_certfile"] =  self.ssl_cert_file()
+                kwargs["ssl_certfile"] = self.ssl_cert_file()
 
             return Connection(address, **kwargs)
         except Exception, e:

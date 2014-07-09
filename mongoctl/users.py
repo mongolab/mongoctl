@@ -292,3 +292,46 @@ def setup_server_local_users(server):
 def read_seed_password(dbname, username):
     return read_password("Please create a password for user '%s' in DB '%s'" %
                          (username, dbname))
+
+
+###############################################################################
+# Login users
+###############################################################################
+
+# Global variable to hold logins for servers/clusters
+LOGIN_USERS = {}
+
+###############################################################################
+def set_server_login_user(server, dbname, username, password):
+
+    login_user = {
+        "username": username,
+        "password": password
+    }
+
+    login_record = _get_server_login_record(server)
+    login_record[dbname] = login_user
+
+
+###############################################################################
+def get_server_login_user(server, dbname):
+    login_record = _get_server_login_record(server)
+    if login_record and dbname in login_record:
+        return login_record[dbname]
+
+###############################################################################
+def _get_server_login_record(server, create_new=True):
+    cluster = server.get_cluster()
+    if cluster is not None:
+        key = cluster.id
+    else:
+        key = server.id
+
+    login_record = LOGIN_USERS.get(key)
+    if not login_record and create_new:
+        login_record = {}
+        LOGIN_USERS[key] = login_record
+
+    return login_record
+
+###############################################################################
