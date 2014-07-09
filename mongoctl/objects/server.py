@@ -427,8 +427,11 @@ class Server(DocumentWrapper):
         # it was specified not to
         # ALSO use admin if this is 'local' db for mongodb >= 2.6.0
         if ((not never_auth_with_admin and
-                not login_user and
-                    dbname != "admin")):
+             not login_user and
+             dbname != "admin")
+            or
+            (dbname == "local" and
+             not users.server_supports_local_users(self))):
             # if this passes then we are authed!
             admin_db = self.get_db("admin", retry=retry)
             return admin_db.connection[dbname]
