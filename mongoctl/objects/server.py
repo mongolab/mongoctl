@@ -19,6 +19,7 @@ from mongoctl.prompt import read_username, read_password
 from bson.son import SON
 
 from pymongo.connection import Connection
+from pymongo.errors import OperationFailure
 
 import datetime
 
@@ -481,7 +482,12 @@ class Server(DocumentWrapper):
                                              (dbname, username))
 
             # if auth success then exit loop and memoize login
-            auth_success = db.authenticate(username, password)
+            try:
+                auth_success = db.authenticate(username, password)
+            except OperationFailure, ofe:
+                if "auth fails" in str(ofe):
+                    auth_success = False
+
             if auth_success or not retry:
                 break
             else:
