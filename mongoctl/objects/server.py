@@ -437,6 +437,9 @@ class Server(DocumentWrapper):
             admin_db = self.get_db("admin", retry=retry)
             return admin_db.connection[dbname]
 
+        # no retries on local db, so if we fail to auth to local we always
+        # attempt to use admin
+        retry = retry and dbname != "local"
         auth_success = self.authenticate_db(db, dbname, retry=retry)
 
         # If auth failed then give it a try by auth into admin db unless it
