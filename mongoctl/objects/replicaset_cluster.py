@@ -364,6 +364,8 @@ class ReplicaSetCluster(Cluster):
 
                 for rs_config_m in rs_config_members:
                     if rs_config_m['host'] == rs_status_m['name']:
+                        if rs_config_m.has_key("slaveDelay"):
+                            member['slaveDelay'] = rs_config_m['slaveDelay']
                         if rs_config_m.get("priority", 1) != 1:
                             member['priority'] = rs_config_m['priority']
                         if rs_config_m.get("votes", 1) != 1:
