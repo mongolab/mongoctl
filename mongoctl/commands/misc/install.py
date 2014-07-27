@@ -9,16 +9,19 @@ import shutil
 import mongoctl.config as config
 from mongoctl.prompt import prompt_execute_task, is_interactive_mode
 
-from mongoctl.utils import ensure_dir, dir_exists
+from mongoctl.mongo_version import MongoEdition
+
 from mongoctl.mongoctl_logging import *
 
 from mongoctl.errors import MongoctlException
 
-from mongoctl.utils import call_command, which
+from mongoctl.utils import call_command, which, ensure_dir
 
 from mongoctl.mongo_version import make_version_info, is_valid_version_info
 from mongoctl.commands.command_utils import find_all_executables
 from mongoctl.objects.server import EDITION_COMMUNITY, EDITION_ENTERPRISE
+
+from mongoctl.binary_repo import download_mongodb_binary
 ###############################################################################
 # CONSTS
 ###############################################################################
@@ -62,6 +65,7 @@ def list_versions_command(parsed_options):
 ###############################################################################
 def install_mongodb(version_number, edition=None):
 
+    edition = edition or MongoEdition.COMMUNITY
     bits = platform.architecture()[0].replace("bit", "")
     os_name = platform.system().lower()
 
@@ -74,10 +78,6 @@ def install_mongodb(version_number, edition=None):
                  version_number)
 
     version_info = make_version_info(version_number, edition)
-    return do_install_mongodb(os_name, bits, version_info)
-
-###############################################################################
-def do_install_mongodb(os_name, bits, version_info):
 
     mongodb_installs_dir = config.get_mongodb_installs_dir()
     if not mongodb_installs_dir:
@@ -90,16 +90,6 @@ def do_install_mongodb(os_name, bits, version_info):
                 "PLATFORM_SPEC='%s'" % (os_name, bits, version_info,
                                         platform_spec))
 
-    os_dist_name, os_dist_version = get_os_dist_info()
-    if os_dist_name:
-        dist_info = "(%s %s)" % (os_dist_name, os_dist_version)
-    else:
-        dist_info = ""
-    log_info("Running install for %s %sbit %s to "
-             "mongoDBInstallationsDirectory (%s)..." % (os_name, bits,
-                                                        dist_info,
-                                                        mongodb_installs_dir))
-
     mongo_installation = get_mongo_installation(version_info)
 
     if mongo_installation is not None: # no-op
@@ -107,47 +97,32 @@ def do_install_mongodb(os_name, bits, version_info):
                  "Nothing to do." % (version_info, mongo_installation))
         return mongo_installation
 
-    url = get_download_url(os_name, platform_spec, os_dist_name,
-                           os_dist_version, version_info)
 
-
-    archive_name = url.split("/")[-1]
-    # Validate if the version exists
-    response = urllib.urlopen(url)
-
-    if response.getcode() != 200:
-        msg = ("Unable to download from url '%s' (response code '%s'). "
-               "It could be that version '%s' you specified does not exist."
-               " Please double check the version you provide" %
-               (url, response.getcode(), version_info))
-        raise MongoctlException(msg)
-
-    mongo_dir_name = archive_name.replace(".tgz", "")
-    install_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
-
-    ensure_dir(mongodb_installs_dir)
 
     # XXX LOOK OUT! Two processes installing same version simultaneously => BAD.
     # TODO: mutex to protect the following
 
-    if not dir_exists(install_dir):
-        try:
-            ## download the url
-            download(url)
-            extract_archive(archive_name)
+    try:
+        ## download the url
+        archive_path = download_mongodb_binary(version_number, edition)
+        archive_name = os.path.basename(archive_path)
+        mongo_dir_name = archive_name.replace(".tgz", "")
+        extract_archive(archive_path)
 
-            log_info("Moving extracted folder to %s" % mongodb_installs_dir)
-            shutil.move(mongo_dir_name, mongodb_installs_dir)
+        log_info("Moving extracted folder to %s" % mongodb_installs_dir)
+        shutil.move(mongo_dir_name, mongodb_installs_dir)
 
-            os.remove(archive_name)
-            log_info("Deleting archive %s" % archive_name)
+        os.remove(archive_name)
+        log_info("Deleting archive %s" % archive_name)
 
-            log_info("MongoDB %s installed successfully!" % version_info)
-            return install_dir
-        except Exception, e:
-            log_exception(e)
-            log_error("Failed to install MongoDB '%s'. Cause: %s" %
-                      (version_info, e))
+        log_info("MongoDB %s installed successfully!" % version_info)
+        install_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
+        return install_dir
+    except Exception, e:
+        traceback.print_exc()
+        log_exception(e)
+        log_error("Failed to install MongoDB '%s'. Cause: %s" %
+                  (version_info, e))
 
 ###############################################################################
 # uninstall_mongodb
@@ -251,50 +226,12 @@ def extract_archive(archive_name):
                " path in order to proceed.")
         raise MongoctlException(msg)
 
-    tar_cmd = ['tar', 'xvf', archive_name]
+    mongo_dir_name = archive_name.replace(".tgz", "")
+    ensure_dir(mongo_dir_name)
+    tar_cmd = ['tar', 'xvf', archive_name, "-C", mongo_dir_name,
+               "--strip-components", "1"]
     call_command(tar_cmd)
 
-###############################################################################
-def get_os_dist_info():
-    """
-        Returns true if the current os supports fsfreeze that is os running
-        Ubuntu 12.04 or later and there is an fsfreeze exe in PATH
-    """
 
-    distribution = platform.dist()
-    dist_name = distribution[0].lower()
-    dist_version_str = distribution[1]
-    if dist_name and dist_version_str:
-        return dist_name, dist_version_str
-    else:
-        return None, None
-
-###############################################################################
-VERSION_2_6_1 = make_version_info("2.6.1")
-def get_download_url(os_name, platform_spec, os_dist_name, os_dist_version,
-                     version_info):
-
-    mongo_version = version_info.version_number
-    edition = version_info.edition
-    if edition == EDITION_COMMUNITY:
-        archive_name = "mongodb-%s-%s.tgz" % (platform_spec, mongo_version)
-        domain = "fastdl.mongodb.org"
-    elif edition == EDITION_ENTERPRISE:
-        if version_info and version_info >= VERSION_2_6_1:
-            domain = "downloads.10gen.com"
-            rel_name = "enterprise"
-        else:
-            rel_name = "subscription"
-            domain = "downloads.mongodb.com"
-
-        archive_name = ("mongodb-%s-%s-%s%s-%s.tgz" %
-                        (platform_spec, rel_name, os_dist_name,
-                         os_dist_version.replace('.', ''),
-                         mongo_version))
-
-    else:
-        raise MongoctlException("Unknown mongodb edition '%s'" % edition)
-
-    return "http://%s/%s/%s" % (domain, os_name, archive_name)
 
 

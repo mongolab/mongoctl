@@ -150,9 +150,9 @@ def get_current_login():
 ###############################################################################
 # sub-processing functions
 ###############################################################################
-def call_command(command, bubble_exit_code=False):
+def call_command(command, bubble_exit_code=False, **kwargs):
     try:
-        return subprocess.check_call(command)
+        return subprocess.check_call(command, **kwargs)
     except subprocess.CalledProcessError, e:
         if bubble_exit_code:
             exit(e.returncode)
