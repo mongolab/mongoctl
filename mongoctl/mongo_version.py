@@ -13,6 +13,7 @@ MIN_SUPPORTED_VERSION = "1.8"
 
 class MongoEdition():
     COMMUNITY = "community"
+    COMMUNITY_SSL = "community_ssl"
     ENTERPRISE = "enterprise"
 
 ###############################################################################

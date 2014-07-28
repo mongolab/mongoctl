@@ -298,9 +298,13 @@ def mongo_exe_version(mongo_exe):
         vers_spew_line = vers_spew.split('\n')[0]
         vers_grep = re.findall(re_expr, vers_spew_line)
         full_version = vers_grep[-1][0]
-        edition = (MongoEdition.ENTERPRISE if
-                   ("subscription" in vers_spew or "enterprise" in vers_spew)
-                   else None)
+        if "subscription" in vers_spew or "enterprise" in vers_spew:
+            edition = MongoEdition.ENTERPRISE
+        elif "OpenSSL" in vers_spew:
+            edition = MongoEdition.COMMUNITY_SSL
+        else:
+            edition = MongoEdition.COMMUNITY
+
         result = make_version_info(full_version, edition=edition)
         if result is not None:
             return result
