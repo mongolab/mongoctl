@@ -272,14 +272,6 @@ def get_host_ips(host):
         raise MongoctlException("Invalid host '%s'. Cause: %s" % (host, e))
 
 ###############################################################################
-def timedelta_total_seconds(td):
-    """
-    Equivalent python 2.7+ timedelta.total_seconds()
-     This was added for python 2.6 compatibilty
-    """
-    return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 1e6) / 1e6
-
-###############################################################################
 def resolve_class(kls):
     if kls == "dict":
         return dict
@@ -293,3 +285,42 @@ def resolve_class(kls):
         return m
     except Exception, e:
         raise Exception("Cannot resolve class '%s'. Cause: %s" % (kls, e))
+
+
+###############################################################################
+def download_url(url, destination=None, show_errors=False):
+    destination = destination or os.getcwd()
+
+    log_info("Downloading %s..." % url)
+
+    if which("curl"):
+        download_cmd = ['curl', '-O', '-L']
+        if show_errors:
+            download_cmd.append('-Ss')
+    elif which("wget"):
+        download_cmd = ['wget']
+    else:
+        msg = ("Cannot download file.You need to have 'curl' or 'wget"
+               "' command in your path in order to proceed.")
+        raise MongoctlException(msg)
+
+    download_cmd.append(url)
+    call_command(download_cmd, cwd=destination)
+    file_name = url.split("/")[-1]
+    return os.path.join(destination, file_name)
+
+###############################################################################
+def extract_archive(archive_name):
+    log_info("Extracting %s..." % archive_name)
+    if not which("tar"):
+        msg = ("Cannot extract archive.You need to have 'tar' command in your"
+               " path in order to proceed.")
+        raise MongoctlException(msg)
+
+    dir_name = archive_name.replace(".tgz", "").replace(".tar.gz", "")
+    ensure_dir(dir_name)
+    tar_cmd = ['tar', 'xvf', archive_name, "-C", dir_name,
+               "--strip-components", "1"]
+    call_command(tar_cmd)
+
+    return dir_name

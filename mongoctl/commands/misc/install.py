@@ -1,13 +1,12 @@
 __author__ = 'abdul'
 
-import os
 import platform
 import urllib
 import shutil
 
 
 import mongoctl.config as config
-from mongoctl.prompt import prompt_execute_task, is_interactive_mode
+from mongoctl.prompt import prompt_execute_task
 
 from mongoctl.mongo_version import MongoEdition
 
@@ -15,11 +14,10 @@ from mongoctl.mongoctl_logging import *
 
 from mongoctl.errors import MongoctlException
 
-from mongoctl.utils import call_command, which, ensure_dir
+from mongoctl.utils import extract_archive
 
 from mongoctl.mongo_version import make_version_info, is_valid_version_info
 from mongoctl.commands.command_utils import find_all_executables
-from mongoctl.objects.server import EDITION_COMMUNITY, EDITION_ENTERPRISE
 
 from mongoctl.binary_repo import download_mongodb_binary
 ###############################################################################
@@ -199,38 +197,6 @@ def get_validate_platform_spec(os_name, bits):
             return "%s-i386" % os_name
         elif os_name == "sunos5":
             return "i86pc"
-
-###############################################################################
-def download(url):
-    log_info("Downloading %s..." % url)
-
-    if which("curl"):
-        download_cmd = ['curl', '-O']
-        if not is_interactive_mode():
-            download_cmd.append('-Ss')
-    elif which("wget"):
-        download_cmd = ['wget']
-    else:
-        msg = ("Cannot download file.You need to have 'curl' or 'wget"
-               "' command in your path in order to proceed.")
-        raise MongoctlException(msg)
-
-    download_cmd.append(url)
-    call_command(download_cmd)
-
-###############################################################################
-def extract_archive(archive_name):
-    log_info("Extracting %s..." % archive_name)
-    if not which("tar"):
-        msg = ("Cannot extract archive.You need to have 'tar' command in your"
-               " path in order to proceed.")
-        raise MongoctlException(msg)
-
-    mongo_dir_name = archive_name.replace(".tgz", "")
-    ensure_dir(mongo_dir_name)
-    tar_cmd = ['tar', 'xvf', archive_name, "-C", mongo_dir_name,
-               "--strip-components", "1"]
-    call_command(tar_cmd)
 
 
 

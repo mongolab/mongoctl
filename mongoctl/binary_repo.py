@@ -3,7 +3,7 @@ __author__ = 'abdul'
 import platform
 import os
 import sys
-from utils import which, call_command
+from utils import download_url
 from errors import MongoctlException, FileNotInRepoError
 from mongoctl_logging import log_info, log_verbose
 from prompt import is_interactive_mode
@@ -90,7 +90,8 @@ class MongoDBBinaryRepository(object):
                    (url, response.getcode(), mongodb_version))
             raise MongoctlException(msg)
 
-        return download_url(url, destination)
+        return download_url(url, destination,
+                            show_errors=not is_interactive_mode())
 
     ###########################################################################
     def get_download_url(self, os_name, platform_spec, os_dist_name,
@@ -349,26 +350,3 @@ def get_os_name():
         os_name = "osx"
 
     return os_name
-
-
-###############################################################################
-def download_url(url, destination=None):
-    destination = destination or os.getcwd()
-
-    log_info("Downloading %s..." % url)
-
-    if which("curl"):
-        download_cmd = ['curl', '-O']
-        if not is_interactive_mode():
-            download_cmd.append('-Ss')
-    elif which("wget"):
-        download_cmd = ['wget']
-    else:
-        msg = ("Cannot download file.You need to have 'curl' or 'wget"
-               "' command in your path in order to proceed.")
-        raise MongoctlException(msg)
-
-    download_cmd.append(url)
-    call_command(download_cmd, cwd=destination)
-    archive_name = url.split("/")[-1]
-    return os.path.join(destination, archive_name)

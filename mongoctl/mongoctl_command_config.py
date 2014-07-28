@@ -1530,6 +1530,34 @@ MONGOCTL_PARSER_DEF = {
                             " this machine",
             "function": "mongoctl.commands.misc.install.list_versions_command",
         },
+
+        #### install-mongodb ####
+        {
+            "prog": "build-mongodb",
+            "group": "adminCommands",
+            "shortDescription" : "build MongoDB",
+            "description" : "build MongoDB",
+            "function": "mongoctl.commands.misc.build.build_command",
+            "args": [
+                {
+                    "name": "version",
+                    "type": "positional",
+                    "nargs": 1,
+                    "displayName": "VERSION",
+                    "help": "MongoDB version to build"
+                },
+
+                {
+                    "name": "ssl",
+                    "type": "optional",
+                    "help": "build with ssl",
+                    "cmd_arg": [
+                        "--ssl"
+                    ],
+                    "nargs": 0
+                }
+            ]
+        },
         #### print-uri ####
         {
         "prog": "print-uri",
