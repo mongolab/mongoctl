@@ -22,8 +22,8 @@ class MongoDBBinaryRepository(object):
     ###########################################################################
     # Constructor
     ###########################################################################
-    def __init__(self):
-        self._name = None
+    def __init__(self, name=None):
+        self._name = name
         self._supported_editions = None
         self._url_template = None
 
@@ -58,30 +58,9 @@ class MongoDBBinaryRepository(object):
     def download_file(self, mongodb_version, mongodb_edition,
                       destination=None):
 
-        destination = destination or os.getcwd()
-        bits = platform.architecture()[0].replace("bit", "")
-        os_name = get_os_name()
+        destination or os.getcwd()
 
-        platform_spec = get_validate_platform_spec(os_name, bits)
-
-        os_dist_name, os_dist_version = get_os_dist_info()
-
-        return self.do_download_file(
-            os_name, platform_spec, os_dist_name,
-            os_dist_version,mongodb_version, mongodb_edition, destination)
-
-    ###########################################################################
-    def get_archive_name(self, mongodb_version, mongodb_edition):
-        pass
-
-    ###########################################################################
-    def do_download_file(self, os_name, platform_spec, os_dist_name,
-                         os_dist_version, mongodb_version, mongodb_edition,
-                         destination):
-
-        url = self.get_download_url(os_name, platform_spec, os_dist_name,
-                                    os_dist_version, mongodb_version,
-                                    mongodb_edition)
+        url = self.get_download_url(mongodb_version, mongodb_edition)
 
         response = urllib.urlopen(url)
 
@@ -98,16 +77,21 @@ class MongoDBBinaryRepository(object):
                             show_errors=not is_interactive_mode())
 
     ###########################################################################
-    def get_download_url(self, os_name, platform_spec, os_dist_name,
-                         os_dist_version, mongodb_version, mongodb_edition):
-        if mongodb_edition not in self.supported_editions:
-            msg = ("Edition '%s' not supported by MongoDBBinaryRepository '%s'"
-                   % (mongodb_edition, self.name))
-            raise Exception(msg)
+    def get_archive_name(self, mongodb_version, mongodb_edition):
+        url = self.get_download_url(mongodb_version, mongodb_edition)
+        return url.split("/")[-1]
 
+    ###########################################################################
+    def get_template_args(self, mongodb_version, mongodb_edition):
+        bits = platform.architecture()[0].replace("bit", "")
+        os_name = get_os_name()
+
+        platform_spec = get_validate_platform_spec(os_name, bits)
+
+        os_dist_name, os_dist_version = get_os_dist_info()
         os_dist_version_no_dots = (os_dist_version and
                                    os_dist_version.replace('.', ''))
-        kwargs = {
+        return {
             "os_name": os_name,
             "platform_spec": platform_spec,
             "os_dist_name": os_dist_name,
@@ -117,7 +101,17 @@ class MongoDBBinaryRepository(object):
             "mongodb_edition": mongodb_edition
         }
 
-        return self.url_template.format(**kwargs)
+    ###########################################################################
+    def get_download_url(self, mongodb_version, mongodb_edition):
+        if mongodb_edition not in self.supported_editions:
+            msg = ("Edition '%s' not supported by MongoDBBinaryRepository '%s'"
+                   % (mongodb_edition, self.name))
+            raise Exception(msg)
+
+        template_args = self.get_template_args(mongodb_version,
+                                               mongodb_edition)
+
+        return self.url_template.format(**template_args)
 
 
 ###############################################################################
@@ -126,14 +120,20 @@ class MongoDBBinaryRepository(object):
 class DefaultMongoDBBinaryRepository(MongoDBBinaryRepository):
 
     ###########################################################################
-    def __init__(self):
-        MongoDBBinaryRepository.__init__(self)
+    def __init__(self, name=None):
+        MongoDBBinaryRepository.__init__(self, name=name)
         self.supported_editions = [MongoDBEdition.COMMUNITY,
                                    MongoDBEdition.ENTERPRISE]
 
+
     ###########################################################################
-    def get_download_url(self, os_name, platform_spec, os_dist_name,
-                        os_dist_version, mongodb_version, mongodb_edition):
+    def get_download_url(self, mongodb_version, mongodb_edition):
+        template_args = self.get_template_args(mongodb_version,
+                                               mongodb_edition)
+        platform_spec = template_args["platform_spec"]
+        os_dist_name = template_args["os_dist_name"]
+        os_dist_version_no_dots = template_args["os_dist_version_no_dots"]
+        os_name = template_args["os_name"]
 
         version_info = make_version_info(mongodb_version)
         if mongodb_edition == MongoDBEdition.COMMUNITY:
@@ -150,7 +150,7 @@ class DefaultMongoDBBinaryRepository(MongoDBBinaryRepository):
 
             archive_name = ("mongodb-%s-%s-%s%s-%s.tgz" %
                             (platform_spec, rel_name, os_dist_name,
-                             os_dist_version.replace('.', ''),
+                             os_dist_version_no_dots,
                              mongodb_version))
 
         else:
@@ -167,8 +167,8 @@ class S3MongoDBBinaryRepository(MongoDBBinaryRepository):
     ###########################################################################
     # Constructor
     ###########################################################################
-    def __init__(self):
-        MongoDBBinaryRepository.__init__(self)
+    def __init__(self, name=None):
+        MongoDBBinaryRepository.__init__(self, name=name)
         self._bucket_name = None
         self._access_key = None
         self._secret_key = None
@@ -213,13 +213,11 @@ class S3MongoDBBinaryRepository(MongoDBBinaryRepository):
         self._secret_key = val
 
     ###########################################################################
-    def do_download_file(self, os_name, platform_spec, os_dist_name,
-                         os_dist_version, mongodb_version, mongodb_edition,
-                         destination):
+    def download_file(self, mongodb_version, mongodb_edition,
+                      destination=None):
 
-        file_path = self.get_download_url(os_name, platform_spec, os_dist_name,
-                                          os_dist_version, mongodb_version,
-                                          mongodb_edition)
+        destination or os.getcwd()
+        file_path = self.get_download_url(mongodb_version, mongodb_edition)
 
         return self._download_file_from_bucket(file_path, destination)
 
@@ -247,19 +245,17 @@ class S3MongoDBBinaryRepository(MongoDBBinaryRepository):
 
         return destination_path
 
-
-
-
 ###############################################################################
 _registered_repos = list()
+
+DEFAULT_REPO = DefaultMongoDBBinaryRepository(name="default")
 
 def get_registered_binary_repositories():
     global _registered_repos
     if _registered_repos:
         return _registered_repos
 
-
-    _registered_repos.append(DefaultMongoDBBinaryRepository())
+    _registered_repos.append(DEFAULT_REPO)
 
     repo_configs = config.get_mongoctl_config().get("customBinaryRepositories")
 

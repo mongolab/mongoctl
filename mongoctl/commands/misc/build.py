@@ -12,7 +12,9 @@ from mongoctl.mongoctl_logging import *
 from mongoctl.errors import MongoctlException
 
 from mongoctl.utils import download_url, extract_archive, call_command, which
-
+from mongoctl.binary_repo import DEFAULT_REPO
+from mongoctl.mongo_version import MongoDBEdition
+from mongoctl import config
 
 ###############################################################################
 # build command
@@ -25,9 +27,27 @@ def build_command(parsed_options):
 ###############################################################################
 # build_mongodb
 ###############################################################################
-def build_mongodb(version, ssl=False):
-    archive_name = "r%s.tar.gz" % version
-    source_url = ("https://github.com/mongodb/mongo/archive/%s" % archive_name)
+def build_mongodb(mongodb_version, ssl=False, repo=None):
+    """
+
+    :param version:
+    :param ssl:
+    :param repo: The repo to use to generate archive name
+    :return:
+    """
+    repo = repo or DEFAULT_REPO
+    mongodb_edition = (MongoDBEdition.COMMUNITY_SSL if ssl
+                       else MongoDBEdition.COMMUNITY)
+    source_archive_name = "r%s.tar.gz" % mongodb_version
+
+    target_archive_name = repo.get_archive_name(mongodb_version,
+                                                mongodb_edition)
+
+    target_dir_name = target_archive_name.replace(".tgz", "").replace(
+        ".tar.gz", "")
+
+    source_url = ("https://github.com/mongodb/mongo/archive/%s" %
+                  source_archive_name)
 
     response = urllib.urlopen(source_url)
 
@@ -35,17 +55,17 @@ def build_mongodb(version, ssl=False):
         msg = ("Unable to find a mongodb release for version '%s' in MongoDB"
                " github repo. See https://github.com/mongodb/mongo/releases "
                "for possible releases (response code '%s'). " %
-               (version, response.getcode()))
+               (mongodb_version, response.getcode()))
         raise MongoctlException(msg)
 
     log_info("Downloading MongoDB '%s' source from github '%s' ..." %
-             (version, source_url))
+             (mongodb_version, source_url))
 
     download_url(source_url)
 
     log_info("Extract source archive ...")
 
-    source_dir = extract_archive(archive_name)
+    source_dir = extract_archive(source_archive_name)
 
     log_info("Building with scons!")
 
@@ -53,7 +73,10 @@ def build_mongodb(version, ssl=False):
     if not scons_exe:
         raise MongoctlException("scons command not found in your path")
 
-    scons_cmd = [scons_exe, "all"]
+    target_path = os.path.join(config.get_mongodb_installs_dir(),
+                               target_dir_name)
+    scons_cmd = [scons_exe, "core", "tools", "install", "-j", "4",
+                 "--prefix=%s" % target_path]
 
     if ssl:
         scons_cmd.append("--ssl")
