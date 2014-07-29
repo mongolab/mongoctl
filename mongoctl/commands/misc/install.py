@@ -8,7 +8,7 @@ import shutil
 import mongoctl.config as config
 from mongoctl.prompt import prompt_execute_task
 
-from mongoctl.mongo_version import MongoEdition
+from mongoctl.mongo_version import MongoDBEdition
 
 from mongoctl.mongoctl_logging import *
 
@@ -63,7 +63,7 @@ def list_versions_command(parsed_options):
 ###############################################################################
 def install_mongodb(version_number, edition=None):
 
-    edition = edition or MongoEdition.COMMUNITY
+    edition = edition or MongoDBEdition.COMMUNITY
     bits = platform.architecture()[0].replace("bit", "")
     os_name = platform.system().lower()
 

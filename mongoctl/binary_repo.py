@@ -8,7 +8,7 @@ from errors import MongoctlException, FileNotInRepoError
 from mongoctl_logging import log_info, log_verbose
 from prompt import is_interactive_mode
 from boto.s3.connection import S3Connection
-from mongo_version import make_version_info, MongoEdition
+from mongo_version import make_version_info, MongoDBEdition
 import config
 import urllib
 
@@ -71,6 +71,10 @@ class MongoDBBinaryRepository(object):
             os_dist_version,mongodb_version, mongodb_edition, destination)
 
     ###########################################################################
+    def get_archive_name(self, mongodb_version, mongodb_edition):
+        pass
+
+    ###########################################################################
     def do_download_file(self, os_name, platform_spec, os_dist_name,
                          os_dist_version, mongodb_version, mongodb_edition,
                          destination):
@@ -124,19 +128,19 @@ class DefaultMongoDBBinaryRepository(MongoDBBinaryRepository):
     ###########################################################################
     def __init__(self):
         MongoDBBinaryRepository.__init__(self)
-        self.supported_editions = [MongoEdition.COMMUNITY,
-                                   MongoEdition.ENTERPRISE]
+        self.supported_editions = [MongoDBEdition.COMMUNITY,
+                                   MongoDBEdition.ENTERPRISE]
 
     ###########################################################################
     def get_download_url(self, os_name, platform_spec, os_dist_name,
                         os_dist_version, mongodb_version, mongodb_edition):
 
         version_info = make_version_info(mongodb_version)
-        if mongodb_edition == MongoEdition.COMMUNITY:
+        if mongodb_edition == MongoDBEdition.COMMUNITY:
             archive_name = "mongodb-%s-%s.tgz" % (platform_spec,
                                                   mongodb_version)
             domain = "fastdl.mongodb.org"
-        elif mongodb_edition == MongoEdition.ENTERPRISE:
+        elif mongodb_edition == MongoDBEdition.ENTERPRISE:
             if version_info and version_info >= VERSION_2_6_1:
                 domain = "downloads.10gen.com"
                 rel_name = "enterprise"

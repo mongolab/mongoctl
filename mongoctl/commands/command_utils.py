@@ -8,7 +8,7 @@ from mongoctl.mongoctl_logging import *
 from mongoctl import config
 from mongoctl.errors import MongoctlException
 from mongoctl.utils import is_exe, which, resolve_path, execute_command
-from mongoctl.mongo_version import make_version_info, MongoEdition
+from mongoctl.mongo_version import make_version_info, MongoDBEdition
 from mongoctl.mongo_uri_tools import is_mongo_uri
 
 ###############################################################################
@@ -50,8 +50,8 @@ def get_mongo_executable(version_info,
     mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
     mongo_installs_dir = config.get_mongodb_installs_dir()
     version_number = version_info and version_info.version_number
-    mongo_edition = version_info and (version_info.edition or
-                                            MongoEdition.COMMUNITY)
+    mongodb_edition = version_info and (version_info.edition or
+                                            MongoDBEdition.COMMUNITY)
 
     ver_disp = "[Unspecified]" if version_number is None else version_number
     log_verbose("Looking for a compatible %s for mongoVersion=%s." %
@@ -79,9 +79,9 @@ def get_mongo_executable(version_info,
            "$PATH=%s\n\n"
            "$MONGO_HOME=%s\n\n"
            "mongoDBInstallationsDirectory=%s (in mongoctl.config)" %
-           (executable_name, ver_disp, mongo_edition, ver_disp,
-            "--edition %s" % mongo_edition if
-            mongo_edition != MongoEdition.COMMUNITY else "",
+           (executable_name, ver_disp, mongodb_edition, ver_disp,
+            "--edition %s" % mongodb_edition if
+            mongodb_edition != MongoDBEdition.COMMUNITY else "",
             os.getenv("PATH"),
             mongo_home,
             mongo_installs_dir))
@@ -299,11 +299,11 @@ def mongo_exe_version(mongo_exe):
         vers_grep = re.findall(re_expr, vers_spew_line)
         full_version = vers_grep[-1][0]
         if "subscription" in vers_spew or "enterprise" in vers_spew:
-            edition = MongoEdition.ENTERPRISE
+            edition = MongoDBEdition.ENTERPRISE
         elif "OpenSSL" in vers_spew:
-            edition = MongoEdition.COMMUNITY_SSL
+            edition = MongoDBEdition.COMMUNITY_SSL
         else:
-            edition = MongoEdition.COMMUNITY
+            edition = MongoDBEdition.COMMUNITY
 
         result = make_version_info(full_version, edition=edition)
         if result is not None:

@@ -8,10 +8,10 @@ MIN_SUPPORTED_VERSION = "1.8"
 
 
 ###############################################################################
-# MongoEdition (enum)
+# MongoDBEdition (enum)
 ###############################################################################
 
-class MongoEdition():
+class MongoDBEdition():
     COMMUNITY = "community"
     COMMUNITY_SSL = "community_ssl"
     ENTERPRISE = "enterprise"
@@ -26,7 +26,7 @@ class VersionInfo(NormalizedVersion):
         sugg_ver = suggest_normalized_version(version_number)
         super(VersionInfo,self).__init__(sugg_ver)
         self.version_number = version_number
-        self.edition = edition or MongoEdition.COMMUNITY
+        self.edition = edition or MongoDBEdition.COMMUNITY
 
     ###########################################################################
     def __str__(self):

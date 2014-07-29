@@ -46,9 +46,6 @@ CONN_TIMEOUT = 10000
 
 REPL_KEY_SUPPORTED_VERSION = '2.0.0'
 
-EDITION_COMMUNITY = "community"
-EDITION_ENTERPRISE = "enterprise"
-
 # SSL_OFF global flag to for turning off ssl
 # TODO this is temporary and should be deleted
 SSL_OFF = False
@@ -220,15 +217,15 @@ class Server(DocumentWrapper):
         return self._mongo_version
 
     ###########################################################################
-    def get_mongo_edition(self):
-        return self.get_property("mongoEdition")
+    def get_mongodb_edition(self):
+        return self.get_property("MongoDBEdition")
 
     ###########################################################################
     def get_mongo_version_info(self):
         version_number = self.get_mongo_version()
         if version_number is not None:
             return make_version_info(version_number,
-                                     edition=self.get_mongo_edition())
+                                     edition=self.get_mongodb_edition())
         else:
             return None
 

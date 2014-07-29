@@ -52,7 +52,13 @@ def build_mongodb(version, ssl=False):
     scons_exe = which("scons")
     if not scons_exe:
         raise MongoctlException("scons command not found in your path")
-    call_command([scons_exe, "all"], cwd=source_dir)
+
+    scons_cmd = [scons_exe, "all"]
+
+    if ssl:
+        scons_cmd.append("--ssl")
+        
+    call_command(scons_cmd, cwd=source_dir)
 
 
 
