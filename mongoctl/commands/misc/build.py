@@ -57,7 +57,9 @@ def build_mongodb(version, ssl=False):
 
     if ssl:
         scons_cmd.append("--ssl")
-        
+
+    log_info("Running scons command: %s" % " ".join(scons_cmd))
+
     call_command(scons_cmd, cwd=source_dir)
 
 
