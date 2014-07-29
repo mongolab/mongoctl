@@ -12,7 +12,7 @@ from mongoctl.mongoctl_logging import *
 from mongoctl.errors import MongoctlException
 
 from mongoctl.utils import download_url, extract_archive, call_command, which
-from mongoctl.binary_repo import DEFAULT_REPO
+from mongoctl.binary_repo import get_binary_repository
 from mongoctl.mongo_version import MongoDBEdition
 from mongoctl import config
 
@@ -20,22 +20,27 @@ from mongoctl import config
 # build command
 ###############################################################################
 def build_command(parsed_options):
-    build_mongodb(parsed_options.version, ssl=parsed_options.ssl)
+    build_mongodb(parsed_options.version,
+                  repo_name=parsed_options.repo,
+                  push=parsed_options.push,
+                  ssl=parsed_options.ssl)
 
 
 
 ###############################################################################
 # build_mongodb
 ###############################################################################
-def build_mongodb(mongodb_version, ssl=False, repo=None):
+def build_mongodb(mongodb_version, repo_name=None, push=False,
+                  ssl=False):
     """
 
     :param version:
     :param ssl:
-    :param repo: The repo to use to generate archive name
+    :param repo_name: The repo to use to generate archive name
     :return:
     """
-    repo = repo or DEFAULT_REPO
+    repo_name = repo_name or "default"
+    repo = get_binary_repository(repo_name)
     mongodb_edition = (MongoDBEdition.COMMUNITY_SSL if ssl
                        else MongoDBEdition.COMMUNITY)
     source_archive_name = "r%s.tar.gz" % mongodb_version
@@ -84,6 +89,26 @@ def build_mongodb(mongodb_version, ssl=False, repo=None):
     log_info("Running scons command: %s" % " ".join(scons_cmd))
 
     call_command(scons_cmd, cwd=source_dir)
+
+    if push:
+        tar_exe = which("tar")
+        tar_cmd = [tar_exe, "-cvzf", target_archive_name, target_path]
+        call_command(tar_cmd)
+        repo.upload_file(mongodb_version, mongodb_edition,
+                         target_archive_name)
+
+    # cleanup
+    log_info("Cleanup")
+    try:
+        shutil.rmtree(source_archive_name)
+        shutil.rmtree(source_dir)
+        if push:
+            shutil.rmtree(target_archive_name)
+    except Exception, e:
+        log_error(str(e))
+        log_exception(e)
+
+
 
 
 

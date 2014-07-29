@@ -7,7 +7,7 @@ from utils import download_url
 from errors import MongoctlException, FileNotInRepoError
 from mongoctl_logging import log_info, log_verbose
 from prompt import is_interactive_mode
-from boto.s3.connection import S3Connection
+from boto.s3.connection import S3Connection, Key
 from mongo_version import make_version_info, MongoDBEdition
 import config
 import urllib
@@ -75,6 +75,11 @@ class MongoDBBinaryRepository(object):
 
         return download_url(url, destination,
                             show_errors=not is_interactive_mode())
+
+
+    ###########################################################################
+    def upload_file(self, mongodb_version, mongodb_edition, file_path):
+        raise Exception("Operation not supported")
 
     ###########################################################################
     def get_archive_name(self, mongodb_version, mongodb_edition):
@@ -221,6 +226,16 @@ class S3MongoDBBinaryRepository(MongoDBBinaryRepository):
 
         return self._download_file_from_bucket(file_path, destination)
 
+
+    ###########################################################################
+    def upload_file(self, mongodb_version, mongodb_edition, file_path):
+        suggested_file_path = self.get_download_url(mongodb_version,
+                                                    mongodb_edition)
+
+        destination = os.path.dirname(suggested_file_path)
+
+        self._upload_file_to_bucket(file_path, destination)
+
     ###########################################################################
     def _download_file_from_bucket(self, file_path, destination):
 
@@ -245,6 +260,26 @@ class S3MongoDBBinaryRepository(MongoDBBinaryRepository):
 
         return destination_path
 
+    ###########################################################################
+    def _upload_file_to_bucket(self, file_path, destination):
+
+        file_name = os.path.basename(file_path)
+        destination_path = os.path.join(destination, file_name)
+        log_info("Uploading '%s' to s3 bucket '%s' to '%s'" %
+                (file_path, self.bucket_name, destination))
+
+        file_obj = open(file_path)
+        k = Key(self.bucket)
+        k.key = destination_path
+        # set meta data (has to be before setting content in
+        # order for it to work)
+        k.set_metadata("Content-Type", "application/x-compressed")
+
+        k.set_contents_from_file(file_obj)
+
+        log_info("Completed upload '%s' to s3 bucket '%s'!" %
+                 (file_path, self.bucket_name))
+
 ###############################################################################
 _registered_repos = list()
 
@@ -265,6 +300,13 @@ def get_registered_binary_repositories():
             _registered_repos.append(binary_repo)
     return _registered_repos
 
+###########################################################################
+def get_binary_repository(name):
+    for repo in get_registered_binary_repositories():
+        if repo.name == name:
+            return repo
+
+    raise MongoctlException("Unknown repository '%s'" % name)
 
 ###########################################################################
 def download_mongodb_binary(mongodb_version, mongodb_edition,

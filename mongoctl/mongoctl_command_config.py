@@ -1555,6 +1555,29 @@ MONGOCTL_PARSER_DEF = {
                         "--ssl"
                     ],
                     "nargs": 0
+                },
+
+                {
+                    "name": "repo",
+                    "type": "optional",
+                    "help": "custom repository to use for"
+                            " target name generation",
+                    "cmd_arg": [
+                        "--repo"
+                    ],
+                    "nargs": 1
+                },
+
+                {
+                    "name": "push",
+                    "type": "optional",
+                    "help": "push the target to repo. must be used with"
+                            " --repo",
+                    "cmd_arg": [
+                        "--push"
+                    ],
+                    "nargs": 0,
+                    "default": False
                 }
             ]
         },
