@@ -64,6 +64,10 @@ def list_versions_command(parsed_options):
 def install_mongodb(version_number, edition=None):
 
     edition = edition or MongoDBEdition.COMMUNITY
+    if edition not in MongoDBEdition.ALL:
+        raise MongoctlException("Unknown edition '%s'. Please select from %s" %
+                                (edition, MongoDBEdition.ALL))
+
     bits = platform.architecture()[0].replace("bit", "")
     os_name = platform.system().lower()
 

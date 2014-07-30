@@ -16,6 +16,8 @@ class MongoDBEdition():
     COMMUNITY_SSL = "community_ssl"
     ENTERPRISE = "enterprise"
 
+    ALL = [COMMUNITY, COMMUNITY_SSL, ENTERPRISE]
+
 ###############################################################################
 # VersionInfo class
 # we had to inherit and override __str__ because the suggest_normalized_version
