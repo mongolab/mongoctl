@@ -221,7 +221,7 @@ class S3MongoDBBinaryRepository(MongoDBBinaryRepository):
     def download_file(self, mongodb_version, mongodb_edition,
                       destination=None):
 
-        destination or os.getcwd()
+        destination = destination or os.getcwd()
         file_path = self.get_download_url(mongodb_version, mongodb_edition)
 
         return self._download_file_from_bucket(file_path, destination)
