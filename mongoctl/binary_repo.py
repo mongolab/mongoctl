@@ -239,15 +239,15 @@ class S3MongoDBBinaryRepository(MongoDBBinaryRepository):
     ###########################################################################
     def _download_file_from_bucket(self, file_path, destination):
 
-        print("Downloading '%s' from s3 bucket '%s'" %
-              (file_path, self.bucket_name))
-
         key = self.bucket.get_key(file_path)
         file_name = os.path.basename(file_path)
 
         if not key:
             raise FileNotInRepoError("No such file '%s' in bucket '%s'" %
                                      (file_path, self.bucket_name))
+
+        log_info("Downloading '%s' from s3 bucket '%s'" %
+                    (file_path, self.bucket_name))
 
         destination_path = os.path.join(destination, file_name)
         file_obj = open(destination_path, mode="w")
@@ -316,6 +316,7 @@ def download_mongodb_binary(mongodb_version, mongodb_edition,
     for repo in get_registered_binary_repositories():
         if mongodb_edition in repo.supported_editions:
             try:
+                log_verbose("Trying from '%s' binary repository...")
                 return repo.download_file(mongodb_version, mongodb_edition,
                                           destination=destination)
             except FileNotInRepoError, e:
