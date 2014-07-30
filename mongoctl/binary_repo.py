@@ -313,16 +313,23 @@ def download_mongodb_binary(mongodb_version, mongodb_edition,
                             destination=None):
     destination = destination or os.getcwd()
 
+    log_info("Looking for a download for MongoDB ('%s', '%s')" %
+             (mongodb_version, mongodb_edition))
+
     for repo in get_registered_binary_repositories():
+        log_verbose("Trying from '%s' binary repository..." % repo.name)
         if mongodb_edition in repo.supported_editions:
             try:
-                log_verbose("Trying from '%s' binary repository...")
                 return repo.download_file(mongodb_version, mongodb_edition,
                                           destination=destination)
             except FileNotInRepoError, e:
                 log_verbose("No mongodb binary (version: '%s', edition: '%s' )"
                             "found in repo '%s'" %
                             (mongodb_version, mongodb_edition, repo.name))
+        else:
+            log_verbose("Binary repository '%s' does not support edition '%s'."
+                        " Supported editions %s" %
+                        (repo.name, mongodb_edition, repo.supported_editions))
 
     raise MongoctlException("No mongodb binary (version: '%s', edition: '%s')"
                             % (mongodb_version, mongodb_edition))
