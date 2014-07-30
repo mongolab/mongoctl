@@ -100,10 +100,10 @@ def build_mongodb(mongodb_version, repo_name=None, push=False,
     # cleanup
     log_info("Cleanup")
     try:
-        shutil.rmtree(source_archive_name)
+        os.remove(source_archive_name)
         shutil.rmtree(source_dir)
         if push:
-            shutil.rmtree(target_archive_name)
+            os.remove(target_archive_name)
     except Exception, e:
         log_error(str(e))
         log_exception(e)
