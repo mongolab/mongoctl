@@ -170,10 +170,15 @@ def install_from_source(mongodb_version, mongodb_edition, build_threads=1):
                                                          mongodb_edition))
     source_archive_name = "r%s.tar.gz" % mongodb_version
 
-
-
     target_dir_name = get_build_target_dir_name(mongodb_version,
                                                 mongodb_edition)
+
+    target_dir = os.path.join(config.get_mongodb_installs_dir(),
+                              target_dir_name)
+
+    if os.path.exists(target_dir):
+        raise MongoctlException("Target directory '%s' already exists" %
+                                target_dir)
 
     source_url = ("https://github.com/mongodb/mongo/archive/%s" %
                   source_archive_name)
@@ -202,12 +207,6 @@ def install_from_source(mongodb_version, mongodb_edition, build_threads=1):
     if not scons_exe:
         raise MongoctlException("scons command not found in your path")
 
-    target_dir = os.path.join(config.get_mongodb_installs_dir(),
-                               target_dir_name)
-
-    if os.path.exists(target_dir):
-        raise MongoctlException("Target directory '%s' already exists" %
-                                target_dir)
 
     scons_cmd = [scons_exe, "core", "tools", "install", "-j",
                  str(build_threads),
