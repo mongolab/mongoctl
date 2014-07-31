@@ -67,10 +67,10 @@ def list_versions_command(parsed_options):
 ###############################################################################
 # install_mongodb
 ###############################################################################
-def install_mongodb(mongob_version, mongodb_edition=None, from_source=False,
+def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
                     build_threads=1):
 
-    version_info = make_version_info(mongob_version, mongodb_edition)
+    version_info = make_version_info(mongodb_version, mongodb_edition)
     mongo_installation = get_mongo_installation(version_info)
 
     if mongo_installation is not None: # no-op
@@ -78,13 +78,19 @@ def install_mongodb(mongob_version, mongodb_edition=None, from_source=False,
                  "Nothing to do." % (version_info, mongo_installation))
         return mongo_installation
 
+    target_dir = get_install_target_dir(mongodb_version, mongodb_edition)
+    if os.path.exists(target_dir):
+        raise MongoctlException("Target directory '%s' already exists" %
+                                target_dir)
+
+
     mongodb_edition = mongodb_edition or MongoDBEdition.COMMUNITY
     if mongodb_edition not in MongoDBEdition.ALL:
         raise MongoctlException("Unknown edition '%s'. Please select from %s" %
                                 (mongodb_edition, MongoDBEdition.ALL))
 
     if from_source:
-        install_from_source(mongob_version, mongodb_edition,
+        install_from_source(mongodb_version, mongodb_edition,
                             build_threads=build_threads)
         return
 
@@ -94,12 +100,10 @@ def install_mongodb(mongob_version, mongodb_edition=None, from_source=False,
     if os_name == 'darwin' and platform.mac_ver():
         os_name = "osx"
 
-    if mongob_version is None:
+    if mongodb_version is None:
         version_number = fetch_latest_stable_version()
         log_info("Installing latest stable MongoDB version '%s'..." %
                  version_number)
-
-
 
     mongodb_installs_dir = config.get_mongodb_installs_dir()
     if not mongodb_installs_dir:
@@ -121,16 +125,12 @@ def install_mongodb(mongob_version, mongodb_edition=None, from_source=False,
 
     try:
         ## download the url
-        archive_path = download_mongodb_binary(mongob_version, mongodb_edition)
+        archive_path = download_mongodb_binary(mongodb_version,
+                                               mongodb_edition)
         archive_name = os.path.basename(archive_path)
         mongo_dir_name = archive_name.replace(".tgz", "")
-        target_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
 
-        if os.path.exists(target_dir):
-            raise MongoctlException("Target directory '%s' already exists" %
-                                    target_dir)
-
-        extract_archive(archive_path)
+        extract_archive(archive_path, target_dir=target_dir)
 
         log_info("Moving extracted folder to %s" % mongodb_installs_dir)
         shutil.move(mongo_dir_name, mongodb_installs_dir)
@@ -170,15 +170,7 @@ def install_from_source(mongodb_version, mongodb_edition, build_threads=1):
                                                          mongodb_edition))
     source_archive_name = "r%s.tar.gz" % mongodb_version
 
-    target_dir_name = get_build_target_dir_name(mongodb_version,
-                                                mongodb_edition)
-
-    target_dir = os.path.join(config.get_mongodb_installs_dir(),
-                              target_dir_name)
-
-    if os.path.exists(target_dir):
-        raise MongoctlException("Target directory '%s' already exists" %
-                                target_dir)
+    target_dir = get_install_target_dir(mongodb_version, mongodb_edition)
 
     source_url = ("https://github.com/mongodb/mongo/archive/%s" %
                   source_archive_name)
@@ -272,8 +264,12 @@ def fetch_latest_stable_version():
 
 
 ###############################################################################
-def get_build_target_dir_name(mongodb_version, mongodb_edition):
-    return "mongodb-%s-%s" % (mongodb_version, mongodb_edition)
+def get_install_target_dir(mongodb_version, mongodb_edition):
+    template = "mongodb-{platform_spec}-{mongodb_edition}-{mongodb_version}"
+    args = get_template_args(mongodb_version, mongodb_edition)
+    dir_name = template.format(**args)
+
+    return os.path.join(config.get_mongodb_installs_dir(), dir_name)
 
 
 
