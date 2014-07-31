@@ -297,10 +297,11 @@ def mongo_exe_version(mongo_exe):
         # only take first line of spew
         vers_spew_line = vers_spew.split('\n')[0]
         vers_grep = re.findall(re_expr, vers_spew_line)
+        help_spew = execute_command([mongod_path, "--help"])
         full_version = vers_grep[-1][0]
         if "subscription" in vers_spew or "enterprise" in vers_spew:
             edition = MongoDBEdition.ENTERPRISE
-        elif "OpenSSL" in vers_spew:
+        elif "SSL" in help_spew:
             edition = MongoDBEdition.COMMUNITY_SSL
         else:
             edition = MongoDBEdition.COMMUNITY
