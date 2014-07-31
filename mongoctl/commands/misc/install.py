@@ -68,6 +68,14 @@ def list_versions_command(parsed_options):
 ###############################################################################
 def install_mongodb(mongob_version, mongodb_edition=None, from_source=False):
 
+    version_info = make_version_info(mongob_version, mongodb_edition)
+    mongo_installation = get_mongo_installation(version_info)
+
+    if mongo_installation is not None: # no-op
+        log_info("You already have MongoDB %s installed ('%s'). "
+                 "Nothing to do." % (version_info, mongo_installation))
+        return mongo_installation
+
     mongodb_edition = mongodb_edition or MongoDBEdition.COMMUNITY
     if mongodb_edition not in MongoDBEdition.ALL:
         raise MongoctlException("Unknown edition '%s'. Please select from %s" %
@@ -88,7 +96,7 @@ def install_mongodb(mongob_version, mongodb_edition=None, from_source=False):
         log_info("Installing latest stable MongoDB version '%s'..." %
                  version_number)
 
-    version_info = make_version_info(mongob_version, mongodb_edition)
+
 
     mongodb_installs_dir = config.get_mongodb_installs_dir()
     if not mongodb_installs_dir:
@@ -101,12 +109,7 @@ def install_mongodb(mongob_version, mongodb_edition=None, from_source=False):
                 "PLATFORM_SPEC='%s'" % (os_name, bits, version_info,
                                         platform_spec))
 
-    mongo_installation = get_mongo_installation(version_info)
 
-    if mongo_installation is not None: # no-op
-        log_info("You already have MongoDB %s installed ('%s'). "
-                 "Nothing to do." % (version_info, mongo_installation))
-        return mongo_installation
 
 
 
@@ -118,6 +121,12 @@ def install_mongodb(mongob_version, mongodb_edition=None, from_source=False):
         archive_path = download_mongodb_binary(mongob_version, mongodb_edition)
         archive_name = os.path.basename(archive_path)
         mongo_dir_name = archive_name.replace(".tgz", "")
+        target_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
+
+        if os.path.exists(target_dir):
+            raise MongoctlException("Target directory '%s' already exists" %
+                                    target_dir)
+
         extract_archive(archive_path)
 
         log_info("Moving extracted folder to %s" % mongodb_installs_dir)
@@ -147,6 +156,13 @@ def install_from_source(mongodb_version, mongodb_edition):
     :param repo_name: The repo to use to generate archive name
     :return:
     """
+
+    allowed_build_editions = [MongoDBEdition.COMMUNITY,
+                              MongoDBEdition.COMMUNITY_SSL]
+    if mongodb_edition not in allowed_build_editions:
+        raise MongoctlException("build is only allowed for %s editions" %
+                                allowed_build_editions)
+
     log_info("Installing MongoDB '%s %s' from source" % (mongodb_version,
                                                          mongodb_edition))
     source_archive_name = "r%s.tar.gz" % mongodb_version
