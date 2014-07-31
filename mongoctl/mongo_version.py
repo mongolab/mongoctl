@@ -42,7 +42,8 @@ class VersionInfo(NormalizedVersion):
 
 ###############################################################################
 def is_valid_version_info(version_info):
-    return is_valid_version(version_info.version_number)
+    return (is_valid_version(version_info.version_number) and
+            version_info.edition in MongoDBEdition.ALL)
 
 ###############################################################################
 def is_valid_version(version_number):

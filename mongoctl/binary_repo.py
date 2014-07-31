@@ -87,34 +87,13 @@ class MongoDBBinaryRepository(object):
         return url.split("/")[-1]
 
     ###########################################################################
-    def get_template_args(self, mongodb_version, mongodb_edition):
-        bits = platform.architecture()[0].replace("bit", "")
-        os_name = get_os_name()
-
-        platform_spec = get_validate_platform_spec(os_name, bits)
-
-        os_dist_name, os_dist_version = get_os_dist_info()
-        os_dist_version_no_dots = (os_dist_version and
-                                   os_dist_version.replace('.', ''))
-        return {
-            "os_name": os_name,
-            "platform_spec": platform_spec,
-            "os_dist_name": os_dist_name,
-            "os_dist_version": os_dist_version,
-            "os_dist_version_no_dots": os_dist_version_no_dots,
-            "mongodb_version": mongodb_version,
-            "mongodb_edition": mongodb_edition
-        }
-
-    ###########################################################################
     def get_download_url(self, mongodb_version, mongodb_edition):
         if mongodb_edition not in self.supported_editions:
             msg = ("Edition '%s' not supported by MongoDBBinaryRepository '%s'"
                    % (mongodb_edition, self.name))
             raise Exception(msg)
 
-        template_args = self.get_template_args(mongodb_version,
-                                               mongodb_edition)
+        template_args = get_template_args(mongodb_version, mongodb_edition)
 
         return self.url_template.format(**template_args)
 
@@ -133,8 +112,7 @@ class DefaultMongoDBBinaryRepository(MongoDBBinaryRepository):
 
     ###########################################################################
     def get_download_url(self, mongodb_version, mongodb_edition):
-        template_args = self.get_template_args(mongodb_version,
-                                               mongodb_edition)
+        template_args = get_template_args(mongodb_version, mongodb_edition)
         platform_spec = template_args["platform_spec"]
         os_dist_name = template_args["os_dist_name"]
         os_dist_version_no_dots = template_args["os_dist_version_no_dots"]
@@ -354,6 +332,7 @@ def _make_binary_repo(name, repo_config):
 
     return repo
 
+
 ###############################################################################
 def _download_progress(transferred, size):
     percentage = (float(transferred)/float(size)) * 100
@@ -361,6 +340,26 @@ def _download_progress(transferred, size):
                      "completed" %
                      (transferred, size, percentage))
     sys.stdout.flush()
+
+###############################################################################
+def get_template_args(mongodb_version, mongodb_edition):
+    bits = platform.architecture()[0].replace("bit", "")
+    os_name = get_os_name()
+
+    platform_spec = get_validate_platform_spec(os_name, bits)
+
+    os_dist_name, os_dist_version = get_os_dist_info()
+    os_dist_version_no_dots = (os_dist_version and
+                               os_dist_version.replace('.', ''))
+    return {
+        "os_name": os_name,
+        "platform_spec": platform_spec,
+        "os_dist_name": os_dist_name,
+        "os_dist_version": os_dist_version,
+        "os_dist_version_no_dots": os_dist_version_no_dots,
+        "mongodb_version": mongodb_version,
+        "mongodb_edition": mongodb_edition
+    }
 
 ###############################################################################
 def get_validate_platform_spec(os_name, bits):

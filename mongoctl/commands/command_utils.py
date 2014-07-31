@@ -378,3 +378,26 @@ def is_dbpath(value):
     return os.path.exists(value)
 
 
+###############################################################################
+def find__all_mongo_installations():
+    all_installs = []
+    all_mongod_exes = find_all_executables('mongod')
+    for exe_path, exe_version in all_mongod_exes:
+        # install dir is exe parent's (bin) parent
+        install_dir = os.path.dirname(os.path.dirname(exe_path))
+        all_installs.append((install_dir,exe_version))
+
+    return all_installs
+
+
+###############################################################################
+def get_mongo_installation(version_info):
+    # get all mongod installation dirs and return the one
+    # whose version == specified version. If any...
+    for install_dir, install_version in find__all_mongo_installations():
+        if install_version == version_info:
+            return install_dir
+
+    return None
+
+

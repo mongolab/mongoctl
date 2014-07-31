@@ -14,12 +14,15 @@ from mongoctl.mongoctl_logging import *
 
 from mongoctl.errors import MongoctlException
 
-from mongoctl.utils import extract_archive
+from mongoctl.utils import download_url, extract_archive, call_command, which
 
 from mongoctl.mongo_version import make_version_info, is_valid_version_info
-from mongoctl.commands.command_utils import find_all_executables
+from mongoctl.commands.command_utils import (
+    find__all_mongo_installations, get_mongo_installation
+)
 
-from mongoctl.binary_repo import download_mongodb_binary
+from mongoctl.binary_repo import download_mongodb_binary, get_template_args
+
 ###############################################################################
 # CONSTS
 ###############################################################################
@@ -31,7 +34,9 @@ LATEST_VERSION_FILE_URL = "https://raw.github.com/mongolab/mongoctl/master/" \
 # install command
 ###############################################################################
 def install_command(parsed_options):
-    install_mongodb(parsed_options.version, edition=parsed_options.edition)
+    install_mongodb(parsed_options.version,
+                    mongodb_edition=parsed_options.edition,
+                    from_source=parsed_options.fromSource)
 
 ###############################################################################
 # uninstall command
@@ -61,12 +66,16 @@ def list_versions_command(parsed_options):
 ###############################################################################
 # install_mongodb
 ###############################################################################
-def install_mongodb(version_number, edition=None):
+def install_mongodb(mongob_version, mongodb_edition=None, from_source=False):
 
-    edition = edition or MongoDBEdition.COMMUNITY
-    if edition not in MongoDBEdition.ALL:
+    mongodb_edition = mongodb_edition or MongoDBEdition.COMMUNITY
+    if mongodb_edition not in MongoDBEdition.ALL:
         raise MongoctlException("Unknown edition '%s'. Please select from %s" %
-                                (edition, MongoDBEdition.ALL))
+                                (mongodb_edition, MongoDBEdition.ALL))
+
+    if from_source:
+        install_from_source(mongob_version, mongodb_edition)
+        return
 
     bits = platform.architecture()[0].replace("bit", "")
     os_name = platform.system().lower()
@@ -74,12 +83,12 @@ def install_mongodb(version_number, edition=None):
     if os_name == 'darwin' and platform.mac_ver():
         os_name = "osx"
 
-    if version_number is None:
+    if mongob_version is None:
         version_number = fetch_latest_stable_version()
         log_info("Installing latest stable MongoDB version '%s'..." %
                  version_number)
 
-    version_info = make_version_info(version_number, edition)
+    version_info = make_version_info(mongob_version, mongodb_edition)
 
     mongodb_installs_dir = config.get_mongodb_installs_dir()
     if not mongodb_installs_dir:
@@ -106,7 +115,7 @@ def install_mongodb(version_number, edition=None):
 
     try:
         ## download the url
-        archive_path = download_mongodb_binary(version_number, edition)
+        archive_path = download_mongodb_binary(mongob_version, mongodb_edition)
         archive_name = os.path.basename(archive_path)
         mongo_dir_name = archive_name.replace(".tgz", "")
         extract_archive(archive_path)
@@ -125,6 +134,77 @@ def install_mongodb(version_number, edition=None):
         log_exception(e)
         log_error("Failed to install MongoDB '%s'. Cause: %s" %
                   (version_info, e))
+
+
+###############################################################################
+# install from source
+###############################################################################
+def install_from_source(mongodb_version, mongodb_edition):
+    """
+
+    :param version:
+    :param ssl:
+    :param repo_name: The repo to use to generate archive name
+    :return:
+    """
+    log_info("Installing MongoDB '%s %s' from source" % (mongodb_version,
+                                                         mongodb_edition))
+    source_archive_name = "r%s.tar.gz" % mongodb_version
+
+
+
+    target_dir_name = get_build_target_dir_name(mongodb_version,
+                                                mongodb_edition)
+
+    source_url = ("https://github.com/mongodb/mongo/archive/%s" %
+                  source_archive_name)
+
+    response = urllib.urlopen(source_url)
+
+    if response.getcode() != 200:
+        msg = ("Unable to find a mongodb release for version '%s' in MongoDB"
+               " github repo. See https://github.com/mongodb/mongo/releases "
+               "for possible releases (response code '%s'). " %
+               (mongodb_version, response.getcode()))
+        raise MongoctlException(msg)
+
+    log_info("Downloading MongoDB '%s' source from github '%s' ..." %
+             (mongodb_version, source_url))
+
+    download_url(source_url)
+
+    log_info("Extract source archive ...")
+
+    source_dir = extract_archive(source_archive_name)
+
+    log_info("Building with scons!")
+
+    scons_exe = which("scons")
+    if not scons_exe:
+        raise MongoctlException("scons command not found in your path")
+
+    target_path = os.path.join(config.get_mongodb_installs_dir(),
+                               target_dir_name)
+    scons_cmd = [scons_exe, "core", "tools", "install", "-j", "4",
+                 "--prefix=%s" % target_path]
+
+    if mongodb_edition == MongoDBEdition.COMMUNITY_SSL:
+        scons_cmd.append("--ssl")
+
+    log_info("Running scons command: %s" % " ".join(scons_cmd))
+
+    call_command(scons_cmd, cwd=source_dir)
+
+    # cleanup
+    log_info("Cleanup")
+    try:
+        os.remove(source_archive_name)
+        shutil.rmtree(source_dir)
+
+    except Exception, e:
+        log_error(str(e))
+        log_exception(e)
+
 
 ###############################################################################
 # uninstall_mongodb
@@ -165,26 +245,13 @@ def fetch_latest_stable_version():
                                 " from '%s' (Response code %s)" %
                                 (LATEST_VERSION_FILE_URL, response.getcode()))
 
-###############################################################################
-def get_mongo_installation(version_info):
-    # get all mongod installation dirs and return the one
-    # whose version == specified version. If any...
-    for install_dir, install_version in find__all_mongo_installations():
-        if install_version == version_info:
-            return install_dir
 
-    return None
 
 ###############################################################################
-def find__all_mongo_installations():
-    all_installs = []
-    all_mongod_exes = find_all_executables('mongod')
-    for exe_path, exe_version in all_mongod_exes:
-        # install dir is exe parent's (bin) parent
-        install_dir = os.path.dirname(os.path.dirname(exe_path))
-        all_installs.append((install_dir,exe_version))
+def get_build_target_dir_name(mongodb_version, mongodb_edition):
+    return "mongodb-%s-%s" % (mongodb_version, mongodb_edition)
 
-    return all_installs
+
 
 ###############################################################################
 def get_validate_platform_spec(os_name, bits):

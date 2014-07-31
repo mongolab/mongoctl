@@ -1469,13 +1469,13 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "install-mongodb",
             "group": "adminCommands",
-            "shortDescription" : "install MongoDB",
-            "description" : "install MongoDB",
+            "shortDescription": "install MongoDB",
+            "description": "install MongoDB",
             "function": "mongoctl.commands.misc.install.install_command",
             "args": [
                     {
                     "name": "version",
-                    "type" : "positional",
+                    "type": "positional",
                     "nargs": "?",
                     "displayName": "VERSION",
                     "help": "MongoDB version to install"
@@ -1490,6 +1490,18 @@ MONGOCTL_PARSER_DEF = {
                     ],
                     "hidden": True,
                     "nargs": 1
+                },
+
+                {
+                    "name": "fromSource",
+                    "type": "optional",
+                    "help": "build from source",
+                    "cmd_arg": [
+                        "--build-from-source"
+                    ],
+                    "action": "store_true",
+                    "default": False,
+                    "nargs": 0
                 }
             ]
         },
@@ -1524,21 +1536,32 @@ MONGOCTL_PARSER_DEF = {
             {
             "prog": "list-versions",
             "group": "adminCommands",
-            "shortDescription" : "list all available MongoDB installations on"
-                                 " this machine",
-            "description" : "list all available MongoDB installations on"
-                            " this machine",
+            "shortDescription": "list all available MongoDB installations on"
+                                " this machine",
+            "description": "list all available MongoDB installations on"
+                           " this machine",
             "function": "mongoctl.commands.misc.install.list_versions_command",
         },
 
         #### install-mongodb ####
         {
-            "prog": "build-mongodb",
+            "prog": "push-to-repo",
             "group": "adminCommands",
-            "shortDescription" : "build MongoDB",
-            "description" : "build MongoDB",
-            "function": "mongoctl.commands.misc.build.build_command",
+            "shortDescription": "Push MongoDB to a binary repository",
+            "description": "Push MongoDB to a binary repository",
+            "function": "mongoctl.commands.misc.push_to_repo."
+                        "push_to_repo_command",
+            "hidden": True,
             "args": [
+
+                {
+                    "name": "repo",
+                    "type": "positional",
+                    "nargs": 1,
+                    "displayName": "REPO",
+                    "help": "Repo name"
+                },
+
                 {
                     "name": "version",
                     "type": "positional",
@@ -1548,37 +1571,17 @@ MONGOCTL_PARSER_DEF = {
                 },
 
                 {
-                    "name": "ssl",
+                    "name": "edition",
                     "type": "optional",
                     "help": "build with ssl",
                     "cmd_arg": [
-                        "--ssl"
+                        "--edition"
                     ],
-                    "nargs": 0
-                },
-
-                {
-                    "name": "repo",
-                    "type": "optional",
-                    "help": "custom repository to use for"
-                            " target name generation",
-                    "cmd_arg": [
-                        "--repo"
-                    ],
+                    "hidden": True,
                     "nargs": 1
-                },
-
-                {
-                    "name": "push",
-                    "type": "optional",
-                    "help": "push the target to repo. must be used with"
-                            " --repo",
-                    "cmd_arg": [
-                        "--push"
-                    ],
-                    "nargs": 0,
-                    "default": False
                 }
+
+
             ]
         },
         #### print-uri ####
