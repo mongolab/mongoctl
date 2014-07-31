@@ -78,6 +78,14 @@ class MongoDBBinaryRepository(object):
 
 
     ###########################################################################
+    def file_exists(self, mongodb_version, mongodb_edition):
+        url = self.get_download_url(mongodb_version, mongodb_edition)
+
+        response = urllib.urlopen(url)
+
+        return response.code == 200
+
+    ###########################################################################
     def upload_file(self, mongodb_version, mongodb_edition, file_path):
         raise Exception("Operation not supported")
 
@@ -204,6 +212,15 @@ class S3MongoDBBinaryRepository(MongoDBBinaryRepository):
 
         return self._download_file_from_bucket(file_path, destination)
 
+
+    ###########################################################################
+    def file_exists(self, mongodb_version, mongodb_edition):
+
+        file_path = self.get_download_url(mongodb_version, mongodb_edition)
+
+        key = self.bucket.get_key(file_path)
+
+        return key is not None
 
     ###########################################################################
     def upload_file(self, mongodb_version, mongodb_edition, file_path):

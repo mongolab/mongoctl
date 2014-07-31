@@ -1,13 +1,8 @@
 __author__ = 'abdul'
 
 import os
-import platform
-import urllib
-import shutil
 
-
-
-from mongoctl.mongoctl_logging import *
+from mongoctl.mongoctl_logging import log_info, log_error, log_exception
 
 from mongoctl.errors import MongoctlException
 
@@ -24,8 +19,6 @@ def push_to_repo_command(parsed_options):
     push_mongodb(parsed_options.repo,
                  parsed_options.version,
                  mongodb_edition=parsed_options.edition)
-
-
 
 ###############################################################################
 # push_mongodb
@@ -64,7 +57,6 @@ def push_mongodb(repo_name, mongodb_version, mongodb_edition=None):
     # cleanup
     log_info("Cleanup")
     try:
-
         os.remove(target_archive_name)
     except Exception, e:
         log_error(str(e))
