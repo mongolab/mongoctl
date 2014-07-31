@@ -1502,6 +1502,16 @@ MONGOCTL_PARSER_DEF = {
                     "action": "store_true",
                     "default": False,
                     "nargs": 0
+                },
+
+                {
+                    "name": "buildThreads",
+                    "type": "optional",
+                    "help": "build threads",
+                    "cmd_arg": [
+                        "--build-threads"
+                    ],
+                    "nargs": 1
                 }
             ]
         },

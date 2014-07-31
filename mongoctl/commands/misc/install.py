@@ -36,7 +36,8 @@ LATEST_VERSION_FILE_URL = "https://raw.github.com/mongolab/mongoctl/master/" \
 def install_command(parsed_options):
     install_mongodb(parsed_options.version,
                     mongodb_edition=parsed_options.edition,
-                    from_source=parsed_options.fromSource)
+                    from_source=parsed_options.fromSource,
+                    build_threads=parsed_options.buildThreads)
 
 ###############################################################################
 # uninstall command
@@ -66,7 +67,8 @@ def list_versions_command(parsed_options):
 ###############################################################################
 # install_mongodb
 ###############################################################################
-def install_mongodb(mongob_version, mongodb_edition=None, from_source=False):
+def install_mongodb(mongob_version, mongodb_edition=None, from_source=False,
+                    build_threads=1):
 
     version_info = make_version_info(mongob_version, mongodb_edition)
     mongo_installation = get_mongo_installation(version_info)
@@ -82,7 +84,8 @@ def install_mongodb(mongob_version, mongodb_edition=None, from_source=False):
                                 (mongodb_edition, MongoDBEdition.ALL))
 
     if from_source:
-        install_from_source(mongob_version, mongodb_edition)
+        install_from_source(mongob_version, mongodb_edition,
+                            build_threads=build_threads)
         return
 
     bits = platform.architecture()[0].replace("bit", "")
@@ -148,7 +151,7 @@ def install_mongodb(mongob_version, mongodb_edition=None, from_source=False):
 ###############################################################################
 # install from source
 ###############################################################################
-def install_from_source(mongodb_version, mongodb_edition):
+def install_from_source(mongodb_version, mongodb_edition, build_threads=1):
     """
 
     :param version:
@@ -201,7 +204,8 @@ def install_from_source(mongodb_version, mongodb_edition):
 
     target_path = os.path.join(config.get_mongodb_installs_dir(),
                                target_dir_name)
-    scons_cmd = [scons_exe, "core", "tools", "install", "-j", "4",
+    scons_cmd = [scons_exe, "core", "tools", "install", "-j",
+                 str(build_threads),
                  "--prefix=%s" % target_path]
 
     if mongodb_edition == MongoDBEdition.COMMUNITY_SSL:
