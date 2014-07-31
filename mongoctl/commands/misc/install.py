@@ -133,9 +133,6 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
 
         extract_archive(archive_path, target_dir=target_dir)
 
-        log_info("Moving extracted folder to %s" % mongodb_installs_dir)
-        shutil.move(mongo_dir_name, mongodb_installs_dir)
-
         os.remove(archive_name)
         log_info("Deleting archive %s" % archive_name)
 
