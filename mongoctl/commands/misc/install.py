@@ -130,7 +130,7 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
                                                mongodb_edition)
         archive_name = os.path.basename(archive_path)
 
-        mongo_dir_name = extract_archive(archive_path)
+        mongo_dir_name = extract_archive(archive_name)
 
 
         log_info("Deleting archive %s" % archive_name)
