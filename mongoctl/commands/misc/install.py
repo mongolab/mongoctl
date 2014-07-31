@@ -70,8 +70,14 @@ def list_versions_command(parsed_options):
 def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
                     build_threads=1):
 
+    if mongodb_version is None:
+        mongodb_version = fetch_latest_stable_version()
+        log_info("Installing latest stable MongoDB version '%s'..." %
+                 mongodb_version)
+
     version_info = make_version_info(mongodb_version, mongodb_edition)
     mongo_installation = get_mongo_installation(version_info)
+    mongodb_edition = version_info.edition
 
     if mongo_installation is not None: # no-op
         log_info("You already have MongoDB %s installed ('%s'). "
@@ -84,7 +90,7 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
                                 target_dir)
 
 
-    mongodb_edition = mongodb_edition or MongoDBEdition.COMMUNITY
+
     if mongodb_edition not in MongoDBEdition.ALL:
         raise MongoctlException("Unknown edition '%s'. Please select from %s" %
                                 (mongodb_edition, MongoDBEdition.ALL))
@@ -99,11 +105,6 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
 
     if os_name == 'darwin' and platform.mac_ver():
         os_name = "osx"
-
-    if mongodb_version is None:
-        version_number = fetch_latest_stable_version()
-        log_info("Installing latest stable MongoDB version '%s'..." %
-                 version_number)
 
     mongodb_installs_dir = config.get_mongodb_installs_dir()
     if not mongodb_installs_dir:
