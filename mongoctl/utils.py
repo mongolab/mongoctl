@@ -310,7 +310,7 @@ def download_url(url, destination=None, show_errors=False):
     return os.path.join(destination, file_name)
 
 ###############################################################################
-def extract_archive(archive_name, target_dir=None):
+def extract_archive(archive_name):
 
     log_info("Extracting %s..." % archive_name)
     if not which("tar"):
@@ -318,15 +318,12 @@ def extract_archive(archive_name, target_dir=None):
                " path in order to proceed.")
         raise MongoctlException(msg)
 
-    if target_dir:
-        dir_name = os.path.dirname(target_dir)
-    else:
-        dir_name = archive_name.replace(".tgz", "").replace(".tar.gz", "")
+    dir_name = archive_name.replace(".tgz", "").replace(".tar.gz", "")
 
-    target_dir = target_dir or os.path.join(os.getcwd(), dir_name)
-    ensure_dir(target_dir)
-    tar_cmd = ['tar', 'xvf', archive_name, "-C", target_dir,
+    ensure_dir(dir_name)
+    tar_cmd = ['tar', 'xvf', archive_name, "-C", dir_name,
                "--strip-components", "1"]
+
     call_command(tar_cmd)
 
     return dir_name

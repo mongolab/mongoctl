@@ -129,12 +129,17 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
         archive_path = download_mongodb_binary(mongodb_version,
                                                mongodb_edition)
         archive_name = os.path.basename(archive_path)
-        mongo_dir_name = archive_name.replace(".tgz", "")
 
-        extract_archive(archive_path, target_dir=target_dir)
+        mongo_dir_name = extract_archive(archive_path)
 
-        os.remove(archive_name)
+
         log_info("Deleting archive %s" % archive_name)
+        os.remove(archive_name)
+        target_dir_name = os.path.basename(target_dir)
+        os.rename(mongo_dir_name, target_dir_name)
+
+        log_info("Moving extracted folder to %s" % mongodb_installs_dir)
+        shutil.move(target_dir_name, mongodb_installs_dir)
 
         log_info("MongoDB %s installed successfully!" % version_info)
         install_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
