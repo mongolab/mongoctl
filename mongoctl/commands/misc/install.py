@@ -202,11 +202,16 @@ def install_from_source(mongodb_version, mongodb_edition, build_threads=1):
     if not scons_exe:
         raise MongoctlException("scons command not found in your path")
 
-    target_path = os.path.join(config.get_mongodb_installs_dir(),
+    target_dir = os.path.join(config.get_mongodb_installs_dir(),
                                target_dir_name)
+
+    if os.path.exists(target_dir):
+        raise MongoctlException("Target directory '%s' already exists" %
+                                target_dir)
+
     scons_cmd = [scons_exe, "core", "tools", "install", "-j",
                  str(build_threads),
-                 "--prefix=%s" % target_path]
+                 "--prefix=%s" % target_dir]
 
     if mongodb_edition == MongoDBEdition.COMMUNITY_SSL:
         scons_cmd.append("--ssl")
