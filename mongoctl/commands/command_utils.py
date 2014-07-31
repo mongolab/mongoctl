@@ -8,7 +8,7 @@ from mongoctl.mongoctl_logging import *
 from mongoctl import config
 from mongoctl.errors import MongoctlException
 from mongoctl.utils import is_exe, which, resolve_path, execute_command
-from mongoctl.mongo_version import make_version_info, MongoDBEdition
+from mongoctl.mongodb_version import make_version_info, MongoDBEdition
 from mongoctl.mongo_uri_tools import is_mongo_uri
 
 ###############################################################################

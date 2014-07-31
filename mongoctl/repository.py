@@ -14,7 +14,7 @@ from utils import (
     resolve_class, document_pretty_string, is_valid_member_address, listify
     )
 
-from mongo_version import is_supported_mongo_version, is_valid_version
+from mongodb_version import is_supported_mongo_version, is_valid_version
 from mongo_uri_tools import is_cluster_mongo_uri, mask_mongo_uri
 
 DEFAULT_SERVERS_FILE = "servers.config"

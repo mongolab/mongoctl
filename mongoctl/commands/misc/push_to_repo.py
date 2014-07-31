@@ -10,7 +10,7 @@ from mongoctl.utils import call_command, which
 from mongoctl.binary_repo import (
     get_binary_repository, S3MongoDBBinaryRepository
 )
-from mongoctl.mongo_version import make_version_info, MongoDBEdition
+from mongoctl.mongodb_version import make_version_info, MongoDBEdition
 
 from mongoctl.commands.command_utils import get_mongo_installation
 

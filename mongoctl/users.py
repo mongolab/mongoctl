@@ -7,7 +7,7 @@ from pymongo.errors import OperationFailure, AutoReconnect
 from errors import MongoctlException
 from prompt import read_password
 import pymongo.auth
-import mongo_version
+import mongodb_version
 
 ###############################################################################
 __global_login_user__ = {
@@ -145,7 +145,7 @@ def setup_db_users(server, db, db_users):
 
 
 ###############################################################################
-VERSION_2_6 = mongo_version.make_version_info("2.6.0")
+VERSION_2_6 = mongodb_version.make_version_info("2.6.0")
 
 ###############################################################################
 def server_supports_local_users(server):

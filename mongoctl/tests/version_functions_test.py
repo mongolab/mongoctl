@@ -23,7 +23,7 @@
 #
 __author__ = 'aalkhatib'
 import unittest
-from mongoctl.mongo_version import make_version_info, is_valid_version
+from mongoctl.mongodb_version import make_version_info, is_valid_version
 
 class VersionFunctionsTest(unittest.TestCase):
     def test_version_functions(self):

@@ -19,14 +19,14 @@ class MongoDBEdition():
     ALL = [COMMUNITY, COMMUNITY_SSL, ENTERPRISE]
 
 ###############################################################################
-# VersionInfo class
+# MongoDBVersionInfo class
 # we had to inherit and override __str__ because the suggest_normalized_version
 # method does not maintain the release candidate version properly
 ###############################################################################
-class VersionInfo(NormalizedVersion):
+class MongoDBVersionInfo(NormalizedVersion):
     def __init__(self, version_number, edition=None):
         sugg_ver = suggest_normalized_version(version_number)
-        super(VersionInfo,self).__init__(sugg_ver)
+        super(MongoDBVersionInfo,self).__init__(sugg_ver)
         self.version_number = version_number
         self.edition = edition or MongoDBEdition.COMMUNITY
 
@@ -37,7 +37,7 @@ class VersionInfo(NormalizedVersion):
     ###########################################################################
     def __eq__(self, other):
         return (other is not None and
-                super(VersionInfo, self).__eq__(other) and
+                super(MongoDBVersionInfo, self).__eq__(other) and
                 self.edition == other.edition)
 
 ###############################################################################
@@ -62,7 +62,7 @@ def make_version_info(version_number, edition=None):
 
     version_number = version_number.strip()
     version_number = version_number.replace("-pre-" , "-pre")
-    version_info = VersionInfo(version_number, edition=edition)
+    version_info = MongoDBVersionInfo(version_number, edition=edition)
 
     # validate version string
     if not is_valid_version_info(version_info):

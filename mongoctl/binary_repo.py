@@ -8,7 +8,7 @@ from errors import MongoctlException, FileNotInRepoError
 from mongoctl_logging import log_info, log_verbose
 from prompt import is_interactive_mode
 from boto.s3.connection import S3Connection, Key
-from mongo_version import make_version_info, MongoDBEdition
+from mongodb_version import make_version_info, MongoDBEdition
 import config
 import urllib
 

@@ -10,7 +10,7 @@ from pymongo.errors import AutoReconnect
 from mongoctl.mongoctl_logging import (
     log_verbose, log_error, log_warning, log_exception, log_debug
     )
-from mongoctl.mongo_version import make_version_info
+from mongoctl.mongodb_version import make_version_info
 
 from mongoctl.config import get_default_users
 from mongoctl.errors import MongoctlException

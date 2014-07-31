@@ -8,7 +8,7 @@ import shutil
 import mongoctl.config as config
 from mongoctl.prompt import prompt_execute_task
 
-from mongoctl.mongo_version import MongoDBEdition
+from mongoctl.mongodb_version import MongoDBEdition
 
 from mongoctl.mongoctl_logging import *
 
@@ -16,7 +16,7 @@ from mongoctl.errors import MongoctlException
 
 from mongoctl.utils import download_url, extract_archive, call_command, which
 
-from mongoctl.mongo_version import make_version_info, is_valid_version_info
+from mongoctl.mongodb_version import make_version_info, is_valid_version_info
 from mongoctl.commands.command_utils import (
     find__all_mongo_installations, get_mongo_installation
 )

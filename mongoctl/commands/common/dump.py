@@ -17,7 +17,7 @@ from mongoctl.errors import MongoctlException
 
 from mongoctl.utils import call_command
 from mongoctl.objects.server import Server
-from mongoctl.mongo_version import make_version_info, VersionInfo
+from mongoctl.mongodb_version import make_version_info, VersionInfo
 
 
 ###############################################################################
