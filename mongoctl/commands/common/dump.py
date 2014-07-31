@@ -17,7 +17,7 @@ from mongoctl.errors import MongoctlException
 
 from mongoctl.utils import call_command
 from mongoctl.objects.server import Server
-from mongoctl.mongodb_version import make_version_info, VersionInfo
+from mongoctl.mongodb_version import MongoDBVersionInfo
 
 
 ###############################################################################
@@ -274,12 +274,12 @@ def do_mongo_dump(host=None,
 
     # ignore authenticationDatabase option is version_info is less than 2.4.0
     if (dump_options and "authenticationDatabase" in dump_options and
-            version_info and version_info < VersionInfo("2.4.0")):
+            version_info and version_info < MongoDBVersionInfo("2.4.0")):
         dump_options.pop("authenticationDatabase", None)
 
     # ignore dumpDbUsersAndRoles option is version_info is less than 2.6.0
     if (dump_options and "dumpDbUsersAndRoles" in dump_options and
-            version_info and version_info < VersionInfo("2.6.0")):
+            version_info and version_info < MongoDBVersionInfo("2.6.0")):
         dump_options.pop("dumpDbUsersAndRoles", None)
 
     # append shell options
