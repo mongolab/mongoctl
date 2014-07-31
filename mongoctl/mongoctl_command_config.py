@@ -1573,13 +1573,34 @@ MONGOCTL_PARSER_DEF = {
                 {
                     "name": "edition",
                     "type": "optional",
-                    "help": "build with ssl",
+                    "help": "edition",
                     "cmd_arg": [
                         "--edition"
                     ],
-                    "hidden": True,
                     "nargs": 1
-                }
+                },
+
+
+                {
+                    "name": "accessKey",
+                    "type": "optional",
+                    "help": "S3 access key",
+                    "cmd_arg": [
+                        "--access-key"
+                    ],
+                    "nargs": 1
+                },
+
+
+                {
+                    "name": "secretKey",
+                    "type": "optional",
+                    "help": "S3 secret key",
+                    "cmd_arg": [
+                        "--secret-key"
+                    ],
+                    "nargs": 1
+                },
 
 
             ]

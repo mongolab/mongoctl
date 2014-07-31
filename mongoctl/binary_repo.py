@@ -186,6 +186,13 @@ class S3MongoDBBinaryRepository(MongoDBBinaryRepository):
         return self._bucket
 
     ###########################################################################
+    def validate(self):
+        """
+            Will throw an exception if the bucket name/credz were invalid
+        """
+        return self.bucket
+
+    ###########################################################################
     @property
     def access_key(self):
         return self._access_key

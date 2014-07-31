@@ -7,7 +7,9 @@ from mongoctl.mongoctl_logging import log_info, log_error, log_exception
 from mongoctl.errors import MongoctlException
 
 from mongoctl.utils import call_command, which
-from mongoctl.binary_repo import get_binary_repository
+from mongoctl.binary_repo import (
+    get_binary_repository, S3MongoDBBinaryRepository
+)
 from mongoctl.mongo_version import make_version_info, MongoDBEdition
 
 from mongoctl.commands.command_utils import get_mongo_installation
@@ -18,12 +20,15 @@ from mongoctl.commands.command_utils import get_mongo_installation
 def push_to_repo_command(parsed_options):
     push_mongodb(parsed_options.repo,
                  parsed_options.version,
-                 mongodb_edition=parsed_options.edition)
+                 mongodb_edition=parsed_options.edition,
+                 access_key=parsed_options.accessKey,
+                 secret_key=parsed_options.secretKey)
 
 ###############################################################################
 # push_mongodb
 ###############################################################################
-def push_mongodb(repo_name, mongodb_version, mongodb_edition=None):
+def push_mongodb(repo_name, mongodb_version, mongodb_edition=None,
+                 access_key=None, secret_key=None):
     """
 
     :param repo_name:
@@ -33,6 +38,12 @@ def push_mongodb(repo_name, mongodb_version, mongodb_edition=None):
     """
     mongodb_edition = mongodb_edition or MongoDBEdition.COMMUNITY
     repo = get_binary_repository(repo_name)
+
+    if access_key and isinstance(repo, S3MongoDBBinaryRepository):
+        repo.access_key = access_key
+        repo.secret_key = secret_key
+        repo.validate()
+
     version_info = make_version_info(mongodb_version, mongodb_edition)
     mongodb_install_dir = get_mongo_installation(version_info)
 
