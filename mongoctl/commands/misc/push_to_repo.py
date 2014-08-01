@@ -47,28 +47,33 @@ def push_mongodb(repo_name, mongodb_version, mongodb_edition=None,
     version_info = make_version_info(mongodb_version, mongodb_edition)
     mongodb_install_dir = get_mongo_installation(version_info)
 
+
     if not mongodb_install_dir:
         raise MongoctlException("No mongodb installation found for '%s'" %
                                 version_info)
 
+    mongodb_install_home = os.path.dirname(mongodb_install_dir)
     target_archive_name = repo.get_archive_name(mongodb_version,
                                                 mongodb_edition)
 
-    log_info("Taring MongoDB at '%s'" % mongodb_install_dir)
+    target_archive_path = os.path.join(mongodb_install_home,
+                                       target_archive_name)
+
+    mongodb_install_dir_name = os.path.basename(mongodb_install_dir)
+    log_info("Taring MongoDB at '%s'" % mongodb_install_dir_name)
 
     tar_exe = which("tar")
-    tar_cmd = [tar_exe, "-cvzf", target_archive_name, mongodb_install_dir]
-    call_command(tar_cmd)
+    tar_cmd = [tar_exe, "-cvzf", target_archive_name, mongodb_install_dir_name]
+    call_command(tar_cmd, cwd=mongodb_install_home)
 
     log_info("Uploading tar to repo")
 
-    repo.upload_file(mongodb_version, mongodb_edition,
-                     target_archive_name)
+    repo.upload_file(mongodb_version, mongodb_edition, target_archive_path)
 
     # cleanup
     log_info("Cleanup")
     try:
-        os.remove(target_archive_name)
+        os.remove(target_archive_path)
     except Exception, e:
         log_error(str(e))
         log_exception(e)
