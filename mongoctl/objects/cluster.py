@@ -46,6 +46,18 @@ class Cluster(DocumentWrapper):
         return self._members
 
     ###########################################################################
+    def get_members_info(self):
+        info = []
+        for member in self.get_members():
+            server = member.get_server()
+            if server is not None:
+                info.append(server.id)
+            else:
+                info.append("<Invalid Member>")
+
+        return info
+
+    ###########################################################################
     def get_repl_key(self):
         return self.get_property("replKey")
 
