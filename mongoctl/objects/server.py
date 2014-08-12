@@ -218,7 +218,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_mongodb_edition(self):
-        return self.get_property("MongoDBEdition")
+        return self.get_property("mongoEdition")
 
     ###########################################################################
     def get_mongo_version_info(self):
