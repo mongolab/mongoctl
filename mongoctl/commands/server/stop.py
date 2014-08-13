@@ -54,6 +54,12 @@ def do_stop_server(server, force=False):
                      "although port %s is open, possibly for mongod." %
                      (server.id, server.get_port()))
             can_stop_mongoly = False
+        elif "error" in status and "SSL handshake failed" in status["error"]:
+            log_info("Unable to issue 'shutdown' command to server '%s'. "
+                     "The server appears to be configured with SSL but is not "
+                     "currently running with SSL (SSL handshake failed). "
+                     "Try running mongoctl with --ssl-off." % server.id)
+            can_stop_mongoly = False
         else:
             log_info("Server '%s' is not running." %
                      server.id)

@@ -128,6 +128,12 @@ def do_start_server(server, options_override=None, rs_add=False, no_init=False):
                                 "started but not responding or port %s is "
                                 "already in use." %
                                 (server.id, server.get_port()))
+    elif "error" in status and "SSL handshake failed" in status["error"]:
+        raise MongoctlException(
+            "Unable to start server '%s'. "
+            "The server appears to be configured with SSL but is not "
+            "currently running with SSL (SSL handshake failed). "
+            "Try running mongoctl with --ssl-off." % server.id)
 
     # do necessary work before starting the mongod process
     _pre_server_start(server, options_override=options_override)
