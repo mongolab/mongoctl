@@ -138,8 +138,11 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
         target_dir_name = os.path.basename(target_dir)
         os.rename(mongo_dir_name, target_dir_name)
 
-        log_info("Moving extracted folder to %s" % mongodb_installs_dir)
-        shutil.move(target_dir_name, mongodb_installs_dir)
+        # move target to mongodb install dir (Unless target is already there!
+        # i.e current working dir == mongodb_installs_dir
+        if os.getcwd() != mongodb_installs_dir:
+            log_info("Moving extracted folder to %s" % mongodb_installs_dir)
+            shutil.move(target_dir_name, mongodb_installs_dir)
 
         log_info("MongoDB %s installed successfully!" % version_info)
         install_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
