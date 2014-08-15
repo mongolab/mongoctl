@@ -421,6 +421,8 @@ class Server(DocumentWrapper):
 
         login_user = self.get_login_user(dbname)
 
+        is_system_user = (login_user and
+                          login_user.get("username") == "__system")
         # if there is no login user for this database then use admin db unless
         # it was specified not to
         # ALSO use admin if this is 'local' db for mongodb >= 2.6.0
@@ -429,6 +431,7 @@ class Server(DocumentWrapper):
              dbname != "admin")
             or
             (dbname == "local" and
+             not is_system_user and
              not users.server_supports_local_users(self))):
             # if this passes then we are authed!
             admin_db = self.get_db("admin", retry=retry)
