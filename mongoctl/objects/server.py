@@ -111,7 +111,8 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def use_ssl(self):
-        return not SSL_OFF and self.get_cmd_option("sslMode") is not None
+        return (not SSL_OFF and self.get_cmd_option("sslMode")
+                not in [None, "disabled"])
 
     ###########################################################################
     def ssl_key_file(self):
