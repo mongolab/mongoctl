@@ -132,7 +132,6 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
 
         mongo_dir_name = extract_archive(archive_name)
 
-
         log_info("Deleting archive %s" % archive_name)
         os.remove(archive_name)
         target_dir_name = os.path.basename(target_dir)
@@ -148,10 +147,9 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
         install_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
         return install_dir
     except Exception, e:
-        traceback.print_exc()
         log_exception(e)
-        log_error("Failed to install MongoDB '%s'. Cause: %s" %
-                  (version_info, e))
+        msg = "Failed to install MongoDB '%s'. Cause: %s" % (version_info, e)
+        raise MongoctlException(msg)
 
 
 ###############################################################################
