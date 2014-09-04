@@ -23,7 +23,9 @@ Below is the default configuration generated via the installation:
      "servers": "servers", // servers collection name
      "clusters": "clusters" // clusters collection name
    },
- **/   
+ **/
+
+   "generateKeyFile": true
 }
 ```
 
@@ -38,6 +40,7 @@ where to look for configuration files defining servers and clusters. These can b
 * ```databaseRepository``` : If not null, this configures
 ```mongoctl``` with a database endpoint for finding server and cluster 
 configurations
+* ```generateKeyFile``` : Whether ```mongoctl``` should generate a keyfile for the replica set or not. Defaults to ```true``` if not set.
 
 #### ```_id``` resolution
 

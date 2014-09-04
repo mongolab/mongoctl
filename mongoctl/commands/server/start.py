@@ -8,6 +8,7 @@ import signal
 import resource
 
 import mongoctl.repository as repository
+import mongoctl.config as config
 
 from mongoctl.commands.command_utils import (
     options_to_command_args, extract_mongo_exe_options
@@ -314,7 +315,8 @@ def _start_server_process_4real(server, options_override=None):
     first_time = os.path.exists(server.get_pid_file_path())
 
     # generate key file if needed
-    if server.needs_repl_key():
+    gen_key_file = config.get_generate_key_file_conf(default=True)
+    if server.needs_repl_key() and gen_key_file:
         get_generate_key_file(server)
 
     # create the start command line
@@ -361,7 +363,7 @@ def get_forked_mongod_pid(parent_mongod):
 
 
 ###############################################################################
-def start_server_process(server,options_override=None):
+def start_server_process(server, options_override=None):
 
     mongod_pid = _start_server_process_4real(server, options_override)
 

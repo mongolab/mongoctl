@@ -42,6 +42,10 @@ def set_mongoctl_config_val(key, value):
     get_mongoctl_config()[key] = value
 
 ###############################################################################
+def get_generate_key_file_conf(default=None):
+    return get_mongoctl_config_val('generateKeyFile', default=default)
+
+###############################################################################
 def get_database_repository_conf():
     return get_mongoctl_config_val('databaseRepository')
 
