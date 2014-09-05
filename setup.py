@@ -134,7 +134,7 @@ setup(
         'dargparse>=0.2.5',
         'pymongo>=2.4.2',
         'verlib==0.1',
-        "boto==2.6.0"]
+        "boto==2.31.1"]
 
 
 
