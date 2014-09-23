@@ -208,7 +208,8 @@ def major_ge_exe_version_match(executable_name, exe_version_tuples, version):
     # hold values in a list of (exe,version) tuples
     compatible_exes = []
     for mongo_exe,exe_version in exe_version_tuples:
-        if exe_version.parts[0][0] >= version.parts[0][0]:
+        if (exe_version.edition == version.edition and
+            exe_version.parts[0][0] >= version.parts[0][0]):
             compatible_exes.append((mongo_exe, exe_version))
 
     # Return nothing if nothing compatible
@@ -246,8 +247,9 @@ def minor_exe_version_match(executable_name,
     compatible_exes = []
     for mongo_exe,exe_version in exe_version_tuples:
         # compatible ==> major + minor equality
-        if (exe_version.parts[0][0] == version.parts[0][0] and
-                    exe_version.parts[0][1] == version.parts[0][1]):
+        if (exe_version.edition == version.edition and
+            exe_version.parts[0][0] == version.parts[0][0] and
+            exe_version.parts[0][1] == version.parts[0][1]):
             compatible_exes.append((mongo_exe, exe_version))
 
     # Return nothing if nothing compatible
