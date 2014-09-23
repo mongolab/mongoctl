@@ -99,7 +99,6 @@ def open_mongo_shell_to_server(server,
         username, password = server.get_working_login(database, username,
                                                       password)
 
-
     do_open_mongo_shell_to(server.get_connection_address(),
                            database=database,
                            username=username,
@@ -107,7 +106,7 @@ def open_mongo_shell_to_server(server,
                            server_version=server.get_mongo_version_info(),
                            shell_options=shell_options,
                            js_files=js_files,
-                           ssl=server.use_ssl())
+                           ssl=server.use_ssl_client())
 
 ###############################################################################
 def open_mongo_shell_to_cluster(cluster,

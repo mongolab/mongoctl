@@ -122,8 +122,8 @@ def do_main(args):
         say_no_to_everything()
 
     # set the global SSL_OFF flag
-    if parsed_args.sslOff:
-        objects.server.SSL_OFF = True
+    if parsed_args.clientSslMode:
+        objects.server.set_client_ssl_mode(parsed_args.clientSslMode)
 
     # set the global USE_ALT_ADDRESS field
     if parsed_args.useAltAddress:

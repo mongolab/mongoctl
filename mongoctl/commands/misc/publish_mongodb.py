@@ -17,7 +17,7 @@ from mongoctl.commands.command_utils import get_mongo_installation
 ###############################################################################
 # push to repo command
 ###############################################################################
-def push_to_repo_command(parsed_options):
+def publish_mongodb_command(parsed_options):
     push_mongodb(parsed_options.repo,
                  parsed_options.version,
                  mongodb_edition=parsed_options.edition,

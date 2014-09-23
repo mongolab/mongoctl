@@ -6,7 +6,7 @@ import mongoctl.repository as repository
 
 from base import DocumentWrapper
 from mongoctl.utils import resolve_path, document_pretty_string, is_host_local
-from pymongo.errors import AutoReconnect
+from pymongo.errors import AutoReconnect, ConnectionFailure
 from mongoctl.mongoctl_logging import (
     log_verbose, log_error, log_warning, log_exception, log_debug
     )
@@ -46,13 +46,19 @@ CONN_TIMEOUT = 10000
 
 REPL_KEY_SUPPORTED_VERSION = '2.0.0'
 
-# SSL_OFF global flag to for turning off ssl
+# CLIENT_SSL_MODE global flag to for turning off ssl
 # TODO this is temporary and should be deleted
-SSL_OFF = False
+CLIENT_SSL_MODE = None
 
 # A global config that is set through --use-alt-address option that will use
 # a different "address" property of when making connections to servers
 USE_ALT_ADDRESS = None
+
+###############################################################################
+class ClientSslMode(object):
+    DISABLED = "disabled"
+    REQUIRE = "require"
+    PREFER = "prefer"
 
 ###############################################################################
 # Server Class
@@ -110,9 +116,43 @@ class Server(DocumentWrapper):
             return resolve_path(kf)
 
     ###########################################################################
-    def use_ssl(self):
-        return (not SSL_OFF and self.get_cmd_option("sslMode")
-                not in [None, "disabled"])
+    def get_client_ssl_mode(self):
+        mode = CLIENT_SSL_MODE
+        ssl_option = self.get_cmd_option("sslMode")
+
+        if not mode and ssl_option:
+            if ssl_option == "requireSSL":
+                mode = ClientSslMode.REQUIRE
+            elif ssl_option in ["preferSSL", "allowSSL"]:
+                mode = ClientSslMode.PREFER
+            elif ssl_option == "disabled":
+                mode = ClientSslMode.DISABLED
+
+        return mode
+
+    ###########################################################################
+    def use_ssl_client(self):
+        return (self.get_client_ssl_mode() == ClientSslMode.REQUIRE or
+                self.prefer_use_ssl())
+
+    ###########################################################################
+    def prefer_use_ssl(self):
+        if self.get_client_ssl_mode() != ClientSslMode.PREFER:
+            return False
+
+        log_debug("prefer_use_ssl() Checking if we prefer ssl for '%s'" %
+                  self.id)
+        try:
+            self.make_ssl_db_connection(self.get_connection_address())
+            return False
+        except Exception, e:
+            if not "SSL handshake failed" in str(e):
+                log_exception(e)
+            return None
+
+
+
+
 
     ###########################################################################
     def ssl_key_file(self):
@@ -682,26 +722,54 @@ class Server(DocumentWrapper):
     def make_db_connection(self, address):
 
         try:
-            kwargs = {
-                "socketTimeoutMS": CONN_TIMEOUT,
-                "connectTimeoutMS": CONN_TIMEOUT
-            }
 
-            use_ssl = self.use_ssl()
-            if use_ssl:
-                kwargs["ssl"] = True
-
-            if use_ssl and self.ssl_key_file():
-                kwargs["ssl_keyfile"] = self.ssl_key_file()
-            if use_ssl and self.ssl_cert_file():
-                kwargs["ssl_certfile"] = self.ssl_cert_file()
-
-            return Connection(address, **kwargs)
+            client_ssl_mode = self.get_client_ssl_mode()
+            if client_ssl_mode in [None, ClientSslMode.DISABLED]:
+                return self.make_plain_db_connection(address)
+            elif client_ssl_mode == ClientSslMode.REQUIRE:
+                return self.make_ssl_db_connection(address)
+            else:
+                ## PREFER
+                try:
+                    # attempt an ssl connection
+                    conn = self.make_ssl_db_connection(address)
+                    # success!
+                    return conn
+                except Exception, e:
+                    return self.make_plain_db_connection(address)
         except Exception, e:
             log_exception(e)
             error_msg = "Cannot connect to '%s'. Cause: %s" % \
                         (address, e)
             raise MongoctlException(error_msg,cause=e)
+
+
+    ###########################################################################
+    def make_ssl_db_connection(self, address):
+
+        kwargs = {
+            "ssl": True
+        }
+
+        if self.ssl_key_file():
+            kwargs["ssl_keyfile"] = self.ssl_key_file()
+            kwargs["ssl_certfile"] = self.ssl_cert_file()
+
+        return self._do_make_db_connection(address, **kwargs)
+
+    ###########################################################################
+    def make_plain_db_connection(self, address):
+        return self._do_make_db_connection(address)
+
+    ###########################################################################
+    def _do_make_db_connection(self, address, **kwargs):
+        kwargs = kwargs or {}
+        kwargs.update({
+            "socketTimeoutMS": CONN_TIMEOUT,
+            "connectTimeoutMS": CONN_TIMEOUT
+        })
+
+        return Connection(address, **kwargs)
 
     ###########################################################################
     def has_connectivity_on(self, address):
@@ -829,3 +897,13 @@ def assume_local_server(server_id):
 def is_assumed_local_server(server_id):
     global __assumed_local_servers__
     return server_id in __assumed_local_servers__
+
+###############################################################################
+def set_client_ssl_mode(mode):
+    allowed_modes = [ClientSslMode.DISABLED, ClientSslMode.REQUIRE, ClientSslMode.PREFER]
+    if mode not in allowed_modes:
+        raise MongoctlException("Invalid ssl mode '%s'. Mush choose from %s" %
+                                (mode, allowed_modes))
+
+    global CLIENT_SSL_MODE
+    CLIENT_SSL_MODE = mode

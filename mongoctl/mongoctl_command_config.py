@@ -101,15 +101,14 @@ MONGOCTL_PARSER_DEF = {
         },
 
         {
-            "name": "sslOff",
+            "name": "clientSslMode",
             "type": "optional",
-            "help": "does not attempt to make any ssl connection",
+            "help": "SSL mode of client (disabled, prefer, require)",
             "cmd_arg": [
-                "--ssl-off"
+                "--client-ssl-mode"
             ],
-            "nargs": 0,
-            "action": "store_true",
-            "default": False
+            "nargs": 1,
+            "default": None
         },
 
         {
@@ -1484,11 +1483,10 @@ MONGOCTL_PARSER_DEF = {
                 {
                     "name": "edition",
                     "type": "optional",
-                    "help": "edition (community (default) or enterprise)",
+                    "help": "edition (community (default) or community_ssl)",
                     "cmd_arg": [
                         "--edition"
                     ],
-                    "hidden": True,
                     "nargs": 1
                 },
 
@@ -1555,12 +1553,12 @@ MONGOCTL_PARSER_DEF = {
 
         #### install-mongodb ####
         {
-            "prog": "push-to-repo",
+            "prog": "publish-mongodb",
             "group": "adminCommands",
-            "shortDescription": "Push MongoDB to a binary repository",
-            "description": "Push MongoDB to a binary repository",
-            "function": "mongoctl.commands.misc.push_to_repo."
-                        "push_to_repo_command",
+            "shortDescription": "Publish MongoDB to a binary repository",
+            "description": "Publish MongoDB to a binary repository",
+            "function": "mongoctl.commands.misc.publish_mongodb."
+                        "publish_mongodb_command",
             "hidden": True,
             "args": [
 
