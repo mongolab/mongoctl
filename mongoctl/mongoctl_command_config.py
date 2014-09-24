@@ -103,7 +103,7 @@ MONGOCTL_PARSER_DEF = {
         {
             "name": "clientSslMode",
             "type": "optional",
-            "help": "SSL mode of client (disabled, prefer, require)",
+            "help": "SSL mode of client (disabled, alloe, prefer, require)",
             "cmd_arg": [
                 "--client-ssl-mode"
             ],

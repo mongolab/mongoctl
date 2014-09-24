@@ -57,6 +57,7 @@ USE_ALT_ADDRESS = None
 ###############################################################################
 class ClientSslMode(object):
     DISABLED = "disabled"
+    ALLOW = "allow"
     REQUIRE = "require"
     PREFER = "prefer"
 
@@ -728,13 +729,18 @@ class Server(DocumentWrapper):
                 return self.make_plain_db_connection(address)
             elif client_ssl_mode == ClientSslMode.REQUIRE:
                 return self.make_ssl_db_connection(address)
+            elif client_ssl_mode == ClientSslMode.ALLOW:
+                try:
+                    # attempt an ssl connection
+                    return self.make_plain_db_connection(address)
+                except Exception, e:
+                    return self.make_ssl_db_connection(address)
+
             else:
                 ## PREFER
                 try:
                     # attempt an ssl connection
-                    conn = self.make_ssl_db_connection(address)
-                    # success!
-                    return conn
+                    return self.make_ssl_db_connection(address)
                 except Exception, e:
                     return self.make_plain_db_connection(address)
         except Exception, e:
@@ -900,7 +906,10 @@ def is_assumed_local_server(server_id):
 
 ###############################################################################
 def set_client_ssl_mode(mode):
-    allowed_modes = [ClientSslMode.DISABLED, ClientSslMode.REQUIRE, ClientSslMode.PREFER]
+    allowed_modes = [ClientSslMode.DISABLED,
+                     ClientSslMode.ALLOW,
+                     ClientSslMode.REQUIRE,
+                     ClientSslMode.PREFER]
     if mode not in allowed_modes:
         raise MongoctlException("Invalid ssl mode '%s'. Mush choose from %s" %
                                 (mode, allowed_modes))
