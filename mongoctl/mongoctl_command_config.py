@@ -1505,7 +1505,7 @@ MONGOCTL_PARSER_DEF = {
                 {
                     "name": "buildThreads",
                     "type": "optional",
-                    "help": "build threads",
+                    "help": "build threads (defaults to 1)",
                     "cmd_arg": [
                         "--build-threads"
                     ],
