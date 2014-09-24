@@ -1559,7 +1559,6 @@ MONGOCTL_PARSER_DEF = {
             "description": "Publish MongoDB to a binary repository",
             "function": "mongoctl.commands.misc.publish_mongodb."
                         "publish_mongodb_command",
-            "hidden": True,
             "args": [
 
                 {
