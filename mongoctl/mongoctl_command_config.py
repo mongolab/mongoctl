@@ -1510,6 +1510,17 @@ MONGOCTL_PARSER_DEF = {
                         "--build-threads"
                     ],
                     "nargs": 1
+                },
+
+                {
+                    "name": "buildTmpDir",
+                    "type": "optional",
+                    "help": "build tmp dir (defaults to current working dir)",
+                    "cmd_arg": [
+                        "--build-tmp-dir"
+                    ],
+                    "default": None,
+                    "nargs": 1
                 }
             ]
         },

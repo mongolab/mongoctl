@@ -14,7 +14,9 @@ from mongoctl.mongoctl_logging import *
 
 from mongoctl.errors import MongoctlException
 
-from mongoctl.utils import download_url, extract_archive, call_command, which
+from mongoctl.utils import (
+    download_url, extract_archive, call_command, which, ensure_dir
+)
 
 from mongoctl.mongodb_version import make_version_info, is_valid_version_info
 from mongoctl.commands.command_utils import (
@@ -37,7 +39,8 @@ def install_command(parsed_options):
     install_mongodb(parsed_options.version,
                     mongodb_edition=parsed_options.edition,
                     from_source=parsed_options.fromSource,
-                    build_threads=parsed_options.buildThreads)
+                    build_threads=parsed_options.buildThreads,
+                    build_tmp_dir=parsed_options.buildTmpDir)
 
 ###############################################################################
 # uninstall command
@@ -68,7 +71,8 @@ def list_versions_command(parsed_options):
 # install_mongodb
 ###############################################################################
 def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
-                    build_threads=1):
+                    build_threads=1,
+                    build_tmp_dir=None):
 
     if mongodb_version is None:
         mongodb_version = fetch_latest_stable_version()
@@ -97,7 +101,8 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
 
     if from_source:
         install_from_source(mongodb_version, mongodb_edition,
-                            build_threads=build_threads)
+                            build_threads=build_threads,
+                            build_tmp_dir=build_tmp_dir)
         return
 
     bits = platform.architecture()[0].replace("bit", "")
@@ -155,7 +160,8 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
 ###############################################################################
 # install from source
 ###############################################################################
-def install_from_source(mongodb_version, mongodb_edition, build_threads=1):
+def install_from_source(mongodb_version, mongodb_edition, build_threads=None,
+                        build_tmp_dir=None):
     """
 
     :param version:
@@ -163,6 +169,12 @@ def install_from_source(mongodb_version, mongodb_edition, build_threads=1):
     :param repo_name: The repo to use to generate archive name
     :return:
     """
+
+    build_threads = build_threads or 1
+
+    if build_tmp_dir:
+        ensure_dir(build_tmp_dir)
+        os.chdir(build_tmp_dir)
 
     allowed_build_editions = [MongoDBEdition.COMMUNITY,
                               MongoDBEdition.COMMUNITY_SSL]
