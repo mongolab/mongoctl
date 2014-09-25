@@ -1505,7 +1505,9 @@ MONGOCTL_PARSER_DEF = {
                 {
                     "name": "buildThreads",
                     "type": "optional",
-                    "help": "build threads (defaults to 1)",
+                    "help": "Value for -j option of scons. Specifies the"
+                            " number of jobs (commands) to run simultaneously."
+                            " For more info, see 'man scons'",
                     "cmd_arg": [
                         "--build-threads"
                     ],

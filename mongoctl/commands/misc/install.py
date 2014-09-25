@@ -170,8 +170,6 @@ def install_from_source(mongodb_version, mongodb_edition, build_threads=None,
     :return:
     """
 
-    build_threads = build_threads or 1
-
     if build_tmp_dir:
         ensure_dir(build_tmp_dir)
         os.chdir(build_tmp_dir)
@@ -216,9 +214,11 @@ def install_from_source(mongodb_version, mongodb_edition, build_threads=None,
         raise MongoctlException("scons command not found in your path")
 
 
-    scons_cmd = [scons_exe, "core", "tools", "install", "-j",
-                 str(build_threads),
-                 "--prefix=%s" % target_dir]
+    scons_cmd = [scons_exe, "core", "tools", "install"]
+    if build_threads:
+        scons_cmd.extend(["-j", str(build_threads)])
+
+    scons_cmd.append("--prefix=%s" % target_dir)
 
     if mongodb_edition == MongoDBEdition.COMMUNITY_SSL:
         scons_cmd.append("--ssl")
