@@ -3,7 +3,7 @@ __author__ = 'abdul'
 import platform
 import os
 import sys
-from utils import download_url
+from utils import download_url, which, execute_command
 from errors import MongoctlException, FileNotInRepoError
 from mongoctl_logging import log_info, log_verbose
 from prompt import is_interactive_mode
@@ -11,6 +11,7 @@ from boto.s3.connection import S3Connection, Key
 from mongodb_version import make_version_info, MongoDBEdition
 import config
 import urllib
+import shutil
 
 VERSION_2_6_1 = make_version_info("2.6.1")
 
@@ -266,21 +267,92 @@ class S3MongoDBBinaryRepository(MongoDBBinaryRepository):
     def _upload_file_to_bucket(self, file_path, destination):
 
         file_name = os.path.basename(file_path)
-        destination_path = os.path.join(destination, file_name)
-        log_info("Uploading '%s' to s3 bucket '%s' to '%s'" %
-                (file_path, self.bucket_name, destination))
+        file_size = os.path.getsize(file_path)
 
-        file_obj = open(file_path)
+        destination_path = os.path.join(destination, file_name)
+        log_info("Uploading '%s' (%s bytes) to s3 bucket '%s' to '%s'" %
+                (file_path, file_size, self.bucket_name, destination))
+
         k = Key(self.bucket)
         k.key = destination_path
         # set meta data (has to be before setting content in
         # order for it to work)
         k.set_metadata("Content-Type", "application/x-compressed")
 
-        k.set_contents_from_file(file_obj)
+        metadata = {
+            "Content-Type": "application/x-compressed"
+        }
 
-        log_info("Completed upload '%s' to s3 bucket '%s'!" %
-                 (file_path, self.bucket_name))
+        parts_dir = "%s_parts" % file_path
+
+
+        try:
+            if os.path.exists(parts_dir):
+                shutil.rmtree(parts_dir)
+
+            os.mkdir(parts_dir)
+            part_prefix = "%s_" % file_name
+            # split file into parts
+            file_part_paths = self._split_file(file_path, file_size,
+                                               parts_dir=parts_dir,
+                                               prefix=part_prefix)
+            mp = self.bucket.initiate_multipart_upload(destination_path,
+                                                       metadata=metadata)
+
+            i = 1
+            for part_path in file_part_paths:
+                fp = open(part_path, 'rb')
+                part_size = os.path.getsize(part_path)
+                log_info("Uploading file part %d (%s bytes)" %
+                            (i, part_size))
+                mp.upload_part_from_file(fp, i)
+                fp.close()
+                i += 1
+
+            mp.complete_upload()
+            log_info("S3BucketTarget: Multi-part put for %s "
+                     "completed successfully!" % file_path)
+
+            log_info("Completed upload '%s' to s3 bucket '%s'!" %
+                     (file_path, self.bucket_name))
+
+        finally:
+            log_info("S3BucketTarget: Cleaning multi-part temp "
+                     "folders/files")
+            # cleanup
+            if os.path.exists(parts_dir):
+                shutil.rmtree(parts_dir)
+
+    ###########################################################################
+    def _split_file(self, file_path, file_size,
+                    parts_dir=None, prefix=None):
+        """
+            Splits the specified file into 10 parts (if each part is less than
+             max size otherwise file_size/max_size)
+             Returns list of file part paths
+        """
+        log_info("Splitting file '%s' into multiple parts" % file_path)
+
+        split_exe = which("split")
+        # split into 10 chunks if possible
+        chunk_size = int(file_size / 10)
+
+        dest = os.path.join(parts_dir, prefix)
+        split_cmd = [split_exe, "-b", str(chunk_size), file_path, dest]
+        cmd_display = " ".join(split_cmd)
+
+        log_info("Running split command: %s" % cmd_display)
+        execute_command(split_cmd)
+
+        # construct return value
+        part_names = os.listdir(parts_dir)
+        part_paths = []
+        for name in part_names:
+            part_path = os.path.join(parts_dir, name)
+            part_paths.append(part_path)
+
+        log_info("File %s split successfully" % file_path)
+        return part_paths
 
 ###############################################################################
 _registered_repos = list()
