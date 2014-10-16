@@ -82,7 +82,7 @@ def dry_run_start_server_cmd(server, options_override=None):
     log_info("************ Dry Run ************\n")
 
     start_cmd = generate_start_command(server, options_override)
-    start_cmd_str = " ".join(start_cmd)
+    start_cmd_str = start_command_display(start_cmd)
 
     log_info("\nCommand:")
     log_info("%s\n" % start_cmd_str)
@@ -322,7 +322,7 @@ def _start_server_process_4real(server, options_override=None):
     # create the start command line
     start_cmd = generate_start_command(server, options_override)
 
-    start_cmd_str = " ".join(start_cmd)
+    start_cmd_str = start_command_display(start_cmd)
     first_time_msg = " for the first time" if first_time else ""
 
     log_info("Starting server '%s'%s..." % (server.id, first_time_msg))
@@ -589,6 +589,25 @@ def get_mongos_executable(server):
                                       'mongos',
                                       version_check_pref=VERSION_PREF_EXACT)
     return mongos_exe.path
+
+
+###############################################################################
+def start_command_display(command):
+    command_display = obfuscate_password_args(command)
+    return " ".join(command_display)
+
+###############################################################################
+def obfuscate_password_args(command):
+    result = command[:]
+    password_args = ["--sslPEMKeyPassword", "--sslClusterPassword",
+                     "--servicePassword"]
+
+    for password_arg in password_args:
+        if password_arg in result:
+            arg_index = result.index(password_arg)
+            result[arg_index+1] = "****"
+
+    return result
 
 
 ###############################################################################
