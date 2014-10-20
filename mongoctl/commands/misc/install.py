@@ -116,6 +116,9 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
         raise MongoctlException("No mongoDBInstallationsDirectory configured"
                                 " in mongoctl.config")
 
+    # ensure the mongo installs dir
+    ensure_dir(mongodb_installs_dir)
+
     platform_spec = get_validate_platform_spec(os_name, bits)
 
     log_verbose("INSTALL_MONGODB: OS='%s' , BITS='%s' , VERSION='%s', "
