@@ -46,6 +46,15 @@ class Cluster(DocumentWrapper):
         return self._members
 
     ###########################################################################
+    def get_servers(self):
+        servers = []
+        for member in self.get_members():
+            if member.get_server():
+                servers.append(member.get_server())
+
+        return servers
+
+    ###########################################################################
     def get_members_info(self):
         info = []
         for member in self.get_members():
@@ -86,10 +95,19 @@ class Cluster(DocumentWrapper):
         """
 
     ###########################################################################
+    def is_auth(self):
+        if self.get_repl_key():
+            return True
+        else:
+            auth_servers = filter(lambda s: s.is_auth(), self.get_servers())
+            return auth_servers and len(auth_servers) > 0
+
+    ###########################################################################
     def get_mongo_uri_template(self, db=None):
 
+        auth = self.is_auth()
         if not db:
-            if self.get_repl_key():
+            if auth:
                 db = "[/<dbname>]"
             else:
                 db = ""
@@ -97,11 +115,10 @@ class Cluster(DocumentWrapper):
             db = "/" + db
 
         server_uri_templates = []
-        for member in self.get_members():
-            server = member.get_server()
+        for server in self.get_servers():
             if server.is_cluster_connection_member():
                 server_uri_templates.append(server.get_address_display())
 
-        creds = "[<dbuser>:<dbpass>@]" if self.get_repl_key() else ""
+        creds = "[<dbuser>:<dbpass>@]" if auth else ""
         return ("mongodb://%s%s%s" % (creds, ",".join(server_uri_templates),
                                       db))

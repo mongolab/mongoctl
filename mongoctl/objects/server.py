@@ -241,6 +241,16 @@ class Server(DocumentWrapper):
         fork = self.get_cmd_option("fork")
         return fork or fork is None
 
+
+    ###########################################################################
+    def is_auth(self):
+        if self.get_cmd_option("auth") or self.get_cmd_option("keyFile"):
+            return True
+        else:
+            cluster = self.get_cluster()
+            if cluster:
+                return cluster.get_repl_key() is not None
+
     ###########################################################################
     def get_mongo_version(self):
         """

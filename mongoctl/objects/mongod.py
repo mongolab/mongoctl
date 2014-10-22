@@ -119,15 +119,6 @@ class MongodServer(server.Server):
         return self.get_cmd_option("slave")
 
     ###########################################################################
-    def is_auth(self):
-        if self.get_cmd_option("auth") or self.get_cmd_option("keyFile"):
-            return True
-        else:
-            cluster = self.get_cluster()
-            if cluster:
-                return cluster.get_repl_key() is not None
-
-    ###########################################################################
     def set_auth(self,auth):
         self.set_cmd_option("auth", auth)
 
