@@ -33,6 +33,14 @@ class DocumentWrapper(object):
     def set_property(self, name, value):
         self.__document__[name] = value
 
+
+    ###########################################################################
+    def get_ignore_str_property(self, name):
+        val = self.get_property(name)
+        if val:
+            val = val.encode('ascii', 'ignore')
+        return val
+
     ###########################################################################
     @property
     def id(self):

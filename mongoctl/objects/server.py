@@ -84,7 +84,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_description(self):
-        return self.get_property("description")
+        return self.get_ignore_str_property("description")
 
     ###########################################################################
     def set_description(self, desc):
