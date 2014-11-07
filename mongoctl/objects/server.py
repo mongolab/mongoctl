@@ -25,6 +25,7 @@ import datetime
 
 from mongoctl import config
 from mongoctl import users
+from mongoctl.mongodb_version import MongoDBEdition
 
 ###############################################################################
 # CONSTANTS
@@ -75,6 +76,7 @@ class Server(DocumentWrapper):
         self._db_connection = None
         self._seed_users = None
         self._mongo_version = None
+        self._mongodb_edition = None
         self._cluster = None
         self._connection_address = None
 
@@ -268,9 +270,24 @@ class Server(DocumentWrapper):
         self._mongo_version = mongo_version
         return self._mongo_version
 
+
     ###########################################################################
     def get_mongodb_edition(self):
-        return self.get_property("mongoEdition")
+
+        if self._mongodb_edition:
+            return self._mongodb_edition
+
+        if self.is_online():
+            if "OpenSSLVersion" in self.get_db_connection().server_info():
+                edition = MongoDBEdition.COMMUNITY_SSL
+            else:
+                edition = MongoDBEdition.COMMUNITY
+        else:
+            edition = self.get_property("mongoEdition")
+
+        self._mongodb_edition = edition
+
+        return self._mongodb_edition
 
     ###########################################################################
     def get_mongo_version_info(self):
