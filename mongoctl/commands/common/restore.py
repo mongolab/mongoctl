@@ -33,7 +33,8 @@ SUPPORTED_MONGO_RESTORE_OPTIONS = [
     "keepIndexVersion",
     "verbose",
     "authenticationDatabase",
-    "restoreDbUsersAndRoles"
+    "restoreDbUsersAndRoles",
+    "noIndexRestore"
 ]
 
 

@@ -1328,6 +1328,14 @@ MONGOCTL_PARSER_DEF = {
                     "nargs": 0,
                     "help": "Restore user and role definitions for the given "
                             "database. 2.6.x or greater only."
+                },
+
+                {
+                    "name": "noIndexRestore",
+                    "type": "optional",
+                    "cmd_arg":  "--noIndexRestore",
+                    "nargs": 0,
+                    "help": "don't restore indexes"
                 }
 
             ]
