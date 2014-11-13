@@ -278,7 +278,9 @@ class Server(DocumentWrapper):
             return self._mongodb_edition
 
         if self.is_online():
-            if "OpenSSLVersion" in self.get_db_connection().server_info():
+            server_info = self.get_db_connection().server_info()
+            if ("OpenSSLVersion" in server_info and
+                    server_info["OpenSSLVersion"]):
                 edition = MongoDBEdition.COMMUNITY_SSL
             else:
                 edition = MongoDBEdition.COMMUNITY
