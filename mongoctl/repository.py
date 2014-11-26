@@ -3,6 +3,7 @@
 __author__ = 'abdul'
 
 import pymongo
+import pymongo.read_preferences
 import config
 
 from bson import DBRef
@@ -53,9 +54,7 @@ def get_mongoctl_database():
     log_verbose("Connecting to mongoctl db...")
     try:
 
-        (conn, dbname) = _db_repo_connect()
-
-        __mongoctl_db__ = conn[dbname]
+        __mongoctl_db__ = _db_repo_connect()
         return __mongoctl_db__
     except Exception, e:
         log_exception(e)
@@ -89,9 +88,10 @@ def is_db_repository_online():
 def _db_repo_connect():
     db_conf = config.get_database_repository_conf()
     uri = db_conf["databaseURI"]
-    conn = pymongo.Connection(uri)
-    dbname = parse_mongo_uri(uri).database
-    return conn, dbname
+    client = pymongo.MongoClient(uri, read_preference=
+    pymongo.read_preferences.ReadPreference.PRIMARY_PREFERRED)
+    return client.get_default_database()
+
 
 
 ###############################################################################
