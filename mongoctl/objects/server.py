@@ -280,7 +280,8 @@ class Server(DocumentWrapper):
         if self.is_online():
             server_info = self.get_db_connection().server_info()
             if ("gitVersion" in server_info and
-                    "subscription" in server_info["gitVersion"]):
+                    ("subscription" in server_info["gitVersion"] or
+                     "enterprise" in server_info["gitVersion"])):
                 edition = MongoDBEdition.ENTERPRISE
             elif ("OpenSSLVersion" in server_info and
                     server_info["OpenSSLVersion"]):
