@@ -22,7 +22,8 @@ from mongoctl.processes import(
     )
 from mongoctl.prompt import prompt_execute_task
 from mongoctl.utils import (
-    ensure_dir, which, wait_for, dir_exists, is_pid_alive
+    ensure_dir, which, wait_for, dir_exists, is_pid_alive,
+    validate_openssl
 )
 from tail_log import tail_server_log, stop_tailing
 from mongoctl.commands.command_utils import (
@@ -155,6 +156,10 @@ def do_start_server(server, options_override=None, rs_add=False, no_init=False):
 
 ###############################################################################
 def _pre_server_start(server, options_override=None):
+    # validate open ssl version as needed
+    if server.get_client_ssl_mode():
+        validate_openssl()
+
     if isinstance(server, MongodServer):
         _pre_mongod_server_start(server, options_override=options_override)
 

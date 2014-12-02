@@ -327,3 +327,23 @@ def extract_archive(archive_name):
     call_command(tar_cmd)
 
     return dir_name
+
+###############################################################################
+def validate_openssl():
+    """
+        Validates OpenSSL to ensure it has TLS_FALLBACK_SCSV supported
+    """
+    try:
+        open_ssl_exe = which("openssl")
+        if not open_ssl_exe:
+            raise Exception("No openssl exe found in path")
+
+        try:
+            # execute a an invalid command to get output with available options
+            # since openssl does not have a --help option unfortunately
+            execute_command([open_ssl_exe, "s_client", "invalidDummyCommand"])
+        except subprocess.CalledProcessError as e:
+            if "fallback_scsv" not in e.output:
+                raise Exception("openssl does not support TLS_FALLBACK_SCSV")
+    except Exception as e:
+        raise MongoctlException("Unsupported OpenSSL. %s" % e)
