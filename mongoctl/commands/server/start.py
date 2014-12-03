@@ -158,7 +158,8 @@ def do_start_server(server, options_override=None, rs_add=False, no_init=False):
 def _pre_server_start(server, options_override=None):
     # validate open ssl version as needed
     if server.get_client_ssl_mode():
-        validate_openssl()
+        pass
+        #validate_openssl()
 
     if isinstance(server, MongodServer):
         _pre_mongod_server_start(server, options_override=options_override)
