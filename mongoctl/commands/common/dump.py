@@ -171,7 +171,8 @@ def mongo_dump_server(server,
                   username=username,
                   password=password,
                   version_info=server.get_mongo_version_info(),
-                  dump_options=dump_options)
+                  dump_options=dump_options,
+                  ssl=server.use_ssl_client())
 
 ###############################################################################
 def mongo_dump_cluster(cluster,
@@ -247,11 +248,16 @@ def do_mongo_dump(host=None,
                   username=None,
                   password=None,
                   version_info=None,
-                  dump_options=None):
+                  dump_options=None,
+                  ssl=False):
 
 
     # create dump command with host and port
     dump_cmd = [get_mongo_dump_executable(version_info)]
+
+    # ssl options
+    if ssl:
+        dump_cmd.append("--ssl")
 
     if host:
         dump_cmd.extend(["--host", host])

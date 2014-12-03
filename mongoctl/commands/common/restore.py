@@ -157,7 +157,9 @@ def mongo_restore_server(server, source,
                      username=username,
                      password=password,
                      version_info=server.get_mongo_version_info(),
-                     restore_options=restore_options)
+                     restore_options=restore_options,
+                     ssl=server.use_ssl_client())
+
 
 ###############################################################################
 def mongo_restore_cluster(cluster, source,
@@ -188,11 +190,15 @@ def do_mongo_restore(source,
                      username=None,
                      password=None,
                      version_info=None,
-                     restore_options=None):
-
+                     restore_options=None,
+                     ssl=False):
 
     # create restore command with host and port
     restore_cmd = [get_mongo_restore_executable(version_info)]
+
+    # ssl options
+    if ssl:
+        restore_cmd.append("--ssl")
 
     if host:
         restore_cmd.extend(["--host", host])
