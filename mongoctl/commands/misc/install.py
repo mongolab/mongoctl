@@ -15,7 +15,8 @@ from mongoctl.mongoctl_logging import *
 from mongoctl.errors import MongoctlException
 
 from mongoctl.utils import (
-    download_url, extract_archive, call_command, which, ensure_dir
+    download_url, extract_archive, call_command, which, ensure_dir,
+    validate_openssl
 )
 
 from mongoctl.mongodb_version import make_version_info, is_valid_version_info
@@ -224,6 +225,7 @@ def install_from_source(mongodb_version, mongodb_edition, build_threads=None,
     scons_cmd.append("--prefix=%s" % target_dir)
 
     if mongodb_edition == MongoDBEdition.COMMUNITY_SSL:
+        validate_openssl()
         scons_cmd.append("--ssl")
 
     log_info("Running scons command: %s" % " ".join(scons_cmd))
