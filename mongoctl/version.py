@@ -1,4 +1,4 @@
 __author__ = 'abdul'
 
 
-MONGOCTL_VERSION = '0.7.3'
+MONGOCTL_VERSION = '0.7.4'
