@@ -294,8 +294,8 @@ def prompt_init_replica_cluster(replica_cluster,
                                 suggested_primary_server):
 
     prompt = ("Do you want to initialize replica set cluster '%s' using server"
-              " '%s'? (type 'n' (NO) unless you are absolutely sure you"
-              " should be initializing this replica set)?" %
+              " '%s'? [type 'n' (NO) unless you are absolutely sure you"
+              " should be initializing this replica set]?" %
               (replica_cluster.id, suggested_primary_server.id))
 
     def init_repl_func():
