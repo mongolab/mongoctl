@@ -16,7 +16,7 @@ from mongoctl.errors import MongoctlException
 
 from mongoctl.utils import (
     download_url, extract_archive, call_command, which, ensure_dir,
-    validate_openssl, execute_command
+    validate_openssl, execute_command, list_dir_files, is_exe
 )
 
 from mongoctl.mongodb_version import make_version_info, is_valid_version_info
@@ -41,7 +41,8 @@ def install_command(parsed_options):
                     mongodb_edition=parsed_options.edition,
                     from_source=parsed_options.fromSource,
                     build_threads=parsed_options.buildThreads,
-                    build_tmp_dir=parsed_options.buildTmpDir)
+                    build_tmp_dir=parsed_options.buildTmpDir,
+                    include_only=parsed_options.includeOnly)
 
 ###############################################################################
 # uninstall command
@@ -73,7 +74,8 @@ def list_versions_command(parsed_options):
 ###############################################################################
 def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
                     build_threads=1,
-                    build_tmp_dir=None):
+                    build_tmp_dir=None,
+                    include_only=None):
 
     if mongodb_version is None:
         mongodb_version = fetch_latest_stable_version()
@@ -140,6 +142,10 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
         archive_name = os.path.basename(archive_path)
 
         mongo_dir_name = extract_archive(archive_name)
+
+        # apply include_only if specified
+        if include_only:
+            apply_include_only(mongo_dir_name, include_only)
 
         log_info("Deleting archive %s" % archive_name)
         os.remove(archive_name)
@@ -325,6 +331,29 @@ def ensure_mongo_home_not_used(mongo_installation):
                "Please terminate all running processes then try again." %
                mongo_installation)
         raise MongoctlException(msg)
+
+###############################################################################
+def apply_include_only(mongo_dir_name, include_only):
+    """
+
+    :param mongo_dir_name:
+    :param include_only: list of exes names to include only
+    :return:
+    """
+    log_info("Keep include-only files (%s) from new mongo installation..." %
+             include_only)
+    bin_dir = os.path.join(mongo_dir_name, "bin")
+    exes = list_dir_files(bin_dir)
+    for exe_name in exes:
+        # we always keep mongod because it used to determine mongo
+        # installation version
+        if exe_name == "mongod":
+            continue
+        exe_path = os.path.join(bin_dir, exe_name)
+        if is_exe(exe_path):
+            if exe_name not in include_only:
+                log_info("Removing %s" % exe_name)
+                os.remove(exe_path)
 
 
 

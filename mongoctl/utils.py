@@ -112,6 +112,10 @@ def dir_exists(path):
     return os.path.exists(path) and os.path.isdir(path)
 
 ###############################################################################
+def list_dir_files(path):
+    return [name for name in os.listdir(path) if
+            os.path.isfile(os.path.join(path, name))]
+###############################################################################
 def resolve_path(path):
     # handle file uris
     path = path.replace("file://", "")

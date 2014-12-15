@@ -1531,6 +1531,18 @@ MONGOCTL_PARSER_DEF = {
                     ],
                     "default": None,
                     "nargs": 1
+                },
+
+                {
+                    "name": "includeOnly",
+                    "type": "optional",
+                    "help": "Include only specified list of exes "
+                            "(e.g --include-only mongod mongo)",
+                    "cmd_arg": [
+                        "--include-only"
+                    ],
+                    "default": None,
+                    "nargs": "+",
                 }
             ]
         },
