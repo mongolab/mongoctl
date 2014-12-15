@@ -16,7 +16,7 @@ from mongoctl.errors import MongoctlException
 
 from mongoctl.utils import (
     download_url, extract_archive, call_command, which, ensure_dir,
-    validate_openssl
+    validate_openssl, execute_command
 )
 
 from mongoctl.mongodb_version import make_version_info, is_valid_version_info
@@ -266,6 +266,9 @@ def uninstall_mongodb(version_number, edition=None):
     log_info("Found MongoDB '%s' in '%s'" % (version_info, mongo_installation))
 
     def rm_mongodb():
+        # make sure that the mongo installation to be removed does not have
+        # any running processes
+        ensure_mongo_home_not_used(mongo_installation)
         log_info("Deleting '%s'" % mongo_installation)
         shutil.rmtree(mongo_installation)
         log_info("MongoDB '%s' Uninstalled successfully!" % version_info)
@@ -309,6 +312,19 @@ def get_validate_platform_spec(os_name, bits):
             return "%s-i386" % os_name
         elif os_name == "sunos5":
             return "i86pc"
+
+###############################################################################
+def ensure_mongo_home_not_used(mongo_installation):
+    output = execute_command([
+        "ps",
+        "-eaf"
+    ])
+
+    if mongo_installation in output:
+        msg = ("ERROR: Cannot uninstall '%s' because its currently being used. "
+               "Please terminate all running processes then try again." %
+               mongo_installation)
+        raise MongoctlException(msg)
 
 
 
