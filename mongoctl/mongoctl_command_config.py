@@ -675,7 +675,97 @@ MONGOCTL_PARSER_DEF = {
                     "cmd_arg":  "--setParameter",
                     "nargs": 1,
                     "help": "Set a configurable parameter"
+                },
+                ########### SSL OPTIONS
+                {
+                    "name": "sslOnNormalPorts",
+                    "type": "optional",
+                    "cmd_arg":  "--sslOnNormalPorts",
+                    "nargs": 0,
+                    "help": "use ssl on configured ports"
+                },
+
+                {
+                    "name": "sslMode",
+                    "type": "optional",
+                    "cmd_arg":  "--sslMode",
+                    "nargs": 1,
+                    "help": "set the SSL operation mode (disabled|allowSSL|preferSSL|requireSSL)"
+                },
+
+                {
+                    "name": "sslPEMKeyFile",
+                    "type": "optional",
+                    "cmd_arg":  "--sslPEMKeyFile",
+                    "nargs": 1,
+                    "help": "PEM file for ssl"
+                },
+
+                {
+                    "name": "sslPEMKeyPassword",
+                    "type": "optional",
+                    "cmd_arg":  "--sslPEMKeyPassword",
+                    "nargs": 1,
+                    "help": "PEM file password"
+                },
+
+                {
+                    "name": "sslClusterFile",
+                    "type": "optional",
+                    "cmd_arg":  "--sslClusterFile",
+                    "nargs": 1,
+                    "help": "Key file for internal SSL authentication"
+                },
+
+                {
+                    "name": "sslClusterPassword",
+                    "type": "optional",
+                    "cmd_arg":  "--sslClusterPassword",
+                    "nargs": 1,
+                    "help": "Internal authentication key file password"
+                },
+
+                {
+                    "name": "sslCAFile",
+                    "type": "optional",
+                    "cmd_arg":  "--sslCAFile",
+                    "nargs": 1,
+                    "help": "Certificate Authority file for SSL"
+                },
+
+                {
+                    "name": "sslCRLFile",
+                    "type": "optional",
+                    "cmd_arg":  "--sslCRLFile",
+                    "nargs": 1,
+                    "help": "Certificate Revocation List file for SSL"
+                },
+
+                {
+                    "name": "sslWeakCertificateValidation",
+                    "type": "optional",
+                    "cmd_arg":  "--sslWeakCertificateValidation",
+                    "nargs": 0,
+                    "help": "allow client to connect without presenting a certificate"
+                },
+
+                {
+                    "name": "sslAllowInvalidCertificates",
+                    "type": "optional",
+                    "cmd_arg":  "--sslAllowInvalidCertificates",
+                    "nargs": 0,
+                    "help": "allow connections to servers with invalid certificates"
+                },
+
+                {
+                    "name": "sslFIPSMode",
+                    "type": "optional",
+                    "cmd_arg":  "--sslFIPSMode",
+                    "nargs": 0,
+                    "help": "activate FIPS 140-2 mode at startup"
                 }
+
+
 
                 ]
         },

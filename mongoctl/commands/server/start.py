@@ -706,7 +706,20 @@ SUPPORTED_MONGOD_OPTIONS = [
     "configsvr",
     "shardsvr",
     "noMoveParanoia",
-    "setParameter"
+    "setParameter",
+
+    # SSL OPTIONS
+    "sslOnNormalPorts",
+    "sslMode",
+    "sslPEMKeyFile",
+    "sslPEMKeyPassword",
+    "sslClusterFile",
+    "sslClusterPassword",
+    "sslCAFile",
+    "sslCRLFile",
+    "sslWeakCertificateValidation",
+    "sslAllowInvalidCertificates",
+    "sslFIPSMode"
 ]
 
 
