@@ -35,6 +35,8 @@ from mongoctl.prompt import prompt_confirm
 from mongoctl.objects.mongod import MongodServer
 from mongoctl.objects.mongos import MongosServer
 
+import mongoctl.mongoctl_command_config
+
 ###############################################################################
 # CONSTS
 ###############################################################################
@@ -654,73 +656,7 @@ def mongoctl_signal_handler(signal_val, frame):
 signal.signal(signal.SIGINT, mongoctl_signal_handler)
 
 ###############################################################################
-SUPPORTED_MONGOD_OPTIONS = [
-    "verbose",
-    "quiet",
-    "port",
-    "bind_ip",
-    "maxConns",
-    "objcheck",
-    "logpath",
-    "logappend",
-    "pidfilepath",
-    "keyFile",
-    "nounixsocket",
-    "unixSocketPrefix",
-    "auth",
-    "cpu",
-    "dbpath",
-    "diaglog",
-    "directoryperdb",
-    "journal",
-    "journalOptions",
-    "journalCommitInterval",
-    "ipv6",
-    "jsonp",
-    "noauth",
-    "nohttpinterface",
-    "nojournal",
-    "noprealloc",
-    "notablescan",
-    "nssize",
-    "profile",
-    "quota",
-    "quotaFiles",
-    "rest",
-    "repair",
-    "repairpath",
-    "slowms",
-    "smallfiles",
-    "syncdelay",
-    "sysinfo",
-    "upgrade",
-    "fastsync",
-    "oplogSize",
-    "master",
-    "slave",
-    "source",
-    "only",
-    "slavedelay",
-    "autoresync",
-    "replSet",
-    "configsvr",
-    "shardsvr",
-    "noMoveParanoia",
-    "setParameter",
-
-    # SSL OPTIONS
-    "sslOnNormalPorts",
-    "sslMode",
-    "sslPEMKeyFile",
-    "sslPEMKeyPassword",
-    "sslClusterFile",
-    "sslClusterPassword",
-    "sslCAFile",
-    "sslCRLFile",
-    "sslWeakCertificateValidation",
-    "sslAllowInvalidCertificates",
-    "sslFIPSMode"
-]
+SUPPORTED_MONGOD_OPTIONS = mongoctl.mongoctl_command_config.MONGOD_OPTION_NAMES
 
 
 ###############################################################################
