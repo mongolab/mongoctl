@@ -147,7 +147,7 @@ class Server(DocumentWrapper):
                   self.id)
         try:
             self.make_ssl_db_connection(self.get_connection_address())
-            return False
+            return True
         except Exception, e:
             if not "SSL handshake failed" in str(e):
                 log_exception(e)
