@@ -325,7 +325,8 @@ class ReplicaSetCluster(Cluster):
                 address = rs_status_m.get("name")
                 member = {
                     "address": address,
-                    "stateStr": rs_status_m.get("stateStr")
+                    "stateStr": rs_status_m.get("stateStr"),
+                    "optime": str(rs_status_m.get("optimeDate"))
                 }
                 if rs_status_m.get("errmsg", None):
                     member['errmsg'] = rs_status_m['errmsg']
@@ -368,8 +369,8 @@ class ReplicaSetCluster(Cluster):
             "primary": {
                 "address": primary_server_address,
                 "stateStr": "PRIMARY",
-                "serverStatusSummary":
-                    primary_server.get_server_status_summary()
+                "serverStatusSummary": primary_server.get_server_status_summary(),
+                "optime": str(master_status.get("optimeDate"))
             },
             "otherMembers": other_members
         }
