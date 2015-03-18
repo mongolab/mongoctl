@@ -355,7 +355,7 @@ def validate_openssl():
 ###############################################################################
 
 def time_string(time_seconds):
-    days, remainder = divmod(time_seconds, 3600 * 2400)
+    days, remainder = divmod(time_seconds, 3600 * 24)
     hours, remainder = divmod(remainder, 3600)
     minutes, seconds = divmod(remainder, 60)
     result = []
