@@ -326,7 +326,7 @@ class ReplicaSetCluster(Cluster):
                 member = {
                     "address": address,
                     "stateStr": rs_status_m.get("stateStr"),
-                    "optime": str(rs_status_m.get("optimeDate"))
+                    "uptime": utils.time_string(rs_status_m.get("uptime"))
                 }
                 if rs_status_m.get("errmsg", None):
                     member['errmsg'] = rs_status_m['errmsg']
@@ -334,21 +334,10 @@ class ReplicaSetCluster(Cluster):
                                                "RECOVERING"]:
                     # compute lag
                     lag_in_secs = get_member_repl_lag(rs_status_m, master_status)
-                    # compute lag description
-                    hours, remainder = divmod(lag_in_secs, 3600)
-                    minutes, seconds = divmod(remainder, 60)
-                    if hours:
-                        desc = ("%d hour(s) %d minute(s) %d second(s)" %
-                                (hours, minutes, seconds))
-                    elif minutes:
-                        desc = ("%d minute(s) %d second(s)" %
-                                (minutes, seconds))
-                    else:
-                        desc = "%d second(s)" % (seconds)
 
                     member['replLag'] = {
                         "value": lag_in_secs,
-                        "description": desc
+                        "description": utils.time_string(lag_in_secs)
                     }
 
                 for rs_config_m in rs_config_members:
@@ -370,7 +359,7 @@ class ReplicaSetCluster(Cluster):
                 "address": primary_server_address,
                 "stateStr": "PRIMARY",
                 "serverStatusSummary": primary_server.get_server_status_summary(),
-                "optime": str(master_status.get("optimeDate"))
+                "uptime": utils.time_string(master_status.get("uptime"))
             },
             "otherMembers": other_members
         }

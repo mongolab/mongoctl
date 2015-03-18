@@ -351,3 +351,23 @@ def validate_openssl():
                 raise Exception("openssl does not support TLS_FALLBACK_SCSV")
     except Exception as e:
         raise MongoctlException("Unsupported OpenSSL. %s" % e)
+
+###############################################################################
+
+def time_string(time_seconds):
+    days, remainder = divmod(time_seconds, 3600 * 2400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    result = []
+    if days:
+        result.append("%d day(s)" % days)
+    if days or hours:
+        result.append("%d hour(s)" % hours)
+    if days or hours or minutes:
+        result.append("%d minute(s)" % minutes)
+
+    result.append("%d second(s)" % seconds)
+
+    return " ".join(result)
+
+
