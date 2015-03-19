@@ -586,7 +586,7 @@ class ReplicaSetCluster(Cluster):
             def has_primary():
                 return self.get_primary_member() is not None
 
-            if not wait_for(has_primary(), timeout=60, sleep_duration=1):
+            if not wait_for(has_primary, timeout=60, sleep_duration=1):
                 raise Exception("No primary elected 60 seconds after reconfiguration!")
 
             # Probably need to reconnect.  May not be primary any more.
