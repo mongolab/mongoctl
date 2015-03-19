@@ -580,6 +580,15 @@ class ReplicaSetCluster(Cluster):
             log_info("Re-configuration command for replica set cluster '%s'"
                      " issued successfully." % self.id)
 
+            # wait until there is a primary
+
+            log_info("Wait for the new primary to be elected...")
+            def has_primary():
+                return self.get_primary_member() is not None
+
+            if not wait_for(has_primary(), timeout=60, sleep_duration=1):
+                raise Exception("No primary elected 60 seconds after reconfiguration!")
+
             # Probably need to reconnect.  May not be primary any more.
             desired_cfg_version = desired_config['version']
 
