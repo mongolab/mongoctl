@@ -4,9 +4,9 @@ import repository
 
 from mongoctl_logging import log_info, log_verbose, log_warning, log_exception
 from pymongo.errors import OperationFailure, AutoReconnect
-from errors import MongoctlException
+from errors import MongoctlException, is_auth_error
 from prompt import read_password
-import pymongo.auth
+
 import mongodb_version
 
 ###############################################################################
@@ -96,21 +96,6 @@ def setup_cluster_users(cluster, primary_server):
     return setup_server_users(primary_server)
 
 ###############################################################################
-def should_seed_users(server):
-    log_verbose("See if we should seed users for server '%s'" %
-                server.id)
-    try:
-        connection = server.get_db_connection()
-        dbnames = connection.database_names()
-        for dbname in dbnames:
-            if connection[dbname]['system.users'].find_one():
-                return False
-        return True
-    except Exception, e:
-        log_exception(e)
-        return False
-
-###############################################################################
 def should_seed_db_users(server, dbname):
     log_verbose("See if we should seed users for database '%s'" % dbname)
     try:
@@ -121,6 +106,8 @@ def should_seed_db_users(server, dbname):
             return True
     except Exception, e:
         log_exception(e)
+        if is_auth_error(e) and dbname == "admin" and server.try_on_auth_failures():
+            return True
         return False
 
 ###############################################################################
@@ -142,15 +129,6 @@ def setup_db_users(server, db, db_users):
         count_new_users += 1
 
     return count_new_users
-
-
-###############################################################################
-VERSION_2_6 = mongodb_version.make_version_info("2.6.0")
-
-###############################################################################
-def server_supports_local_users(server):
-    version = server.get_mongo_version_info()
-    return version and version < VERSION_2_6
 
 ###############################################################################
 def _mongo_add_user(server, db, username, password, read_only=False,
@@ -236,7 +214,7 @@ def setup_server_admin_users(server):
     log_verbose("Checking setup for admin users...")
     count_new_users = 0
     try:
-        admin_db = server.get_db("admin")
+        admin_db = server.get_db("admin", no_auth=server.try_on_auth_failures())
 
         # potentially create the 1st admin user
         count_new_users += setup_db_users(server, admin_db, admin_users[0:1])

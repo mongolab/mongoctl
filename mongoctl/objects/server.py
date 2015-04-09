@@ -13,7 +13,7 @@ from mongoctl.mongoctl_logging import (
 from mongoctl.mongodb_version import make_version_info
 
 from mongoctl.config import get_default_users
-from mongoctl.errors import MongoctlException
+from mongoctl.errors import MongoctlException, is_auth_error
 from mongoctl.prompt import read_username, read_password
 
 from bson.son import SON
@@ -25,7 +25,7 @@ import datetime
 
 from mongoctl import config
 from mongoctl import users
-from mongoctl.mongodb_version import MongoDBEdition
+from mongoctl.mongodb_version import MongoDBEdition, make_version_info
 
 ###############################################################################
 # CONSTANTS
@@ -54,6 +54,11 @@ CLIENT_SSL_MODE = None
 # A global config that is set through --use-alt-address option that will use
 # a different "address" property of when making connections to servers
 USE_ALT_ADDRESS = None
+
+
+###############################################################################
+VERSION_2_6 = make_version_info("2.6.0")
+VERSION_3_0 = make_version_info("3.0.0")
 
 ###############################################################################
 class ClientSslMode(object):
@@ -464,10 +469,16 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def db_command(self, cmd, dbname):
-
-        need_auth = self.command_needs_auth(dbname, cmd)
-        db = self.get_db(dbname, no_auth=not need_auth)
-        return db.command(cmd)
+        # try without auth first if server allows it (i.e. version >= 3.0.0)
+        db = self.get_db(dbname, no_auth=self.try_on_auth_failures())
+        try:
+            return db.command(cmd)
+        except (RuntimeError,Exception), e:
+            if is_auth_error(e):
+                db = self.get_db(dbname, no_auth=False)
+                return db.command(cmd)
+            else:
+                raise
 
     ###########################################################################
     def command_needs_auth(self, dbname, cmd):
@@ -507,7 +518,7 @@ class Server(DocumentWrapper):
             or
             (dbname == "local" and
              not is_system_user and
-             not users.server_supports_local_users(self))):
+             not self.supports_local_users())):
             # if this passes then we are authed!
             admin_db = self.get_db("admin", retry=retry)
             return admin_db.connection[dbname]
@@ -918,6 +929,16 @@ class Server(DocumentWrapper):
                         (self.id, pid_file_path))
 
         return None
+
+    ###############################################################################
+    def supports_local_users(self):
+        version = self.get_mongo_version_info()
+        return version and version < VERSION_2_6
+
+    ###############################################################################
+    def try_on_auth_failures(self):
+        version = self.get_mongo_version_info()
+        return version and version >= VERSION_3_0
 
 ###############################################################################
 def is_logging_activity():

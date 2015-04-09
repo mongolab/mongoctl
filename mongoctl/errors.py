@@ -1,5 +1,6 @@
 __author__ = 'abdul'
 
+from pymongo.errors import OperationFailure
 
 ###############################################################################
 # Mongoctl Exception class
@@ -13,3 +14,7 @@ class MongoctlException(Exception):
 ###############################################################################
 class FileNotInRepoError(MongoctlException):
     pass
+
+
+def is_auth_error(e):
+    return isinstance(e, OperationFailure) and e.code == 13
