@@ -30,6 +30,7 @@ import inspect
 import os
 import shutil
 import mongoctl.mongoctl as mongoctl_main
+from mongoctl.repository import lookup_server
 from mongoctl.utils import is_pid_alive, kill_process
 import traceback
 
@@ -113,11 +114,16 @@ class MongoctlTestBase(unittest.TestCase):
 
     ###########################################################################
     def assert_server_status(self, server_id, is_running):
-        status=  self.mongoctl_assert_cmd("status %s -u abdulito" % server_id)
+        status = self.mongoctl_assert_cmd("status %s -u abdulito" % server_id)
         self.assertEquals(status['connection'], is_running)
 
     ###########################################################################
-    def assert_start_server(self, server_id):
+    def assert_server_online(self, server_id):
+        server = lookup_server(server_id)
+        self.assertTrue(server.is_online())
+
+    ###########################################################################
+    def assert_start_server(self, server_id, **kwargs):
         return self.mongoctl_assert_cmd("start %s -u abdulito" % server_id)
 
     ###########################################################################
