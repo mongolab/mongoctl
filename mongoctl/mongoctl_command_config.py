@@ -1605,6 +1605,14 @@ MONGOD_OPTIONS = [
     },
 
     {
+        "name": "httpinterface",
+        "type": "optional",
+        "cmd_arg":  "--httpinterface",
+        "nargs": 0,
+        "help": "enable http interface"
+    },
+
+    {
         "name": "nojournal",
         "type" : "optional",
         "cmd_arg":  "--nojournal",
