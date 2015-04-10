@@ -474,7 +474,7 @@ class Server(DocumentWrapper):
         try:
             return db.command(cmd)
         except (RuntimeError,Exception), e:
-            if is_auth_error(e):
+            if is_auth_error(e) and self.try_on_auth_failures():
                 db = self.get_db(dbname, no_auth=False)
                 return db.command(cmd)
             else:
