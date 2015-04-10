@@ -23,11 +23,16 @@
 
 import unittest
 
-from mongoctl.tests.test_base import MongoctlTestBase
+from mongoctl.tests.test_base import MongoctlTestBase, get_testing_mongo_version
+from mongoctl.objects.server import VERSION_2_6
 
 class MasterSlaveTest(MongoctlTestBase):
 
     def test_master_slave(self):
+        if get_testing_mongo_version() >= VERSION_2_6:
+            print "Skipping master/slave test since testing version %s which" \
+                  " is >= than %s" % (get_testing_mongo_version(), VERSION_2_6)
+            return
         # assert servers stopped
         self.assert_server_stopped("master_test_server")
         self.assert_server_stopped("slave_test_server")

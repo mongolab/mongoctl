@@ -32,6 +32,8 @@ import shutil
 import mongoctl.mongoctl as mongoctl_main
 from mongoctl.repository import lookup_server
 from mongoctl.utils import is_pid_alive, kill_process
+from mongoctl.commands.command_utils import get_mongo_executable
+from mongoctl.objects.server import VERSION_3_0
 import traceback
 
 ###############################################################################
@@ -178,3 +180,13 @@ class MongoctlTestBase(unittest.TestCase):
     ###########################################################################
     def get_test_dbs_dir(self):
         return os.path.join(self.get_testing_conf_root(), "mongoctltest_dbs")
+
+########################################################################################################################
+__testing_version__ = None
+
+def get_testing_mongo_version():
+    global __testing_version__
+    if not __testing_version__:
+        mongod_exe = get_mongo_executable(None, 'mongod')
+        __testing_version__ = mongod_exe.version
+    return __testing_version__
