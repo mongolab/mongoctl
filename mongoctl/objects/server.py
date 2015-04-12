@@ -470,7 +470,11 @@ class Server(DocumentWrapper):
     ###########################################################################
     def db_command(self, cmd, dbname):
         # try without auth first if server allows it (i.e. version >= 3.0.0)
-        db = self.get_db(dbname, no_auth=self.try_on_auth_failures())
+        if self.try_on_auth_failures():
+            need_auth = False
+        else:
+            need_auth = self.command_needs_auth(dbname, cmd)
+        db = self.get_db(dbname, no_auth=not need_auth)
         try:
             return db.command(cmd)
         except (RuntimeError,Exception), e:
