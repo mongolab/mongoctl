@@ -123,6 +123,25 @@ MONGOCTL_PARSER_DEF = {
             "default": None
         },
 
+        {
+            "name": "servers",
+            "type": "optional",
+            "help": "server json document list",
+            "cmd_arg": [
+                "--servers"
+            ],
+            "nargs": 1
+        },
+        {
+            "name": "clusters",
+            "type": "optional",
+            "help": "cluster json document list",
+            "cmd_arg": [
+                "--clusters"
+            ],
+            "nargs": 1
+        }
+
     ],
 
     "child_groups": [

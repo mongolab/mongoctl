@@ -36,7 +36,7 @@ import os
 
 import config
 import objects.server
-
+import repository
 from dargparse import dargparse
 from mongoctl_logging import (
     log_error, log_info, turn_logging_verbose_on, log_verbose, log_exception
@@ -136,6 +136,10 @@ def do_main(args):
         config._set_config_root(parsed_args.configRoot)
     elif os.getenv(CONF_ROOT_ENV_VAR) is not None:
         config._set_config_root(os.getenv(CONF_ROOT_ENV_VAR))
+
+    # set cmd arg servers/clusters
+    if parsed_args.servers or parsed_args.clusters:
+        repository.set_commandline_servers_and_clusters(parsed_args.servers, parsed_args.clusters)
 
     # get the function to call from the parser framework
     command_function = parsed_args.func

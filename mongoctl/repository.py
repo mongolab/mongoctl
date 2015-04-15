@@ -6,7 +6,7 @@ import pymongo
 import pymongo.read_preferences
 import config
 
-from bson import DBRef
+from bson import DBRef, json_util
 
 from errors import MongoctlException
 from mongoctl_logging import log_warning, log_verbose, log_info, log_exception
@@ -38,6 +38,10 @@ LOOKUP_TYPE_ANY = [LOOKUP_TYPE_CONFIG_SVR, LOOKUP_TYPE_MEMBER,
 ###############################################################################
 # Global variable: mongoctl's mongodb object
 __mongoctl_db__ = None
+
+__commandline_servers__ = None
+
+__commandline_clusters__ = None
 
 ###############################################################################
 def get_mongoctl_database():
@@ -101,6 +105,18 @@ def validate_repositories():
         raise MongoctlException("Invalid 'mongoctl.config': No fileRepository"
                                 " or databaseRepository configured. At least"
                                 " one repository has to be configured.")
+
+###############################################################################
+def set_commandline_servers_and_clusters(servers_json_str, clusters_json_str):
+    global __commandline_servers__, __commandline_clusters__
+    try:
+        if servers_json_str:
+            __commandline_servers__ = json_util.loads(servers_json_str)
+        if clusters_json_str:
+            __commandline_clusters__ = json_util.loads(clusters_json_str)
+    except Exception, ex:
+        log_exception(ex)
+        raise MongoctlException("--servers/--clusters must be a valid json string: %s" % ex)
 
 ###############################################################################
 # Server lookup functions
@@ -335,7 +351,7 @@ __configured_servers__ = None
 ###############################################################################
 def get_configured_servers():
 
-    global __configured_servers__
+    global __configured_servers__, __commandline_servers__
 
     if __configured_servers__ is None:
         __configured_servers__ = {}
@@ -346,6 +362,10 @@ def get_configured_servers():
 
         server_documents = config.read_config_json("servers",
                                                    servers_path_or_url)
+
+        if __commandline_servers__:
+            server_documents.extend(__commandline_servers__)
+
         if not isinstance(server_documents, list):
             raise MongoctlException("Server list in '%s' must be an array" %
                                     servers_path_or_url)
@@ -363,7 +383,7 @@ __configured_clusters__ = None
 ###############################################################################
 def get_configured_clusters():
 
-    global __configured_clusters__
+    global __configured_clusters__, __commandline_clusters__
 
     if __configured_clusters__ is None:
         __configured_clusters__ = {}
@@ -374,6 +394,9 @@ def get_configured_clusters():
 
         cluster_documents = config.read_config_json("clusters",
                                                     clusters_path_or_url)
+        if __commandline_clusters__:
+            cluster_documents.extend(__commandline_clusters__)
+
         if not isinstance(cluster_documents, list):
             raise MongoctlException("Cluster list in '%s' must be an array" %
                                     clusters_path_or_url)
