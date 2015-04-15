@@ -31,25 +31,80 @@ import os
 import shutil
 import mongoctl.mongoctl as mongoctl_main
 from mongoctl.repository import lookup_server
-from mongoctl.utils import is_pid_alive, kill_process
+from mongoctl.utils import is_pid_alive, kill_process, document_pretty_string, execute_command
 from mongoctl.commands.command_utils import get_mongo_executable
+from mongoctl.minify_json import minify_json
+from subprocess import CalledProcessError
 from mongoctl.objects.server import VERSION_3_0
 import traceback
+
+## static methods
+###########################################################################
+def get_testing_conf_root():
+    tests_pkg_path = get_test_pkg_path()
+    return os.path.join(tests_pkg_path, "testing_conf")
+
+###########################################################################
+def get_test_dbs_dir():
+    return os.path.join(get_testing_conf_root(), "mongoctltest_dbs")
+
+###############################################################################
+def get_test_pkg_path():
+    return os.path.dirname(inspect.getfile(inspect.currentframe()))
+
+###############################################################################
+def get_mongoctl_module_dir():
+    tests_pkg_path = get_test_pkg_path()
+    return os.path.dirname(os.path.dirname(tests_pkg_path))
+
+###############################################################################
+def get_mongoctl_exe():
+    return os.path.join(get_mongoctl_module_dir(), "bin", "mongoctl")
 
 ###############################################################################
 # Constants
 ###############################################################################
 MONGOCTL_TEST_DBS_DIR_ENV = "MONGOCTL_TEST_DIR"
 
+MONGOCTL_TEST_OPTIONS = {
+    "--verbose": True,
+    "--noninteractive": True,
+    "--config-root": get_testing_conf_root()
+
+}
 ###############################################################################
 # Base test class
 ###############################################################################
 class MongoctlTestBase(unittest.TestCase):
 
     ###########################################################################
+    @property
+    def servers(self):
+        return self._servers
+
+    @servers.setter
+    def servers(self, servers):
+        self._servers = servers
+
+    ###########################################################################
+    @property
+    def clusters(self):
+        return self._clusters
+
+    @clusters.setter
+    def clusters(self, clusters):
+        self._clusters = clusters
+
+    ###########################################################################
     def setUp(self):
+        super(MongoctlTestBase, self).setUp()
+        # _servers, _clusters are list of dicts
+        # those will be passed as the --servers --clusters property
+        self._servers = None
+        self._clusters = None
+
         # set the test dir env
-        test_dir = self.get_test_dbs_dir()
+        test_dir = get_test_dbs_dir()
         os.environ[MONGOCTL_TEST_DBS_DIR_ENV] = test_dir
         # assure that the testing dir does not exist
         print "--- Creating test db directory %s " % test_dir
@@ -65,7 +120,7 @@ class MongoctlTestBase(unittest.TestCase):
 
     ###########################################################################
     def tearDown(self):
-        test_dir = self.get_test_dbs_dir()
+        test_dir = get_test_dbs_dir()
         print "Tearing down: Cleaning up all used resources..."
         # delete the database dir when done
         self.cleanup_test_server_pids()
@@ -117,12 +172,8 @@ class MongoctlTestBase(unittest.TestCase):
     ###########################################################################
     def assert_server_status(self, server_id, is_running):
         status = self.mongoctl_assert_cmd("status %s -u abdulito" % server_id)
-        self.assertEquals(status['connection'], is_running)
-
-    ###########################################################################
-    def assert_server_online(self, server_id):
-        server = lookup_server(server_id)
-        self.assertTrue(server.is_online())
+        connection_str = '"connection": %s' % "true" if is_running else "false"
+        self.assertTrue(connection_str in status)
 
     ###########################################################################
     def assert_start_server(self, server_id, **kwargs):
@@ -147,10 +198,17 @@ class MongoctlTestBase(unittest.TestCase):
         print "++++++++++ Testing command : %s" % cmd
 
         try:
-            return mongoctl_main.do_main(cmd.split(" ")[1:])
+            output =  execute_command(cmd, shell=True, cwd=get_mongoctl_module_dir())
+            print output
+            return output
         except Exception, e:
             print("Error while executing test command '%s'. Cause: %s " %
                   (cmd, e))
+            if isinstance(e, CalledProcessError):
+                print "#### Command output ####"
+                print e.output
+                print "###################"
+
             print "================= STACK TRACE ================"
             traceback.print_exc()
             print "Failing..."
@@ -167,19 +225,33 @@ class MongoctlTestBase(unittest.TestCase):
                   (cmd, e))
 
     ###########################################################################
-    def to_mongoctl_test_command(self,cmd):
-        return ("mongoctl -v --noninteractive --config-root %s %s" %
-                (self.get_testing_conf_root(), cmd))
+    def to_mongoctl_test_command(self, cmd, mongoctl_options=None):
+        mongoctl_options = mongoctl_options or {}
+        mongoctl_options.update(MONGOCTL_TEST_OPTIONS)
+        if self.servers:
+            mongoctl_options["--servers"] = _dict_list_to_option_str(self.servers)
 
-    ###########################################################################
-    def get_testing_conf_root(self):
-        tests_pkg_path = os.path.dirname(
-            inspect.getfile(inspect.currentframe()))
-        return os.path.join(tests_pkg_path, "testing_conf")
+        if self.clusters:
+            mongoctl_options["--clusters"] = _dict_list_to_option_str(self.clusters)
 
-    ###########################################################################
-    def get_test_dbs_dir(self):
-        return os.path.join(self.get_testing_conf_root(), "mongoctltest_dbs")
+        mongoctl_options_str = _to_options_str(mongoctl_options)
+        return "%s %s %s" % (get_mongoctl_exe(), mongoctl_options_str, cmd)
+
+########################################################################################################################
+def _to_options_str(options):
+    options_list = list()
+    for key, val in options.items():
+        if val is True:
+            options_list.append(key)
+        else:
+            options_list.append(key)
+            options_list.append(val)
+
+    return " ".join(options_list)
+
+########################################################################################################################
+def _dict_list_to_option_str(dict_list):
+    return "'%s'" % minify_json.json_minify(document_pretty_string(dict_list))
 
 ########################################################################################################################
 __testing_version__ = None

@@ -164,15 +164,16 @@ def call_command(command, bubble_exit_code=False, **kwargs):
             raise e
 
 ###############################################################################
-def execute_command(command):
+def execute_command(command, **kwargs):
 
     # Python 2.7+ : Use the new method because i think its better
     if  hasattr(subprocess, 'check_output'):
-        return subprocess.check_output(command,stderr=subprocess.STDOUT)
+        return subprocess.check_output(command,stderr=subprocess.STDOUT, **kwargs)
     else: # Python 2.6 compatible, check_output is not available in 2.6
         return subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT).communicate()[0]
+                                stderr=subprocess.STDOUT,
+                                **kwargs).communicate()[0]
 
 ###############################################################################
 def is_pid_alive(pid):
