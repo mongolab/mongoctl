@@ -134,7 +134,7 @@ def lookup_server(server_id):
         server = db_lookup_server(server_id)
 
     # if server is not found then try from file repo
-    if server is None and has_file_repository():
+    if server is None:
         server = config_lookup_server(server_id)
 
 
@@ -181,9 +181,8 @@ def lookup_all_servers():
     if consulting_db_repository():
         all_servers = db_lookup_all_servers()
 
-    if has_file_repository():
-        file_repo_servers = get_configured_servers()
-        all_servers = dict(file_repo_servers.items() + all_servers.items())
+    configured_servers = get_configured_servers()
+    all_servers = dict(configured_servers.items() + all_servers.items())
 
     return all_servers.values()
 
@@ -216,8 +215,8 @@ def lookup_cluster(cluster_id):
     if consulting_db_repository():
         cluster = db_lookup_cluster(cluster_id)
 
-    # if cluster is not found then try from file repo
-    if cluster is None and has_file_repository():
+    # if cluster is not found then try from configured ones
+    if cluster is None:
         cluster = config_lookup_cluster(cluster_id)
 
     return cluster
@@ -247,9 +246,8 @@ def lookup_all_clusters():
     if consulting_db_repository():
         all_clusters = db_lookup_all_clusters()
 
-    if has_file_repository():
-        all_clusters = dict(get_configured_clusters().items() +
-                            all_clusters.items())
+    all_clusters = dict(get_configured_clusters().items() +
+                        all_clusters.items())
 
     return all_clusters.values()
 
@@ -360,19 +358,22 @@ def get_configured_servers():
     if __configured_servers__ is None:
         __configured_servers__ = {}
 
-        file_repo_conf = config.get_file_repository_conf()
-        servers_path_or_url = file_repo_conf.get("servers",
-                                                 DEFAULT_SERVERS_FILE)
+        server_documents = []
+        if has_file_repository():
+            file_repo_conf = config.get_file_repository_conf()
+            servers_path_or_url = file_repo_conf.get("servers",
+                                                     DEFAULT_SERVERS_FILE)
 
-        server_documents = config.read_config_json("servers",
-                                                   servers_path_or_url)
+            server_documents = config.read_config_json("servers",
+                                                       servers_path_or_url)
+
+            if not isinstance(server_documents, list):
+                raise MongoctlException("Server list in '%s' must be an array" %
+                                        servers_path_or_url)
 
         if __commandline_servers__:
             server_documents.extend(__commandline_servers__)
 
-        if not isinstance(server_documents, list):
-            raise MongoctlException("Server list in '%s' must be an array" %
-                                    servers_path_or_url)
         for document in server_documents:
             server = new_server(document)
             __configured_servers__[server.id] = server
@@ -392,18 +393,20 @@ def get_configured_clusters():
     if __configured_clusters__ is None:
         __configured_clusters__ = {}
 
-        file_repo_conf = config.get_file_repository_conf()
-        clusters_path_or_url = file_repo_conf.get("clusters",
-                                                  DEFAULT_CLUSTERS_FILE)
+        cluster_documents = []
+        if has_file_repository():
+            file_repo_conf = config.get_file_repository_conf()
+            clusters_path_or_url = file_repo_conf.get("clusters",
+                                                      DEFAULT_CLUSTERS_FILE)
 
-        cluster_documents = config.read_config_json("clusters",
-                                                    clusters_path_or_url)
+            cluster_documents = config.read_config_json("clusters",
+                                                        clusters_path_or_url)
+            if not isinstance(cluster_documents, list):
+                raise MongoctlException("Cluster list in '%s' must be an array" %
+                                        clusters_path_or_url)
         if __commandline_clusters__:
             cluster_documents.extend(__commandline_clusters__)
 
-        if not isinstance(cluster_documents, list):
-            raise MongoctlException("Cluster list in '%s' must be an array" %
-                                    clusters_path_or_url)
         for document in cluster_documents:
             cluster = new_cluster(document)
             __configured_clusters__[cluster.id] = cluster
@@ -460,11 +463,9 @@ def lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_ANY):
         cluster = db_lookup_cluster_by_server(server, lookup_type=lookup_type)
 
     ## If nothing is found then look in file repo
-    if cluster is None and has_file_repository():
-        cluster = config_lookup_cluster_by_server(server,
-                                                  lookup_type=lookup_type)
-
-
+    ## If nothing is found then look in file repo
+    if cluster is None:
+        cluster = config_lookup_cluster_by_server(server, lookup_type=lookup_type)
     return cluster
 
 
@@ -478,7 +479,7 @@ def lookup_cluster_by_shard(shard):
         cluster = db_lookup_cluster_by_shard(shard)
 
     ## If nothing is found then look in file repo
-    if cluster is None and has_file_repository():
+    if cluster is None:
         cluster = config_lookup_cluster_by_shard(shard)
 
     return cluster
