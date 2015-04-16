@@ -80,6 +80,11 @@ def has_file_repository():
     return config.get_file_repository_conf() is not None
 
 ###############################################################################
+def has_commandline_servers_or_clusters():
+    global __commandline_clusters__, __commandline_servers__
+    return __commandline_clusters__ or __commandline_servers__
+
+###############################################################################
 def consulting_db_repository():
     return has_db_repository() and is_db_repository_online()
 
@@ -100,8 +105,7 @@ def _db_repo_connect():
 
 ###############################################################################
 def validate_repositories():
-    if ((not has_file_repository()) and
-            (not has_db_repository())):
+    if not(has_file_repository() or has_db_repository() or has_commandline_servers_or_clusters()):
         raise MongoctlException("Invalid 'mongoctl.config': No fileRepository"
                                 " or databaseRepository configured. At least"
                                 " one repository has to be configured.")
