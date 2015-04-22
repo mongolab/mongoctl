@@ -5,7 +5,7 @@ import mongoctl.repository as repository
 
 from mongoctl.mongo_uri_tools import is_mongo_uri, parse_mongo_uri
 
-from mongoctl.utils import resolve_path
+from mongoctl.utils import resolve_path, ensure_dir
 from mongoctl.mongoctl_logging import log_info , log_warning
 
 from mongoctl.commands.command_utils import (
@@ -292,6 +292,9 @@ def do_mongo_dump(host=None,
     if dump_options:
         dump_cmd.extend(options_to_command_args(dump_options))
 
+    # ensure destination dir if specified
+    if dump_options and "out" in dump_options:
+        ensure_dir(dump_options["out"])
 
     cmd_display =  dump_cmd[:]
     # mask user/password
