@@ -469,7 +469,7 @@ class ReplicaSetCluster(Cluster):
                 return self.is_replicaset_initialized()
 
             log_info("Will now wait for the replica set to initialize.")
-            wait_for(is_init,timeout=60, sleep_duration=1)
+            wait_for(is_init,timeout=60 * 10, sleep_duration=1)
 
             if self.is_replicaset_initialized():
                 log_info("Successfully initiated replica set cluster '%s'!" %
