@@ -4,7 +4,7 @@ import mongoctl.repository as repository
 
 from mongoctl.commands.command_utils import (
     extract_mongo_exe_options, get_mongo_executable, options_to_command_args,
-    VERSION_PREF_MAJOR_GE
+    VERSION_PREF_EXACT_OR_MINOR
 )
 from mongoctl.mongoctl_logging import log_info, log_error
 from mongoctl.mongo_uri_tools import is_mongo_uri, parse_mongo_uri
@@ -208,5 +208,5 @@ def do_open_mongo_shell_to(address,
 def get_mongo_shell_executable(server_version):
     shell_exe = get_mongo_executable(server_version,
                                      'mongo',
-                                     version_check_pref=VERSION_PREF_MAJOR_GE)
+                                     version_check_pref=VERSION_PREF_EXACT_OR_MINOR)
     return shell_exe.path
