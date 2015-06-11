@@ -116,6 +116,9 @@ def do_start_server(server, options_override=None, rs_add=False, no_init=False):
     if status['connection']:
         log_info("Server '%s' is already running." %
                  server.id)
+        # always call post server start if the server is already started
+        # the post server start steps should be idempotent
+        _post_server_start(server, server.get_pid(), rs_add=rs_add, no_init=no_init)
         return
     elif "timedOut" in status:
         raise MongoctlException("Unable to start server: Server '%s' seems to"
@@ -281,7 +284,12 @@ def maybe_config_server_repl_set(server, rs_add=False, no_init=False):
             log_verbose("No need to initialize cluster '%s', as it has"
                         " already been initialized." % cluster.id)
             if not cluster.is_member_configured_for(server):
-                if rs_add:
+                if server.has_joined_replica():
+                    ## wait for server to finish joining replica
+                    log_info("Waiting for server to finish joining replica")
+                    wait_for(lambda: cluster.is_member_configured_for(server), timeout=10*60)
+
+                elif rs_add:
                     cluster.add_member_to_replica(server)
                 else:
                     prompt_add_member_to_replica(cluster, server)
