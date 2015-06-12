@@ -146,24 +146,14 @@ def kill_stop_server(server, pid):
         return False
 
     log_info("Forcibly stopping server '%s'...\n" % server.id)
-    log_info("Sending kill -1 (HUP) signal to server '%s' (pid=%s)..." %
-             (server.id, pid))
 
-    kill_process(pid, force=False)
+    log_info("Sending kill -9 (SIGKILL) signal to server"
+             "'%s' (pid=%s)..." % (server.id, pid))
+    kill_process(pid, force=True)
 
     log_info("Will now wait for server '%s' (pid=%s) to die." %
              (server.id, pid))
     wait_for(pid_dead_predicate(pid), timeout=MAX_SHUTDOWN_WAIT)
-
-    if is_pid_alive(pid):
-        log_error("Failed to kill server process with -1 (HUP).")
-        log_info("Sending kill -9 (SIGKILL) signal to server"
-                 "'%s' (pid=%s)..." % (server.id, pid))
-        kill_process(pid, force=True)
-
-        log_info("Will now wait for server '%s' (pid=%s) to die." %
-                 (server.id, pid))
-        wait_for(pid_dead_predicate(pid), timeout=MAX_SHUTDOWN_WAIT)
 
     if not is_pid_alive(pid):
         log_info("Forcefully-stopped server '%s'." % server.id)
