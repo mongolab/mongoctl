@@ -955,6 +955,7 @@ __assumed_local_servers__ = []
 def assume_local_server(server_id):
     global __assumed_local_servers__
     if server_id not in __assumed_local_servers__:
+        log_verbose("Assuming server '%s' to be local" % server_id)
         __assumed_local_servers__.append(server_id)
 
 ###############################################################################
