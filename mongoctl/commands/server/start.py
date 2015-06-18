@@ -234,12 +234,16 @@ def prepare_mongod_server(server):
     log_info("Preparing server '%s' for use as configured..." %
              server.id)
 
+    cluster = server.get_cluster()
     # setup the local users if server supports that
     if server.supports_local_users():
         users.setup_server_local_users(server)
 
     if not server.is_cluster_member() or server.is_config_server():
         users.setup_server_users(server)
+
+    if cluster and server.is_primary():
+        users.setup_cluster_users(cluster, server)
 
 ###############################################################################
 def shall_we_terminate(mongod_pid):
