@@ -214,10 +214,13 @@ def _post_mongod_server_start(server, server_pid, **kwargs):
 
         # sleep for a couple of seconds for the server to catch
         time.sleep(2)
-        # prepare the server
-        prepare_mongod_server(server)
+
         maybe_config_server_repl_set(server, rs_add=kwargs.get("rs_add"),
                                      no_init=kwargs.get("no_init"))
+
+        # prepare the server
+        prepare_mongod_server(server)
+
     except Exception, e:
         log_exception(e)
         log_error("Unable to fully prepare server '%s'. Cause: %s \n"
