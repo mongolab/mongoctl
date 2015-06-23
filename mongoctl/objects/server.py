@@ -752,11 +752,13 @@ class Server(DocumentWrapper):
             return self._connection_address
 
         # try to get the first working connection address
-        if (self.is_use_local() and
-                self.has_connectivity_on(self.get_local_address())):
-            self._connection_address = self.get_local_address()
-        elif self.has_connectivity_on(self.get_address()):
-            self._connection_address = self.get_address()
+        # only use this technique if the server is not assumed locally
+        if not is_assumed_local_server(self.id):
+            if (self.is_use_local() and
+                    self.has_connectivity_on(self.get_local_address())):
+                self._connection_address = self.get_local_address()
+            elif self.has_connectivity_on(self.get_address()):
+                self._connection_address = self.get_address()
 
         # use old logic
         if not self._connection_address:
