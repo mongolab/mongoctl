@@ -34,6 +34,7 @@ from mongoctl.prompt import prompt_confirm
 
 from mongoctl.objects.mongod import MongodServer
 from mongoctl.objects.mongos import MongosServer
+from mongoctl.objects.server import set_server_connection_timeout
 
 import mongoctl.mongoctl_command_config
 
@@ -48,6 +49,9 @@ PROCESS_LIMITS = [
     # Speaking of connections, we'd like to be able to have a lot of them:
     ('RLIMIT_NOFILE', "number of file descriptors", 65536)
 ]
+
+# mongo connection timeout for the start operation.
+START_CONN_TIMEOUT = 10 * 60 * 1000
 
 ###############################################################################
 # start command
@@ -96,6 +100,9 @@ def dry_run_start_server_cmd(server, options_override=None):
 # start server
 ###############################################################################
 def start_server(server, options_override=None, rs_add=False, no_init=False):
+    # set the timeout to 10 minutes for this server
+    set_server_connection_timeout(START_CONN_TIMEOUT)
+
     do_start_server(server,
                     options_override=options_override,
                     rs_add=rs_add,

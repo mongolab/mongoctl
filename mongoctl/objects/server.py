@@ -975,3 +975,9 @@ def set_client_ssl_mode(mode):
 
     global CLIENT_SSL_MODE
     CLIENT_SSL_MODE = mode
+
+
+###############################################################################
+def set_server_connection_timeout(timeout):
+    global CONN_TIMEOUT
+    CONN_TIMEOUT = timeout
