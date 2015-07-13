@@ -767,6 +767,8 @@ class Server(DocumentWrapper):
             else:
                 self._connection_address = self.get_address()
 
+        log_verbose("Using connection address '%s' for server '%s'" % (self._connection_address, self.id))
+
         return self._connection_address
 
     ###########################################################################
