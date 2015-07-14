@@ -550,6 +550,7 @@ class Server(DocumentWrapper):
         """
         Returns True if we manage to auth to the given db, else False.
         """
+        log_verbose("Server '%s' attempting to authenticate to db '%s'" % (self.id, dbname))
         login_user = self.get_login_user(dbname)
         username = None
         password = None
@@ -577,6 +578,7 @@ class Server(DocumentWrapper):
             # if auth success then exit loop and memoize login
             try:
                 auth_success = db.authenticate(username, password)
+                log_verbose("Authentication attempt #%s to db '%s' result: %s" % (no_tries, dbname, auth_success))
             except OperationFailure, ofe:
                 if "auth fails" in str(ofe):
                     auth_success = False
@@ -592,6 +594,9 @@ class Server(DocumentWrapper):
 
         if auth_success:
             self.set_login_user(dbname, username, password)
+            log_verbose("Authentication Succeeded!")
+        else:
+            log_verbose("Authentication failed")
 
         return auth_success
 
