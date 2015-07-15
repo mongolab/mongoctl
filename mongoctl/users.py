@@ -98,17 +98,7 @@ def setup_cluster_users(cluster, primary_server):
 ###############################################################################
 def should_seed_db_users(server, dbname):
     log_verbose("See if we should seed users for database '%s'" % dbname)
-    try:
-        connection = server.get_db_connection()
-        if connection[dbname]['system.users'].find_one():
-            return False
-        else:
-            return True
-    except Exception, e:
-        log_exception(e)
-        if is_auth_error(e) and dbname == "admin" and server.try_on_auth_failures():
-            return True
-        return False
+    return not list_database_users(server, server.get_db(dbname))
 
 ###############################################################################
 def setup_db_users(server, db, db_users):
@@ -160,6 +150,17 @@ def _mongo_add_user(server, db, username, password, read_only=False,
 
 
 ###############################################################################
+def list_database_users(server, db):
+    if server.supports_local_users():
+        result = db['system.users'].find()
+    else:
+        result = server.get_db("admin")["system.users"].find({
+            "db": db.name
+        })
+
+    return list(result)
+
+###############################################################################
 def setup_server_db_users(server, dbname, db_users):
     log_verbose("Checking if there are any users that needs to be added for "
                 "database '%s'..." % dbname)
@@ -199,34 +200,23 @@ def prepend_global_admin_user(other_users, server):
 ###############################################################################
 def setup_server_admin_users(server):
 
-    if not should_seed_db_users(server, "admin"):
-        log_verbose("Not seeding users for database 'admin'")
-        return 0
-
     admin_users = server.get_admin_users()
     if server.is_auth():
         admin_users = prepend_global_admin_user(admin_users, server)
 
-    if (admin_users is None or len(admin_users) < 1):
+    if admin_users is None or len(admin_users) < 1:
         log_verbose("No users configured for admin DB...")
         return 0
 
-    log_verbose("Checking setup for admin users...")
-    count_new_users = 0
+    root_user_added = setup_root_admin_user(server, admin_users)
+    if not root_user_added:
+        log_verbose("Not seeding users for database 'admin'")
+        return 0
+
+    log_verbose("Checking setup for other admin users...")
+    count_new_users = 1
     try:
-        admin_db = server.get_db("admin", no_auth=server.try_on_auth_failures())
-
-        # potentially create the 1st admin user
-        count_new_users += setup_db_users(server, admin_db, admin_users[0:1])
-
-        # the 1st-time init case:
-        # BEFORE adding 1st admin user, auth. is not possible --
-        #       only localhost cxn gets a magic pass.
-        # AFTER adding 1st admin user, authentication is required;
-        #      so, to be sure we now have authenticated cxn, re-pull admin db:
         admin_db = server.get_db("admin")
-
-        # create the rest of the users
         count_new_users += setup_db_users(server, admin_db, admin_users[1:])
         return count_new_users
     except Exception, e:
@@ -234,6 +224,33 @@ def setup_server_admin_users(server):
         raise MongoctlException(
             "Error while setting up admin users on server '%s'."
             "\n Cause: %s" % (server.id, e))
+
+###############################################################################
+def setup_root_admin_user(server, admin_users):
+    log_verbose("Setting up root admin user")
+    if not admin_users:
+        log_verbose("No admin users configured. NOOP")
+        return
+
+    admin_user = admin_users[0]
+    admin_db = server.get_db("admin", no_auth=True)
+    # try to authenticate with the admin user to see if it is already setup
+    try:
+        success = admin_db.authenticate(admin_user["username"], admin_user["password"])
+    except OperationFailure, of:
+        success = False
+
+    if success:
+        log_verbose("root admin user already added. NOOP")
+        return
+    log_verbose("Adding root admin user")
+    _mongo_add_user(server, admin_db, admin_user["username"], admin_user["password"])
+    # if there is no login user for this db then set it to this new one
+    db_login_user = server.get_login_user("admin")
+    if not db_login_user:
+        server.set_login_user("admin", admin_user["username"], admin_user["password"])
+
+    return True
 
 ###############################################################################
 def setup_server_local_users(server):
