@@ -2,7 +2,7 @@ __author__ = 'abdul'
 
 import repository
 
-from mongoctl_logging import log_info, log_verbose, log_warning, log_exception
+from mongoctl_logging import log_info, log_verbose, log_warning, log_exception, log_error
 from pymongo.errors import OperationFailure, AutoReconnect
 from errors import MongoctlException, is_auth_error
 from prompt import read_password
@@ -227,12 +227,13 @@ def setup_server_admin_users(server):
 
 ###############################################################################
 def setup_root_admin_user(server, admin_users):
-    log_verbose("Setting up root admin user")
+    log_info("Setting up root admin user...")
     if not admin_users:
-        log_verbose("No admin users configured. NOOP")
+        log_info("No admin users passed/configured. NOOP")
         return
 
-    admin_user = admin_users[0]
+    admin_user = server.get_login_user("admin") or admin_users[0]
+
     admin_db = server.get_db("admin", no_auth=True)
     # try to authenticate with the admin user to see if it is already setup
     try:
@@ -241,16 +242,26 @@ def setup_root_admin_user(server, admin_users):
         success = False
 
     if success:
-        log_verbose("root admin user already added. NOOP")
+        log_info("root admin user already added. NOOP")
         return
-    log_verbose("Adding root admin user")
-    _mongo_add_user(server, admin_db, admin_user["username"], admin_user["password"])
-    # if there is no login user for this db then set it to this new one
-    db_login_user = server.get_login_user("admin")
-    if not db_login_user:
-        server.set_login_user("admin", admin_user["username"], admin_user["password"])
+    try:
+        log_info("Adding root admin user")
+        _mongo_add_user(server, admin_db, admin_user["username"], admin_user["password"])
+        # if there is no login user for this db then set it to this new one
+        db_login_user = server.get_login_user("admin")
+        if not db_login_user:
+            server.set_login_user("admin", admin_user["username"], admin_user["password"])
 
-    return True
+        return True
+    except Exception, ex:
+        log_exception(ex)
+        if is_auth_error(ex):
+            log_error("Failed to add root admin user: %s" % ex)
+            # attempt to recover by prompting for proper admin credz
+            server.get_db("admin")
+            return False
+        else:
+            raise MongoctlException("Failed to add root admin user: %s" % ex)
 
 ###############################################################################
 def setup_server_local_users(server):
