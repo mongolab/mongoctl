@@ -18,7 +18,10 @@ def status_command(parsed_options):
     server = repository.lookup_server(id)
     if server:
         log_info("Status for server '%s':" % id)
-        status = server.get_status(admin=True)
+        if server.is_arbiter_server():
+            status = server.get_status(admin=False)
+        else:
+            status = server.get_status(admin=True)
     else:
         cluster = repository.lookup_cluster(id)
         if cluster:
