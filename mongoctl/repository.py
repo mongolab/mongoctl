@@ -106,9 +106,8 @@ def _db_repo_connect():
 ###############################################################################
 def validate_repositories():
     if not(has_file_repository() or has_db_repository() or has_commandline_servers_or_clusters()):
-        raise MongoctlException("Invalid 'mongoctl.config': No fileRepository"
-                                " or databaseRepository configured. At least"
-                                " one repository has to be configured.")
+        log_warning("*******\nNo fileRepository or databaseRepository configured."
+                    " At least one repository has to be configured.\n*******")
 
 ###############################################################################
 def set_commandline_servers_and_clusters(servers_json_str, clusters_json_str):
