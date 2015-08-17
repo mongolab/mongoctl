@@ -13,6 +13,7 @@ import config
 import urllib
 
 VERSION_2_6_1 = make_version_info("2.6.1")
+VERSION_3_0 = make_version_info("3.0.0")
 
 ###############################################################################
 # MongoDBBinaryRepository
@@ -115,7 +116,8 @@ class DefaultMongoDBBinaryRepository(MongoDBBinaryRepository):
     def __init__(self, name=None):
         MongoDBBinaryRepository.__init__(self, name=name)
         self.supported_editions = [MongoDBEdition.COMMUNITY,
-                                   MongoDBEdition.ENTERPRISE]
+                                   MongoDBEdition.ENTERPRISE,
+                                   MongoDBEdition.COMMUNITY_SSL]
 
 
     ###########################################################################
@@ -130,6 +132,12 @@ class DefaultMongoDBBinaryRepository(MongoDBBinaryRepository):
         if mongodb_edition == MongoDBEdition.COMMUNITY:
             archive_name = "mongodb-%s-%s.tgz" % (platform_spec,
                                                   mongodb_version)
+            domain = "fastdl.mongodb.org"
+        # community ssl from mongodb.org are supported only for version >= 3.9
+        elif (mongodb_edition == MongoDBEdition.COMMUNITY_SSL and
+              version_info >= VERSION_3_0 and
+              os_dist_version_no_dots is not None):
+            archive_name = "mongodb-%s-%s-%s.tgz" % (platform_spec, os_dist_version_no_dots, mongodb_version)
             domain = "fastdl.mongodb.org"
         elif mongodb_edition == MongoDBEdition.ENTERPRISE:
             if version_info and version_info >= VERSION_2_6_1:
