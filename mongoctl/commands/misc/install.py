@@ -158,10 +158,10 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
             log_info("Moving extracted folder to %s" % mongodb_installs_dir)
             shutil.move(target_dir_name, mongodb_installs_dir)
 
-        log_info("MongoDB %s installed successfully!" % version_info)
         install_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
         # install validation
         validate_mongodb_install(install_dir)
+        log_info("MongoDB %s installed successfully!" % version_info)
         return install_dir
     except Exception, e:
         log_exception(e)
@@ -181,6 +181,8 @@ def install_from_source(mongodb_version, mongodb_edition, build_threads=None,
     :param repo_name: The repo to use to generate archive name
     :return:
     """
+
+    version_info = make_version_info(mongodb_version, mongodb_edition)
 
     if build_tmp_dir:
         ensure_dir(build_tmp_dir)
@@ -252,6 +254,7 @@ def install_from_source(mongodb_version, mongodb_edition, build_threads=None,
 
     # install validation
     validate_mongodb_install(target_dir)
+    log_info("MongoDB %s installed successfully!" % version_info)
 
 ###############################################################################
 def validate_mongodb_install(install_dir):
@@ -259,8 +262,8 @@ def validate_mongodb_install(install_dir):
     mongod_exe = os.path.join(install_dir, "bin", "mongod")
     cmd = [mongod_exe, "--version"]
     try:
-
         execute_command(cmd)
+        log_info("Validation passed!")
     except CalledProcessError, cpe:
         log_exception(cpe)
         raise MongoctlException("MongoDB installation failed. Validation command %s failed with error: %s" %
