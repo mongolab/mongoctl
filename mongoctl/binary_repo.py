@@ -136,8 +136,9 @@ class DefaultMongoDBBinaryRepository(MongoDBBinaryRepository):
         # community ssl from mongodb.org are supported only for version >= 3.9
         elif (mongodb_edition == MongoDBEdition.COMMUNITY_SSL and
               version_info >= VERSION_3_0 and
-              os_dist_version_no_dots is not None):
-            archive_name = "mongodb-%s-%s-%s.tgz" % (platform_spec, os_dist_version_no_dots, mongodb_version)
+              os_dist_name is not None):
+            archive_name = "mongodb-%s-%s%s-%s.tgz" % (platform_spec, os_dist_name,
+                                                       os_dist_version_no_dots, mongodb_version)
             domain = "fastdl.mongodb.org"
         elif mongodb_edition == MongoDBEdition.ENTERPRISE:
             if version_info and version_info >= VERSION_2_6_1:
