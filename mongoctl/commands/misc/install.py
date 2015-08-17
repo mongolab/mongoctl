@@ -3,7 +3,7 @@ __author__ = 'abdul'
 import platform
 import urllib
 import shutil
-
+from subprocess import CalledProcessError
 
 import mongoctl.config as config
 from mongoctl.prompt import prompt_execute_task
@@ -160,6 +160,8 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
 
         log_info("MongoDB %s installed successfully!" % version_info)
         install_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
+        # install validation
+        validate_mongodb_install(install_dir)
         return install_dir
     except Exception, e:
         log_exception(e)
@@ -248,6 +250,21 @@ def install_from_source(mongodb_version, mongodb_edition, build_threads=None,
         log_error(str(e))
         log_exception(e)
 
+    # install validation
+    validate_mongodb_install(target_dir)
+
+###############################################################################
+def validate_mongodb_install(install_dir):
+    log_info("Verifying mongodb installation %s" % install_dir)
+    mongod_exe = os.path.join(install_dir, "bin", "mongod")
+    cmd = [mongod_exe, "--version"]
+    try:
+
+        execute_command(cmd)
+    except CalledProcessError, cpe:
+        log_exception(cpe)
+        raise MongoctlException("MongoDB installation failed. Validation command %s failed with error: %s" %
+                                (" ".join(cmd), cpe.output))
 
 ###############################################################################
 # uninstall_mongodb
