@@ -160,7 +160,7 @@ def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
 
         install_dir = os.path.join(mongodb_installs_dir, mongo_dir_name)
         # install validation
-        validate_mongodb_install(install_dir)
+        validate_mongodb_install(target_dir)
         log_info("MongoDB %s installed successfully!" % version_info)
         return install_dir
     except Exception, e:
