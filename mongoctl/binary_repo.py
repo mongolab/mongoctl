@@ -81,10 +81,11 @@ class MongoDBBinaryRepository(object):
     ###########################################################################
     def file_exists(self, mongodb_version, mongodb_edition):
         url = self.get_download_url(mongodb_version, mongodb_edition)
-
-        response = urllib.urlopen(url)
-
-        return response.code == 200
+        if url:
+            response = urllib.urlopen(url)
+            return response.code == 200
+        else:
+            return False
 
     ###########################################################################
     def upload_file(self, mongodb_version, mongodb_edition, file_path):
@@ -235,9 +236,11 @@ class S3MongoDBBinaryRepository(MongoDBBinaryRepository):
 
         file_path = self.get_download_url(mongodb_version, mongodb_edition)
 
-        key = self.bucket.get_key(file_path)
-
-        return key is not None
+        if file_path:
+            key = self.bucket.get_key(file_path)
+            return key is not None
+        else:
+            return False
 
     ###########################################################################
     def upload_file(self, mongodb_version, mongodb_edition, file_path):
@@ -332,8 +335,12 @@ def download_mongodb_binary(mongodb_version, mongodb_edition,
         log_verbose("Trying from '%s' binary repository..." % repo.name)
         if mongodb_edition in repo.supported_editions:
             try:
-                return repo.download_file(mongodb_version, mongodb_edition,
-                                          destination=destination)
+                if repo.file_exists(mongodb_version, mongodb_edition):
+                    return repo.download_file(mongodb_version, mongodb_edition,
+                                              destination=destination)
+                else:
+                    log_verbose("Repository '%s' doesnt have this version. Skipping..." % repo.name)
+                    continue
             except FileNotInRepoError, e:
                 log_verbose("No mongodb binary (version: '%s', edition: '%s' )"
                             "found in repo '%s'" %
