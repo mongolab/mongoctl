@@ -11,13 +11,13 @@ Install MongoDB
 The first time you use ```mongoctl``` you will want to download MongoDB. To get the latest stable version:
 
 ```
-% mongoctl install
+% mongoctl install-mongodb
 ```
 
 You can also specify a specific version:
 
 ```
-% mongoctl install 2.0.2
+% mongoctl install-mongodb 2.0.2
 ```
 
 Simple server example
