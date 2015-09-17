@@ -19,6 +19,7 @@ def register_mongoctl_signal_handler(handler):
 
 ###############################################################################
 def mongoctl_global_signal_handler(signal_val, frame):
+    log_verbose("**** RECEIVED SIGNAL %s *****" % signal_val)
     global __registered_signal_handlers__
     for handler in __registered_signal_handlers__:
         try:
@@ -42,11 +43,6 @@ def exit_mongoctl():
     # kill all children then exit
     map(kill_child, get_child_processes())
     exit(0)
-
-###############################################################################
-# register mongoctl exit
-
-register_mongoctl_signal_handler(exit_mongoctl)
 
 ###############################################################################
 def init_mongoctl_signal_handler():

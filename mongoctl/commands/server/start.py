@@ -662,6 +662,8 @@ def stop_server_signal_handler():
     if __mongod_pid__:
         prompt_execute_task("Kill server '%s'?" % __current_server__.id,
                             exit_mongoctl)
+    else:
+        exit_mongoctl()
 
 ###############################################################################
 # Register the global mongoctl signal handler
