@@ -37,6 +37,7 @@ from mongoctl.objects.mongos import MongosServer
 from mongoctl.objects.server import set_server_connection_timeout
 
 import mongoctl.mongoctl_command_config
+from mongoctl.mongoctl_signal import register_mongoctl_signal_handler, exit_mongoctl
 
 ###############################################################################
 # CONSTS
@@ -649,40 +650,22 @@ def obfuscate_password_args(command):
 
 
 ###############################################################################
-# SIGNAL HANDLER FUNCTIONS
+# signals
 ###############################################################################
-#TODO Remove this ugly signal handler and use something more elegant
-def mongoctl_signal_handler(signal_val, frame):
+
+def stop_server_signal_handler():
     global __mongod_pid__
 
     # otherwise prompt to kill server
     global __current_server__
 
-    def kill_child(child_process):
-        try:
-            if child_process.poll() is None:
-                log_verbose("Killing child process '%s'" % child_process )
-                child_process.terminate()
-        except Exception, e:
-            log_exception(e)
-            log_verbose("Unable to kill child process '%s': Cause: %s" %
-                        (child_process, e))
-
-    def exit_mongoctl():
-        # kill all children then exit
-        map(kill_child, get_child_processes())
-        exit(0)
-
-        # if there is no mongod server yet then exit
-    if __mongod_pid__ is None:
-        exit_mongoctl()
-    else:
+    if __mongod_pid__:
         prompt_execute_task("Kill server '%s'?" % __current_server__.id,
                             exit_mongoctl)
 
 ###############################################################################
 # Register the global mongoctl signal handler
-signal.signal(signal.SIGINT, mongoctl_signal_handler)
+register_mongoctl_signal_handler(stop_server_signal_handler)
 
 ###############################################################################
 SUPPORTED_MONGOD_OPTIONS = mongoctl.mongoctl_command_config.MONGOD_OPTION_NAMES

@@ -51,6 +51,7 @@ from prompt import (
 
 from utils import namespace_get_property
 from users import parse_global_login_user_arg
+from mongoctl_signal import init_mongoctl_signal_handler
 
 ###############################################################################
 # Constants
@@ -76,6 +77,8 @@ def main(args):
 
 ###############################################################################
 def do_main(args):
+    init_mongoctl_signal_handler()
+
     header = """
 -------------------------------------------------------------------------------------------
   __ _  ___  ___  ___ ____  ____/ /_/ /
