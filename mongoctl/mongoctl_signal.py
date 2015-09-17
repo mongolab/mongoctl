@@ -27,6 +27,8 @@ def mongoctl_global_signal_handler(signal_val, frame):
         except Exception, ex:
             traceback.format_exc()
 
+    exit_mongoctl()
+
 ###############################################################################
 def kill_child(child_process):
     try:
