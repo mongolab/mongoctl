@@ -202,6 +202,14 @@ MONGOCTL_PARSER_DEF = {
                             "executing it",
                     "default": False
                 },
+                {
+                    "name": "standalone",
+                    "type": "optional",
+                    "cmd_arg":  ["-l", "--standalone"],
+                    "nargs": 0,
+                    "help": "Run the server as a standalone node (i.e. without a replicaset)",
+                    "default": False
+                },
                     {
                     "name": "assumeLocal",
                     "type" : "optional",

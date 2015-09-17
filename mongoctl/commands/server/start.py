@@ -64,12 +64,14 @@ def start_command(parsed_options):
 
     rs_add = parsed_options.rsAdd or parsed_options.rsAddNoInit
     if parsed_options.dryRun:
-        dry_run_start_server_cmd(server, options_override)
+        dry_run_start_server_cmd(server, options_override=options_override,
+                                 standalone=parsed_options.standalone)
     else:
         start_server(server,
                      options_override=options_override,
                      rs_add=rs_add,
-                     no_init=parsed_options.rsAddNoInit)
+                     no_init=parsed_options.rsAddNoInit,
+                     standalone=parsed_options.standalone)
 
 
 
@@ -82,13 +84,14 @@ def extract_server_options(server, parsed_args):
 
 
 ###############################################################################
-def dry_run_start_server_cmd(server, options_override=None):
+def dry_run_start_server_cmd(server, options_override=None, standalone=False):
     # ensure that the start was issued locally. Fail otherwise
     server.validate_local_op("start")
 
     log_info("************ Dry Run ************\n")
 
-    start_cmd = generate_start_command(server, options_override)
+    start_cmd = generate_start_command(server, options_override=options_override,
+                                       standalone=standalone)
     start_cmd_str = start_command_display(start_cmd)
 
     log_info("\nCommand:")
@@ -99,21 +102,22 @@ def dry_run_start_server_cmd(server, options_override=None):
 ###############################################################################
 # start server
 ###############################################################################
-def start_server(server, options_override=None, rs_add=False, no_init=False):
+def start_server(server, options_override=None, rs_add=False, no_init=False, standalone=False):
     # set the timeout to 10 minutes for this server
     set_server_connection_timeout(START_CONN_TIMEOUT)
 
     do_start_server(server,
                     options_override=options_override,
                     rs_add=rs_add,
-                    no_init=no_init)
+                    no_init=no_init,
+                    standalone=standalone)
 
 ###############################################################################
 __mongod_pid__ = None
 __current_server__ = None
 
 ###############################################################################
-def do_start_server(server, options_override=None, rs_add=False, no_init=False):
+def do_start_server(server, options_override=None, rs_add=False, no_init=False, standalone=False):
     # ensure that the start was issued locally. Fail otherwise
     server.validate_local_op("start")
 
@@ -154,7 +158,7 @@ def do_start_server(server, options_override=None, rs_add=False, no_init=False):
 
     server.log_server_activity("start")
 
-    server_pid = start_server_process(server, options_override)
+    server_pid = start_server_process(server, options_override, standalone=standalone)
 
     _post_server_start(server, server_pid, rs_add=rs_add, no_init=no_init)
 
@@ -338,7 +342,7 @@ def prompt_add_member_to_replica(replica_cluster, server):
     prompt_execute_task(prompt, add_member_func)
 
 ###############################################################################
-def _start_server_process_4real(server, options_override=None):
+def _start_server_process_4real(server, options_override=None, standalone=False):
     mk_server_home_dir(server)
     # if the pid file is not created yet then this is the first time this
     # server is started (or at least by mongoctl)
@@ -351,7 +355,8 @@ def _start_server_process_4real(server, options_override=None):
         get_generate_key_file(server)
 
     # create the start command line
-    start_cmd = generate_start_command(server, options_override)
+    start_cmd = generate_start_command(server, options_override=options_override,
+                                       standalone=standalone)
 
     start_cmd_str = start_command_display(start_cmd)
     first_time_msg = " for the first time" if first_time else ""
@@ -394,9 +399,10 @@ def get_forked_mongod_pid(parent_mongod):
 
 
 ###############################################################################
-def start_server_process(server, options_override=None):
+def start_server_process(server, options_override=None, standalone=False):
 
-    mongod_pid = _start_server_process_4real(server, options_override)
+    mongod_pid = _start_server_process_4real(server, options_override=options_override,
+                                             standalone=standalone)
 
     log_info("Will now wait for server '%s' to start up."
              " Enjoy mongod's log for now!" %
@@ -497,7 +503,7 @@ def _negotiate_process_limit(set_resource, desired_limit, soft, hard):
 ###############################################################################
 # MONGOD Start Command functions
 ###############################################################################
-def generate_start_command(server, options_override=None):
+def generate_start_command(server, options_override=None, standalone=False):
     """
         Check if we need to use numactl if we are running on a NUMA box.
         10gen recommends using numactl on NUMA. For more info, see
@@ -513,7 +519,8 @@ def generate_start_command(server, options_override=None):
     command.append(get_server_executable(server))
 
     # create the command args
-    cmd_options = server.export_cmd_options(options_override=options_override)
+    cmd_options = server.export_cmd_options(options_override=options_override,
+                                            standalone=standalone)
 
     command.extend(options_to_command_args(cmd_options))
     return command

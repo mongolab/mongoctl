@@ -59,7 +59,7 @@ class MongodServer(server.Server):
         return home_dir
 
     ###########################################################################
-    def export_cmd_options(self, options_override=None):
+    def export_cmd_options(self, options_override=None, standalone=False):
         """
             Override!
         :return:
@@ -79,6 +79,13 @@ class MongodServer(server.Server):
         if repl_cluster is not None:
             if "replSet" not in cmd_options:
                 cmd_options["replSet"] = repl_cluster.id
+
+        # apply standalone if specified
+        if standalone:
+            if "replSet" in cmd_options:
+                del cmd_options["replSet"]
+            if "keyFile" in cmd_options:
+                del cmd_options["keyFile"]
 
         # add configsvr as needed
         if self.is_config_server():
