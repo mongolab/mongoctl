@@ -3,6 +3,7 @@ __author__ = 'abdul'
 import signal
 
 from mongoctl_logging import *
+from utils import kill_current_process_child_processes
 from processes import get_child_processes
 
 ###############################################################################
@@ -19,7 +20,7 @@ def register_mongoctl_signal_handler(handler):
 
 ###############################################################################
 def mongoctl_global_signal_handler(signal_val, frame):
-    log_verbose("**** RECEIVED SIGNAL %s *****" % signal_val)
+    print("**** RECEIVED SIGNAL %s *****" % signal_val)
     global __registered_signal_handlers__
     for handler in __registered_signal_handlers__:
         try:
@@ -43,7 +44,7 @@ def kill_child(child_process):
 ###############################################################################
 def exit_mongoctl():
     # kill all children then exit
-    map(kill_child, get_child_processes())
+    kill_current_process_child_processes()
     exit(0)
 
 ###############################################################################

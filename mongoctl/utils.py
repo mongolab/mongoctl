@@ -5,7 +5,7 @@ import subprocess
 import pwd
 import time
 import socket
-
+import psutil
 import urlparse
 import json
 
@@ -192,6 +192,23 @@ def kill_process(pid, force=False):
         return True
     except OSError:
         return False
+
+###############################################################################
+def kill_current_process_child_processes():
+    kill_all_child_processes(os.getpid())
+
+###############################################################################
+def kill_all_child_processes(pid):
+    print "Killing process %s child processes" % pid
+    process = psutil.Process(pid=pid)
+    children = process.get_children()
+    if children:
+        for child in children:
+            print "Killing child process %s" % child.pid
+            kill_all_child_processes(child.pid)
+    else:
+        print "Process %s has no children" % pid
+    process.kill()
 
 
 ###############################################################################
