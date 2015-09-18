@@ -375,7 +375,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_login_user(self, dbname):
-        login_user =  users.get_server_login_user(self, dbname)
+        login_user = users.get_server_login_user(self, dbname)
         # if no login user found then check global login
 
         if not login_user:
@@ -385,6 +385,9 @@ class Server(DocumentWrapper):
         # THEN assume that local credentials == admin credentials
         if not login_user and dbname == "local":
             login_user = self.get_login_user("admin")
+
+        if login_user and not login_user.get("password"):
+            login_user["password"] = self.lookup_password(dbname, login_user["username"])
 
         return login_user
 
