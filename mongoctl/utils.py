@@ -199,17 +199,20 @@ def kill_current_process_child_processes():
 
 ###############################################################################
 def kill_all_child_processes(pid):
-    print "Killing process %s child processes" % pid
-    process = psutil.Process(pid=pid)
-    children = process.get_children()
-    if children:
-        for child in children:
-            print "Killing child process %s" % child.pid
-            kill_all_child_processes(child.pid)
-    else:
-        print "Process %s has no children" % pid
-    process.kill()
-
+    try:
+        print "Killing process %s child processes" % pid
+        process = psutil.Process(pid=pid)
+        children = process.get_children()
+        if children:
+            for child in children:
+                print "Killing child process %s" % child.pid
+                kill_all_child_processes(child.pid)
+        else:
+            print "Process %s has no children" % pid
+        process.kill()
+    except Exception, ex:
+        log_debug("Error while killing all child processes for %s" % pid)
+        log_exception(ex)
 
 ###############################################################################
 # HELPER functions
