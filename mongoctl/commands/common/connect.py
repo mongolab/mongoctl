@@ -26,6 +26,7 @@ SUPPORTED_MONGO_SHELL_OPTIONS = [
     "eval",
     "verbose",
     "ipv6",
+    "port"
     ]
 
 ###############################################################################
@@ -52,8 +53,8 @@ def extract_mongo_shell_options(parsed_args):
 def open_mongo_shell_to(db_address,
                         username=None,
                         password=None,
-                        shell_options={},
-                        js_files=[]):
+                        shell_options=None,
+                        js_files=None):
     if is_mongo_uri(db_address):
         open_mongo_shell_to_uri(db_address, username, password,
                                 shell_options, js_files)
@@ -84,8 +85,8 @@ def open_mongo_shell_to_server(server,
                                database=None,
                                username=None,
                                password=None,
-                               shell_options={},
-                               js_files=[]):
+                               shell_options=None,
+                               js_files=None):
     repository.validate_server(server)
 
     if not database:
@@ -113,8 +114,8 @@ def open_mongo_shell_to_cluster(cluster,
                                 database=None,
                                 username=None,
                                 password=None,
-                                shell_options={},
-                                js_files=[]):
+                                shell_options=None,
+                                js_files=None):
 
     log_info("Locating default server for cluster '%s'..." % cluster.id)
     default_server = cluster.get_default_server()
@@ -134,8 +135,8 @@ def open_mongo_shell_to_cluster(cluster,
 def open_mongo_shell_to_uri(uri,
                             username=None,
                             password=None,
-                            shell_options={},
-                            js_files=[]):
+                            shell_options=None,
+                            js_files=None):
 
     uri_wrapper = parse_mongo_uri(uri)
     database = uri_wrapper.database
@@ -165,14 +166,21 @@ def do_open_mongo_shell_to(address,
                            username=None,
                            password=None,
                            server_version=None,
-                           shell_options={},
-                           js_files=[],
+                           shell_options=None,
+                           js_files=None,
                            ssl=False):
 
     # default database to admin
     database = database if database else "admin"
 
+    shell_options = shell_options or {}
+    js_files = js_files or []
 
+    # override port if specified in --port
+    if "port" in shell_options:
+        address = "%s:%s" % (address.split(":")[0], shell_options["port"])
+        # remove port from options since passing address + port is disallowed in mongo
+        del shell_options["port"]
     connect_cmd = [get_mongo_shell_executable(server_version),
                    "%s/%s" % (address, database)]
 
@@ -193,7 +201,7 @@ def do_open_mongo_shell_to(address,
     if ssl:
         connect_cmd.append("--ssl")
 
-    cmd_display =  connect_cmd[:]
+    cmd_display = connect_cmd[:]
     # mask user/password
     if username:
         cmd_display[cmd_display.index("-u") + 1] =  "****"

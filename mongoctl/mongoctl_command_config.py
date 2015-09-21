@@ -527,6 +527,16 @@ MONGOCTL_PARSER_DEF = {
                     "nargs": 0
                 },
 
+                {
+                    "name": "port",
+                    "type": "optional",
+                    "help": "port to connect to",
+                    "cmd_arg": [
+                        "--port"
+                    ],
+                    "nargs": 1
+                },
+
 
 
             ]
