@@ -110,7 +110,7 @@ def validate_repositories():
     global __repos_validated__
     if not __repos_validated__:
         if not(has_file_repository() or has_db_repository() or has_commandline_servers_or_clusters()):
-            log_warning("******* WARNING!\nNo fileRepository or databaseRepository configured."
+            log_verbose("******* WARNING!\nNo fileRepository or databaseRepository configured."
                         "\n*******")
         __repos_validated__ = True
 
