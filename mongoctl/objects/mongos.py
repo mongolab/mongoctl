@@ -20,7 +20,7 @@ class MongosServer(Server):
         super(MongosServer, self).__init__(server_doc)
 
     ###########################################################################
-    def export_cmd_options(self, options_override=None):
+    def export_cmd_options(self, options_override=None, standalone=False):
         """
             Override!
         :return:
