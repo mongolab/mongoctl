@@ -885,7 +885,6 @@ MONGOCTL_PARSER_DEF = {
                     ],
                     "nargs": 0
                 },
-
                     {
                     "name": "keepIndexVersion",
                     "type" : "optional",
@@ -902,16 +901,14 @@ MONGOCTL_PARSER_DEF = {
                     "nargs": 0,
                     "help": "enable IPv6 support (disabled by default)"
                 },
-
-                {
+                    {
                     "name": "authenticationDatabase",
                     "type" : "optional",
                     "cmd_arg":  "--authenticationDatabase",
                     "nargs": 1,
                     "help": "user source (defaults to dbname). 2.4.x or greater only."
                 },
-
-                {
+                    {
                     "name": "restoreDbUsersAndRoles",
                     "type": "optional",
                     "cmd_arg":  "--restoreDbUsersAndRoles",
@@ -926,8 +923,14 @@ MONGOCTL_PARSER_DEF = {
                     "cmd_arg":  "--noIndexRestore",
                     "nargs": 0,
                     "help": "don't restore indexes"
+                },
+                    {
+                    "name": "stopOnError",
+                    "type": "optional",
+                    "cmd_arg":  "--stopOnError",
+                    "nargs": 0,
+                    "help": "stop restoring if an error is encountered on insert (off by default)"
                 }
-
             ]
         },
         #### resync-secondary ####

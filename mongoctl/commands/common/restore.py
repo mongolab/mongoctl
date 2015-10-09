@@ -34,7 +34,8 @@ SUPPORTED_MONGO_RESTORE_OPTIONS = [
     "verbose",
     "authenticationDatabase",
     "restoreDbUsersAndRoles",
-    "noIndexRestore"
+    "noIndexRestore",
+    "stopOnError"
 ]
 
 
