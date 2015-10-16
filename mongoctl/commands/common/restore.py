@@ -35,7 +35,8 @@ SUPPORTED_MONGO_RESTORE_OPTIONS = [
     "authenticationDatabase",
     "restoreDbUsersAndRoles",
     "noIndexRestore",
-    "stopOnError"
+    "stopOnError",
+    "writeConcern"
 ]
 
 
@@ -229,6 +230,12 @@ def do_mongo_restore(source,
     if (restore_options and "restoreDbUsersAndRoles" in restore_options and
             version_info and version_info < make_version_info("2.6.0")):
         restore_options.pop("restoreDbUsersAndRoles", None)
+
+    # for 3.0 default writeConcern to '{w:1}' unless overridden by restore_options
+
+    if (version_info and version_info >= make_version_info("3.0.0") and
+            (not restore_options or "writeConcern" not in restore_options)):
+        restore_cmd.extend(["--writeConcern", "'{w:1}'"])
 
     # append shell options
     if restore_options:

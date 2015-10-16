@@ -930,6 +930,14 @@ MONGOCTL_PARSER_DEF = {
                     "cmd_arg":  "--stopOnError",
                     "nargs": 0,
                     "help": "stop restoring if an error is encountered on insert (off by default)"
+                },
+                {
+                    "name": "writeConcern",
+                    "type": "optional",
+                    "cmd_arg":  "--writeConcern",
+                    "nargs": 1,
+                    "help": "Available for MongoDB 3.0.x: write concern options e.g. --writeConcern majority, "
+                            "--writeConcern '{w: 3,wtimeout: 500, fsync: true, j: true}' (mongoctl defaults to '{w:1}')"
                 }
             ]
         },
