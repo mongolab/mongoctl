@@ -5,7 +5,7 @@ import mongoctl.repository as repository
 from mongoctl.mongoctl_logging import *
 from mongoctl.errors import MongoctlException
 from mongoctl.utils import document_pretty_string
-
+from mongoctl.objects.mongod import MongodServer
 ###############################################################################
 # status command TODO: parsed?
 ###############################################################################
@@ -18,7 +18,7 @@ def status_command(parsed_options):
     server = repository.lookup_server(id)
     if server:
         log_info("Status for server '%s':" % id)
-        if server.is_arbiter_server():
+        if isinstance(server, MongodServer) and server.is_arbiter_server():
             status = server.get_status(admin=False)
         else:
             status = server.get_status(admin=True)
