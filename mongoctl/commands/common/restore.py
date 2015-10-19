@@ -235,7 +235,7 @@ def do_mongo_restore(source,
 
     if (version_info and version_info >= make_version_info("3.0.0") and
             (not restore_options or "writeConcern" not in restore_options)):
-        restore_cmd.extend(["--writeConcern", "'{w:1}'"])
+        restore_cmd.extend(["--writeConcern", "{w:1}"])
 
     # append shell options
     if restore_options:
