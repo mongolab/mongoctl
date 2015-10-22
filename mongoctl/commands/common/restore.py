@@ -63,17 +63,16 @@ def restore_command(parsed_options):
     elif not (is_addr or is_path):
         raise MongoctlException("Invalid destination value '%s'. Destination has to be"
                                 " a valid db address or dbpath." % destination)
-    restore_options = extract_mongo_restore_options(parsed_options)
 
     if is_addr:
         mongo_restore_db_address(destination,
                                  source,
                                  username=parsed_options.username,
                                  password=parsed_options.password,
-                                 restore_options=restore_options)
+                                 parsed_options=parsed_options)
     else:
         dbpath = resolve_path(destination)
-        mongo_restore_db_path(dbpath, source, restore_options=restore_options)
+        mongo_restore_db_path(dbpath, source, parsed_options=parsed_options)
 
 
 ###############################################################################
@@ -83,11 +82,11 @@ def mongo_restore_db_address(db_address,
                              source,
                              username=None,
                              password=None,
-                             restore_options=None):
+                             parsed_options=None):
 
     if is_mongo_uri(db_address):
         mongo_restore_uri(db_address, source, username, password,
-                          restore_options)
+                          parsed_options=parsed_options)
         return
 
     # db_address is an id string
@@ -99,27 +98,27 @@ def mongo_restore_db_address(db_address,
     if server:
         mongo_restore_server(server, source, database=database,
                              username=username, password=password,
-                             restore_options=restore_options)
+                             parsed_options=parsed_options)
         return
     else:
         cluster = repository.lookup_cluster(id)
         if cluster:
             mongo_restore_cluster(cluster, source, database=database,
                                   username=username, password=password,
-                                  restore_options=restore_options)
+                                  parsed_options=parsed_options)
             return
 
     raise MongoctlException("Unknown db address '%s'" % db_address)
 
 ###############################################################################
-def mongo_restore_db_path(dbpath, source, restore_options=None):
-    do_mongo_restore(source, dbpath=dbpath, restore_options=restore_options)
+def mongo_restore_db_path(dbpath, source, parsed_options=None):
+    do_mongo_restore(source, dbpath=dbpath, parsed_options=parsed_options)
 
 ###############################################################################
 def mongo_restore_uri(uri, source,
                       username=None,
                       password=None,
-                      restore_options=None):
+                      parsed_options=None):
 
     uri_wrapper = parse_mongo_uri(uri)
     database = uri_wrapper.database
@@ -131,18 +130,18 @@ def mongo_restore_uri(uri, source,
     if isinstance(server_or_cluster, Server):
         mongo_restore_server(server_or_cluster, source, database=database,
                              username=username, password=password,
-                             restore_options=restore_options)
+                             parsed_options=parsed_options)
     else:
         mongo_restore_cluster(server_or_cluster, source, database=database,
                               username=username, password=password,
-                              restore_options=restore_options)
+                              parsed_options=parsed_options)
 
 ###############################################################################
 def mongo_restore_server(server, source,
                          database=None,
                          username=None,
                          password=None,
-                         restore_options=None):
+                         parsed_options=None):
     repository.validate_server(server)
 
     # auto complete password if possible
@@ -159,7 +158,7 @@ def mongo_restore_server(server, source,
                      username=username,
                      password=password,
                      version_info=server.get_mongo_version_info(),
-                     restore_options=restore_options,
+                     parsed_options=parsed_options,
                      ssl=server.use_ssl_client())
 
 
@@ -168,7 +167,7 @@ def mongo_restore_cluster(cluster, source,
                           database=None,
                           username=None,
                           password=None,
-                          restore_options=None):
+                          parsed_options=None):
     repository.validate_cluster(cluster)
     log_info("Locating default server for cluster '%s'..." % cluster.id)
     default_server = cluster.get_default_server()
@@ -178,7 +177,7 @@ def mongo_restore_cluster(cluster, source,
                              database=database,
                              username=username,
                              password=password,
-                             restore_options=restore_options)
+                             parsed_options=parsed_options)
     else:
         raise MongoctlException("No default server found for cluster '%s'" %
                                 cluster.id)
@@ -192,9 +191,10 @@ def do_mongo_restore(source,
                      username=None,
                      password=None,
                      version_info=None,
-                     restore_options=None,
+                     parsed_options=None,
                      ssl=False):
 
+    restore_options = extract_mongo_restore_options(parsed_options)
     # create restore command with host and port
     restore_cmd = [get_mongo_restore_executable(version_info)]
 
@@ -232,10 +232,13 @@ def do_mongo_restore(source,
         restore_options.pop("restoreDbUsersAndRoles", None)
 
     # for 3.0 default writeConcern to '{w:1}' unless overridden by restore_options
+    # default stopOnError to true
+    if version_info and version_info >= make_version_info("3.0.0"):
+        if not restore_options or "writeConcern" not in restore_options:
+            restore_cmd.extend(["--writeConcern", "{w:1}"])
 
-    if (version_info and version_info >= make_version_info("3.0.0") and
-            (not restore_options or "writeConcern" not in restore_options)):
-        restore_cmd.extend(["--writeConcern", "{w:1}"])
+        if not parsed_options.continueOnError and "stopOnError" not in restore_options:
+            restore_cmd.append("--stopOnError")
 
     # append shell options
     if restore_options:

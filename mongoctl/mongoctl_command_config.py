@@ -929,7 +929,15 @@ MONGOCTL_PARSER_DEF = {
                     "type": "optional",
                     "cmd_arg":  "--stopOnError",
                     "nargs": 0,
-                    "help": "stop restoring if an error is encountered on insert (off by default)"
+                    "help": "stop restoring if an error is encountered on insert (3.0.x only. on by default by mongoctl"
+                            " . Use --continueOnError for disabling)"
+                },
+                {
+                    "name": "continueOnError",
+                    "type": "optional",
+                    "cmd_arg":  "--continueOnError",
+                    "nargs": 0,
+                    "help": "continue restoring if an error is encountered on insert (3.0.x only. off by default)"
                 },
                 {
                     "name": "writeConcern",
