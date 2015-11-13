@@ -120,4 +120,4 @@ class Cluster(DocumentWrapper):
                 server_uri_templates.append(server.get_address_display())
 
         creds = "[<dbuser>:<dbpass>@]" if auth else ""
-        return "mongodb://%s%s%s?replicaSet==%s" % (creds, ",".join(server_uri_templates), db, self.id)
+        return "mongodb://%s%s%s?replicaSet=%s" % (creds, ",".join(server_uri_templates), db, self.id)
