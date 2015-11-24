@@ -10,7 +10,7 @@ from mongoctl.mongoctl_logging import log_info , log_warning
 from mongoctl.commands.command_utils import (
     is_db_address, is_dbpath, extract_mongo_exe_options, get_mongo_executable,
     options_to_command_args,
-    VERSION_PREF_EXACT_OR_MINOR
+    VERSION_PREF_EXACT_OR_MINOR, VERSION_PREF_EXACT
 )
 from mongoctl.errors import MongoctlException
 
@@ -261,10 +261,19 @@ def do_mongo_restore(source,
 
 ###############################################################################
 def get_mongo_restore_executable(version_info):
+
+    version_check_pref = VERSION_PREF_EXACT_OR_MINOR
+
+    if version_info == make_version_info("3.0.7"):
+        log_info("Requiring version 3.0.6 instead of 3.0.7 b/c of mongorestore "
+                 "bug TOOLS-939")
+        version_info = make_version_info("3.0.6", version_info.edition)
+        version_check_pref = VERSION_PREF_EXACT
+
     restore_exe = get_mongo_executable(version_info,
                                        'mongorestore',
                                        version_check_pref=
-                                       VERSION_PREF_EXACT_OR_MINOR)
+                                       version_check_pref)
     # Warn the user if it is not an exact match (minor match)
     if version_info and version_info != restore_exe.version:
         log_warning("Using mongorestore '%s' that does not exactly match"
