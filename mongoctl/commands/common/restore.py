@@ -274,6 +274,7 @@ def get_mongo_restore_executable(version_info):
                                        'mongorestore',
                                        version_check_pref=
                                        version_check_pref)
+
     # Warn the user if it is not an exact match (minor match)
     if version_info and version_info != restore_exe.version:
         log_warning("Using mongorestore '%s' that does not exactly match"
