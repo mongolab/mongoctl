@@ -264,7 +264,7 @@ def get_mongo_restore_executable(version_info):
 
     version_check_pref = VERSION_PREF_EXACT_OR_MINOR
 
-    if version_info == make_version_info("3.0.7"):
+    if version_info and version_info == make_version_info("3.0.7", version_info.edition):
         log_info("Requiring version 3.0.6 instead of 3.0.7 b/c of mongorestore "
                  "bug TOOLS-939")
         version_info = make_version_info("3.0.6", version_info.edition)
