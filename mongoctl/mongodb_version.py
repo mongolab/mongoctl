@@ -37,8 +37,12 @@ class MongoDBVersionInfo(NormalizedVersion):
     ###########################################################################
     def __eq__(self, other):
         return (other is not None and
-                super(MongoDBVersionInfo, self).__eq__(other) and
+                self.equals_ignore_edition(other) and
                 self.edition == other.edition)
+
+    ###########################################################################
+    def equals_ignore_edition(self, other):
+        return super(MongoDBVersionInfo, self).__eq__(other)
 
 ###############################################################################
 def is_valid_version_info(version_info):
