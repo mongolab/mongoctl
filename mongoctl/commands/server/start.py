@@ -54,6 +54,9 @@ PROCESS_LIMITS = [
 # mongo connection timeout for the start operation.
 START_CONN_TIMEOUT = 10 * 60 * 1000
 
+# Max time to wait for server to be online (i.e running and accepting connection) after start
+SERVER_ONLINE_TIMEOUT = 15 * 60
+
 ###############################################################################
 # start command
 ###############################################################################
@@ -418,7 +421,7 @@ def start_server_process(server, options_override=None, standalone=False):
     # wait until the server starts
     try:
         is_online = wait_for(server_started_predicate(server, mongod_pid),
-                             timeout=300)
+                             timeout=SERVER_ONLINE_TIMEOUT)
     finally:
         # stop tailing
         stop_tailing(log_tailer)
