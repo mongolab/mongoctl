@@ -8,6 +8,11 @@ from mongoctl import repository
 from mongoctl.utils import execute_command
 
 ###############################################################################
+# CONSTS
+###############################################################################
+DEFAULT_TAIL_LINES = 15
+
+###############################################################################
 # tail log command
 ###############################################################################
 def tail_log_command(parsed_options):
@@ -30,7 +35,7 @@ def tail_server_log(server):
         log_verbose("Touching log file '%s'" % logpath)
         execute_command(["touch", logpath])
 
-        tail_cmd = ["tail", "-f", logpath]
+        tail_cmd = ["tail", "-f", "-n", str(DEFAULT_TAIL_LINES), logpath]
         log_verbose("Executing command: %s" % (" ".join(tail_cmd)))
         return create_subprocess(tail_cmd)
     except Exception, e:
