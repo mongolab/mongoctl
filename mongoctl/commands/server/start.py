@@ -65,6 +65,9 @@ def start_command(parsed_options):
     server_id = parsed_options.server
     server = repository.lookup_and_validate_server(server_id)
     options_override = extract_server_options(server, parsed_options)
+    # apply overrides to server's cmd options (in memory only)
+    if options_override:
+        server.apply_cmd_options_overrides(options_override)
 
     rs_add = parsed_options.rsAdd or parsed_options.rsAddNoInit
     if parsed_options.dryRun:

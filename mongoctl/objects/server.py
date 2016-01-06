@@ -338,6 +338,10 @@ class Server(DocumentWrapper):
         if options_overrides:
             for option, val in options_overrides.items():
                 self.set_cmd_option(option, val)
+        # if port was in the overrides then make sure we clear out the cached
+        # connection address
+        if "port" in options_overrides:
+            self._connection_address = None
 
     ###########################################################################
     def export_cmd_options(self, options_override=None):
