@@ -334,6 +334,12 @@ class Server(DocumentWrapper):
         return self.set_property('cmdOptions' , cmd_options)
 
     ###########################################################################
+    def apply_cmd_options_overrides(self, options_overrides):
+        if options_overrides:
+            for option, val in options_overrides.items():
+                self.set_cmd_option(option, val)
+
+    ###########################################################################
     def export_cmd_options(self, options_override=None):
         cmd_options =  self.get_cmd_options().copy()
         # reset some props to exporting vals
