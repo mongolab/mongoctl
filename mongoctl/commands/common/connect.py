@@ -26,7 +26,9 @@ SUPPORTED_MONGO_SHELL_OPTIONS = [
     "eval",
     "verbose",
     "ipv6",
-    "port"
+    "port",
+    "ssl",
+    "sslCAFile",
     ]
 
 ###############################################################################
