@@ -537,7 +537,25 @@ MONGOCTL_PARSER_DEF = {
                     "nargs": 1
                 },
 
+                {
+                    "name": "ssl",
+                    "type": "optional",
+                    "help": "connect using encrypted channel",
+                    "cmd_arg": [
+                        "--ssl"
+                    ],
+                    "nargs": 0
+                },
 
+                {
+                    "name": "sslCAFile",
+                    "type": "optional",
+                    "help": "file containing list of trusted Certificate Authorities",
+                    "cmd_arg": [
+                        "--sslCAFile"
+                    ],
+                    "nargs": 1
+                },
 
             ]
         },
