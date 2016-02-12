@@ -6,7 +6,7 @@ import mongoctl.repository as repository
 
 from base import DocumentWrapper
 from mongoctl.utils import resolve_path, document_pretty_string, is_host_local
-from pymongo import MongoClient
+import pymongo
 
 from pymongo.errors import AutoReconnect, OperationFailure
 from mongoctl.mongoctl_logging import (
@@ -750,7 +750,7 @@ class Server(DocumentWrapper):
     def get_mongo_client(self):
         if self._mongo_client is None:
             client_params = self.get_client_params()
-            self._mongo_client = MongoClient(self.get_mongo_uri(),
+            self._mongo_client = pymongo.MongoClient(self.get_mongo_uri(),
                                              **client_params)
         return self._mongo_client
 
@@ -762,6 +762,10 @@ class Server(DocumentWrapper):
             "socketTimeoutMS": CONN_TIMEOUT,
             "connectTimeoutMS": CONN_TIMEOUT
         }
+
+        if pymongo.get_version_string().startswith("3.2"):
+            ## TODO XXX MAYBE? This makes things much slower
+            params["serverSelectionTimeoutMS"] = CONN_TIMEOUT
 
         params.update(self.get_client_ssl_params())
 
@@ -816,8 +820,7 @@ class Server(DocumentWrapper):
         try:
             log_verbose("Checking if server '%s' is accessible on "
                         "address '%s'" % (self.id, address))
-            MongoClient("mongodb://%s" % address,
-                        **self.get_client_params())
+            pymongo.MongoClient("mongodb://%s" % address, **self.get_client_params())
             return True
         except Exception, e:
             log_exception(e)
