@@ -151,7 +151,7 @@ class Server(DocumentWrapper):
         log_debug("prefer_use_ssl() Checking if we prefer ssl for '%s'" %
                   self.id)
         try:
-            self.make_ssl_db_connection(self.get_connection_address())
+            pymongo.MongoClient(self.get_mongo_uri(), ssl=True)
             return True
         except Exception, e:
             if not "SSL handshake failed" in str(e):
