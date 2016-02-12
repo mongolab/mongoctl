@@ -6,11 +6,13 @@ import mongoctl.repository as repository
 
 from base import DocumentWrapper
 from mongoctl.utils import resolve_path, document_pretty_string, is_host_local
-from pymongo.errors import AutoReconnect, ConnectionFailure
+from pymongo import MongoClient
+
+from pymongo.errors import AutoReconnect, OperationFailure
 from mongoctl.mongoctl_logging import (
     log_verbose, log_error, log_warning, log_exception, log_debug
     )
-from mongoctl.mongodb_version import make_version_info
+
 
 from mongoctl.config import get_default_users
 from mongoctl.errors import MongoctlException, is_auth_error
@@ -18,8 +20,6 @@ from mongoctl.prompt import read_username, read_password
 
 from bson.son import SON
 
-from pymongo.connection import Connection
-from pymongo.errors import OperationFailure
 
 import datetime
 
@@ -78,7 +78,7 @@ class Server(DocumentWrapper):
     ###########################################################################
     def __init__(self, server_doc):
         DocumentWrapper.__init__(self, server_doc)
-        self._db_connection = None
+        self._mongo_client = None
         self._seed_users = None
         self._mongo_version = None
         self._mongodb_edition = None
@@ -268,7 +268,7 @@ class Server(DocumentWrapper):
             return self._mongo_version
 
         if self.is_online():
-            mongo_version = self.get_db_connection().server_info()['version']
+            mongo_version = self.get_mongo_client().server_info()['version']
         else:
             mongo_version = self.get_property("mongoVersion")
 
@@ -283,7 +283,7 @@ class Server(DocumentWrapper):
             return self._mongodb_edition
 
         if self.is_online():
-            server_info = self.get_db_connection().server_info()
+            server_info = self.get_mongo_client().server_info()
             if ("gitVersion" in server_info and
                     ("subscription" in server_info["gitVersion"] or
                      "enterprise" in server_info["gitVersion"])):
@@ -505,8 +505,8 @@ class Server(DocumentWrapper):
     def get_db(self, dbname, no_auth=False, username=None, password=None,
                retry=True, never_auth_with_admin=False):
 
-        conn = self.get_db_connection()
-        db = conn[dbname]
+        mongo_client = self.get_mongo_client()
+        db = mongo_client.get_database(dbname)
 
         # If the DB doesn't need to be authenticated to (or at least yet)
         # then don't authenticate. this piece of code is important for the case
@@ -638,7 +638,7 @@ class Server(DocumentWrapper):
     ###########################################################################
     def is_online(self):
         try:
-            self.new_db_connection()
+            self.get_mongo_client().server_info()
             return True
         except Exception, e:
             log_exception(e)
@@ -686,8 +686,8 @@ class Server(DocumentWrapper):
         log_debug("Checking if server '%s' needs to auth on  db '%s'...." %
                   (self.id, dbname))
         try:
-            conn = self.new_db_connection()
-            db = conn[dbname]
+            client = self.get_mongo_client()
+            db = client.get_database(dbname)
             db.collection_names()
             result = False
         except (RuntimeError,Exception), e:
@@ -703,7 +703,7 @@ class Server(DocumentWrapper):
         status = {}
         ## check if the server is online
         try:
-            self.get_db_connection()
+            self.get_mongo_client().server_info()
             status['connection'] = True
 
             # grab status summary if it was specified + if i am not an arbiter
@@ -713,7 +713,6 @@ class Server(DocumentWrapper):
 
         except (RuntimeError, Exception), e:
             log_exception(e)
-            self.sever_db_connection()   # better luck next time!
             status['connection'] = False
             status['error'] = "%s" % e
             if "timed out" in status['error']:
@@ -748,20 +747,41 @@ class Server(DocumentWrapper):
             return self.db_command(SON([('serverStatus', 1)]), "admin")
 
     ###########################################################################
-    def get_db_connection(self):
-        if self._db_connection is None:
-            self._db_connection  = self.new_db_connection()
-        return self._db_connection
+    def get_mongo_client(self):
+        if self._mongo_client is None:
+            client_params = self.get_client_params()
+            self._mongo_client = MongoClient(self.get_mongo_uri(),
+                                             **client_params)
+        return self._mongo_client
+
+
 
     ###########################################################################
-    def sever_db_connection(self):
-        if self._db_connection is not None:
-            self._db_connection.close()
-        self._db_connection = None
+    def get_client_params(self):
+        params = {
+            "socketTimeoutMS": CONN_TIMEOUT,
+            "connectTimeoutMS": CONN_TIMEOUT
+        }
+
+        params.update(self.get_client_ssl_params())
+
+        return params
 
     ###########################################################################
-    def new_db_connection(self):
-        return self.make_db_connection(self.get_connection_address())
+    def get_client_ssl_params(self):
+        ssl_params = {}
+        if self.use_ssl_client():
+            ssl_params["ssl"] = True
+
+        if self.ssl_cert_file():
+            ssl_params["ssl_keyfile"] = self.ssl_key_file()
+            ssl_params["ssl_certfile"] = self.ssl_cert_file()
+
+        return ssl_params
+
+    ###########################################################################
+    def get_mongo_uri(self, ):
+        return "mongodb://%s/admin" % self.get_connection_address()
 
     ###########################################################################
     def get_connection_address(self):
@@ -789,63 +809,6 @@ class Server(DocumentWrapper):
 
         return self._connection_address
 
-    ###########################################################################
-    def make_db_connection(self, address):
-
-        try:
-
-            client_ssl_mode = self.get_client_ssl_mode()
-            if client_ssl_mode in [None, ClientSslMode.DISABLED]:
-                return self.make_plain_db_connection(address)
-            elif client_ssl_mode == ClientSslMode.REQUIRE:
-                return self.make_ssl_db_connection(address)
-            elif client_ssl_mode == ClientSslMode.ALLOW:
-                try:
-                    # attempt an ssl connection
-                    return self.make_plain_db_connection(address)
-                except Exception, e:
-                    return self.make_ssl_db_connection(address)
-
-            else:
-                ## PREFER
-                try:
-                    # attempt an ssl connection
-                    return self.make_ssl_db_connection(address)
-                except Exception, e:
-                    return self.make_plain_db_connection(address)
-        except Exception, e:
-            log_exception(e)
-            error_msg = "Cannot connect to '%s'. Cause: %s" % \
-                        (address, e)
-            raise MongoctlException(error_msg,cause=e)
-
-
-    ###########################################################################
-    def make_ssl_db_connection(self, address):
-
-        kwargs = {
-            "ssl": True
-        }
-
-        if self.ssl_key_file():
-            kwargs["ssl_keyfile"] = self.ssl_key_file()
-            kwargs["ssl_certfile"] = self.ssl_cert_file()
-
-        return self._do_make_db_connection(address, **kwargs)
-
-    ###########################################################################
-    def make_plain_db_connection(self, address):
-        return self._do_make_db_connection(address)
-
-    ###########################################################################
-    def _do_make_db_connection(self, address, **kwargs):
-        kwargs = kwargs or {}
-        kwargs.update({
-            "socketTimeoutMS": CONN_TIMEOUT,
-            "connectTimeoutMS": CONN_TIMEOUT
-        })
-
-        return Connection(address, **kwargs)
 
     ###########################################################################
     def has_connectivity_on(self, address):
@@ -853,7 +816,8 @@ class Server(DocumentWrapper):
         try:
             log_verbose("Checking if server '%s' is accessible on "
                         "address '%s'" % (self.id, address))
-            self.make_db_connection(address)
+            MongoClient("mongodb://%s" % address,
+                        **self.get_client_params())
             return True
         except Exception, e:
             log_exception(e)
