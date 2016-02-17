@@ -24,7 +24,7 @@
 import unittest
 import time
 
-from mongoctl.tests.test_base import MongoctlTestBase
+from mongoctl.tests.test_base import MongoctlTestBase, append_user_arg
 
 class AuthReplicasetTest(MongoctlTestBase):
 
@@ -38,21 +38,21 @@ class AuthReplicasetTest(MongoctlTestBase):
         self.assert_server_running("auth_arbiter_test_server")
 
         self.assert_start_server("auth_node1_test_server")
-        self.assert_server_running("auth_node1_test_server")
+        self.assert_server_online("auth_node1_test_server")
 
         self.assert_start_server("auth_node2_test_server")
-        self.assert_server_running("auth_node2_test_server")
+        self.assert_server_online("auth_node2_test_server")
 
         # Configure the cluster
-        self.mongoctl_assert_cmd("configure-cluster AuthReplicasetTestCluster"
-                                 " -u abdulito")
+        conf_cmd = ["configure-cluster", "AuthReplicasetTestCluster"]
+        append_user_arg(conf_cmd)
+        self.mongoctl_assert_cmd(conf_cmd)
 
         print "Sleeping for 2 seconds..."
         # sleep for a couple of seconds
         time.sleep(2)
         # RE-Configure the cluster
-        self.mongoctl_assert_cmd("configure-cluster AuthReplicasetTestCluster"
-                                 " -u abdulito")
+        self.mongoctl_assert_cmd(conf_cmd)
 
         print ("Sleeping for 15 seconds. Hopefully credentials would "
               "be replicated by then. If not then authentication will fail and"

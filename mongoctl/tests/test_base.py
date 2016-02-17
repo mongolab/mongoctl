@@ -30,7 +30,7 @@ import inspect
 import os
 import shutil
 import mongoctl.mongoctl as mongoctl_main
-from mongoctl.repository import lookup_server
+from mongoctl import repository
 from mongoctl.utils import is_pid_alive, kill_process, document_pretty_string, execute_command
 from mongoctl.commands.command_utils import get_mongo_executable
 from mongoctl.minify_json import minify_json
@@ -127,6 +127,9 @@ class MongoctlTestBase(unittest.TestCase):
 
         print "--- Deleting the test db directory %s " % test_dir
         shutil.rmtree(test_dir)
+        # Clear repository cache: This is needed since we are deleting db dirs, we want to make sure that servers
+        # objects are new after tear down
+        repository.clear_repository_cache()
 
     ###########################################################################
     def cleanup_test_server_pids(self):
@@ -166,28 +169,49 @@ class MongoctlTestBase(unittest.TestCase):
         self.assert_server_status(server_id, is_running=True)
 
     ###########################################################################
+    def assert_server_online(self, server_id):
+        server = repository.lookup_server(server_id)
+        self.assertTrue(server.is_online())
+
+    ###########################################################################
+    def assert_server_offline(self, server_id):
+        server = repository.lookup_server(server_id)
+        self.assertTrue(not server.is_online())
+
+    ###########################################################################
     def assert_server_stopped(self, server_id):
         self.assert_server_status(server_id, is_running=False)
 
     ###########################################################################
     def assert_server_status(self, server_id, is_running):
-        status = self.mongoctl_assert_cmd("status %s -u abdulito" % server_id)
-        connection_str = '"connection": %s' % "true" if is_running else "false"
-        self.assertTrue(connection_str in status)
+        cmd = ["status", server_id]
+        append_user_arg(cmd)
+        status = self.mongoctl_assert_cmd(cmd)
+
+        #connection_str = '"connection": %s' % "true" if is_running else "false"
+        self.assertTrue(status and "connection" in status and
+                        status["connection"] == is_running)
 
     ###########################################################################
     def assert_start_server(self, server_id, **kwargs):
-        return self.mongoctl_assert_cmd("start %s -u abdulito" % server_id)
+        cmd = ["start", server_id]
+        append_user_arg(cmd)
+        return self.mongoctl_assert_cmd(cmd)
 
     ###########################################################################
     def assert_stop_server(self, server_id, force=False):
+        cmd = ["stop", server_id]
+        if force:
+            cmd.append("--force")
+        append_user_arg(cmd)
 
-        args = ("--force %s" % server_id) if force else server_id
-        return self.mongoctl_assert_cmd("stop %s -u abdulito" % args)
+        return self.mongoctl_assert_cmd(cmd)
 
     ###########################################################################
     def assert_restart_server(self, server_id):
-        return self.mongoctl_assert_cmd("restart %s -u abdulito" % server_id)
+        cmd = ["restart", server_id]
+        append_user_arg(cmd)
+        return self.mongoctl_assert_cmd(cmd)
 
     ###########################################################################
     def mongoctl_assert_cmd(self, cmd, exit_code=0):
@@ -195,12 +219,12 @@ class MongoctlTestBase(unittest.TestCase):
 
     ###########################################################################
     def exec_assert_cmd(self, cmd, exit_code=0):
-        print "++++++++++ Testing command : %s" % cmd
+        print "++++++++++ Testing command : %s" % cmd_display_str(cmd)
 
         try:
-            output =  execute_command(cmd, shell=True, cwd=get_mongoctl_module_dir())
-            print output
-            return output
+            #output =  execute_command(cmd, shell=True, cwd=get_mongoctl_module_dir())
+            #print output
+            return mongoctl_main.do_main(cmd)
         except Exception, e:
             print("Error while executing test command '%s'. Cause: %s " %
                   (cmd, e))
@@ -234,11 +258,13 @@ class MongoctlTestBase(unittest.TestCase):
         if self.clusters:
             mongoctl_options["--clusters"] = _dict_list_to_option_str(self.clusters)
 
-        mongoctl_options_str = _to_options_str(mongoctl_options)
-        return "%s %s %s" % (get_mongoctl_exe(), mongoctl_options_str, cmd)
+        option_list = _to_options_list(mongoctl_options)
+
+        return option_list + cmd
+
 
 ########################################################################################################################
-def _to_options_str(options):
+def _to_options_list(options):
     options_list = list()
     for key, val in options.items():
         if val is True:
@@ -247,11 +273,25 @@ def _to_options_str(options):
             options_list.append(key)
             options_list.append(val)
 
-    return " ".join(options_list)
+    return options_list
+
+
+########################################################################################################################
+def _to_options_str(options):
+    return " ".join(_to_options_list(options))
 
 ########################################################################################################################
 def _dict_list_to_option_str(dict_list):
-    return "'%s'" % minify_json.json_minify(document_pretty_string(dict_list))
+    return minify_json.json_minify(document_pretty_string(dict_list))
+
+########################################################################################################################
+def append_user_arg(cmd):
+    cmd.extend(["-u", "abdulito"])
+    return cmd
+
+########################################################################################################################
+def cmd_display_str(cmd):
+    return "mongoctl %s" % (" ".join(cmd))
 
 ########################################################################################################################
 __testing_version__ = None

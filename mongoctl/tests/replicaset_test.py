@@ -24,7 +24,7 @@
 import unittest
 import time
 
-from mongoctl.tests.test_base import MongoctlTestBase
+from mongoctl.tests.test_base import MongoctlTestBase, append_user_arg
 
 class ReplicasetTest(MongoctlTestBase):
 
@@ -44,22 +44,23 @@ class ReplicasetTest(MongoctlTestBase):
         self.assert_server_running("node2_test_server")
 
         # Configure the cluster
-        self.mongoctl_assert_cmd("configure-cluster ReplicasetTestCluster")
+        conf_cmd = ["configure-cluster", "ReplicasetTestCluster"]
+        self.mongoctl_assert_cmd(conf_cmd)
 
         print "Sleeping for 2 seconds..."
         # sleep for a couple of seconds
         time.sleep(2)
         # RE-Configure the cluster
-        self.mongoctl_assert_cmd("configure-cluster ReplicasetTestCluster"
-                                 " -u abdulito")
+        append_user_arg(conf_cmd)
+        self.mongoctl_assert_cmd(conf_cmd)
 
         print "Sleeping for 2 seconds..."
         # sleep for a couple of seconds
         time.sleep(2)
 
+        conf_cmd.extend(["--force", "node2_test_server"])
         # reconfigure with FORCE
-        self.mongoctl_assert_cmd("configure-cluster ReplicasetTestCluster "
-                                 "--force node2_test_server")
+        self.mongoctl_assert_cmd(conf_cmd)
 
         print "Sleeping for 2 seconds..."
         # sleep for a couple of seconds

@@ -24,7 +24,7 @@
 import unittest
 import time
 
-from mongoctl.tests.test_base import MongoctlTestBase
+from mongoctl.tests.test_base import MongoctlTestBase, append_user_arg
 
 ########################################################################################################################
 # Servers
@@ -131,22 +131,22 @@ class CommandlineServersTest(MongoctlTestBase):
         self.assert_server_running("cmdln_node2_test_server")
 
         # Configure the cluster
-        self.mongoctl_assert_cmd("configure-cluster CmdlnReplicasetTestCluster")
+        conf_cmd = append_user_arg(["configure-cluster", "CmdlnReplicasetTestCluster"])
+        self.mongoctl_assert_cmd(conf_cmd)
 
         print "Sleeping for 2 seconds..."
         # sleep for a couple of seconds
         time.sleep(2)
         # RE-Configure the cluster
-        self.mongoctl_assert_cmd("configure-cluster CmdlnReplicasetTestCluster"
-                                 " -u abdulito")
+        self.mongoctl_assert_cmd(conf_cmd)
 
         print "Sleeping for 2 seconds..."
         # sleep for a couple of seconds
         time.sleep(2)
 
+        conf_cmd.extend(["--force", "cmdln_node2_test_server"])
         # reconfigure with FORCE
-        self.mongoctl_assert_cmd("configure-cluster CmdlnReplicasetTestCluster "
-                                 "--force cmdln_node2_test_server")
+        self.mongoctl_assert_cmd(conf_cmd)
 
         print "Sleeping for 2 seconds..."
         # sleep for a couple of seconds

@@ -127,6 +127,14 @@ def set_commandline_servers_and_clusters(servers_json_str, clusters_json_str):
         raise MongoctlException("--servers/--clusters must be a valid json string: %s" % ex)
 
 ###############################################################################
+def clear_repository_cache():
+    global __configured_servers__, __commandline_servers__, __configured_clusters__, __commandline_clusters__
+    __configured_servers__ = None
+    __commandline_servers__ = None
+    __configured_clusters__ = None
+    __commandline_clusters__ = None
+
+###############################################################################
 # Server lookup functions
 ###############################################################################
 def lookup_server(server_id):
