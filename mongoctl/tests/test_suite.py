@@ -31,6 +31,8 @@ from replicaset_test import ReplicasetTest
 from misc_test import MiscTest
 from auth_replicaset_test import AuthReplicasetTest
 from cmdline_servers_test import CommandlineServersTest
+from sharded_test import ShardedTest
+
 ###############################################################################
 all_suites = [
     unittest.TestLoader().loadTestsFromTestCase(VersionFunctionsTest),
@@ -39,7 +41,8 @@ all_suites = [
     unittest.TestLoader().loadTestsFromTestCase(ReplicasetTest),
     unittest.TestLoader().loadTestsFromTestCase(AuthReplicasetTest),
     unittest.TestLoader().loadTestsFromTestCase(MiscTest),
-    unittest.TestLoader().loadTestsFromTestCase(CommandlineServersTest)
+    unittest.TestLoader().loadTestsFromTestCase(CommandlineServersTest),
+    unittest.TestLoader().loadTestsFromTestCase(ShardedTest)
 ]
 ###############################################################################
 # booty

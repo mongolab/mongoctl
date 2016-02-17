@@ -193,9 +193,12 @@ class MongoctlTestBase(unittest.TestCase):
                         status["connection"] == is_running)
 
     ###########################################################################
-    def assert_start_server(self, server_id, **kwargs):
+    def assert_start_server(self, server_id, start_options=None):
         cmd = ["start", server_id]
         append_user_arg(cmd)
+        if start_options:
+            cmd.extend(start_options)
+
         return self.mongoctl_assert_cmd(cmd)
 
     ###########################################################################
