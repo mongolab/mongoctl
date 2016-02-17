@@ -8,7 +8,7 @@ from base import DocumentWrapper
 from mongoctl.utils import resolve_path, document_pretty_string, is_host_local
 import pymongo
 
-from pymongo.errors import AutoReconnect, OperationFailure
+from pymongo.errors import AutoReconnect, OperationFailure, ConnectionFailure
 from mongoctl.mongoctl_logging import (
     log_verbose, log_error, log_warning, log_exception, log_debug
     )
@@ -461,8 +461,6 @@ class Server(DocumentWrapper):
         except AutoReconnect,e:
             log_verbose("This is an expected exception that happens after "
                         "disconnecting db commands: %s" % e)
-        finally:
-            self._db_connection = None
 
     ###########################################################################
     def timeout_maybe_db_command(self, cmd, dbname):
@@ -477,8 +475,6 @@ class Server(DocumentWrapper):
                             document_pretty_string(cmd))
             else:
                 raise
-        finally:
-            self._db_connection = None
 
     ###########################################################################
     def db_command(self, cmd, dbname):
@@ -640,9 +636,12 @@ class Server(DocumentWrapper):
         try:
             self.get_mongo_client().server_info()
             return True
-        except Exception, e:
-            log_exception(e)
+        except ConnectionFailure, cfe:
+            log_exception(cfe)
             return False
+        except OperationFailure, ofe:
+            log_exception(ofe)
+            return True
 
     ###########################################################################
     def can_function(self):
