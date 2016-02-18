@@ -35,7 +35,10 @@ from mongoctl.utils import is_pid_alive, kill_process, document_pretty_string, e
 from mongoctl.commands.command_utils import get_mongo_executable
 from mongoctl.minify_json import minify_json
 from subprocess import CalledProcessError
-from mongoctl.objects.server import VERSION_3_0
+from mongoctl import config
+
+from mongoctl.commands.misc.install import install_mongodb
+
 import traceback
 
 ## static methods
@@ -45,8 +48,12 @@ def get_testing_conf_root():
     return os.path.join(tests_pkg_path, "testing_conf")
 
 ###########################################################################
-def get_test_dbs_dir():
-    return os.path.join(get_testing_conf_root(), "mongoctltest_dbs")
+def get_test_dir():
+    return os.path.join(get_testing_conf_root(), "mongoctl_tests_temp")
+
+###########################################################################
+def get_test_db_dir():
+    return os.path.join(get_test_dir(), "dbpaths")
 
 ###############################################################################
 def get_test_pkg_path():
@@ -64,7 +71,9 @@ def get_mongoctl_exe():
 ###############################################################################
 # Constants
 ###############################################################################
-MONGOCTL_TEST_DBS_DIR_ENV = "MONGOCTL_TEST_DIR"
+MONGOCTL_TEST_DIR_ENV = "MONGOCTL_TEST_DIR"
+
+MONGOCTL_TEST_DBS_DIR_ENV = "MONGOCTL_TEST_DB_DIR"
 
 MONGOCTL_TEST_OPTIONS = {
     "--verbose": True,
@@ -98,35 +107,46 @@ class MongoctlTestBase(unittest.TestCase):
     ###########################################################################
     def setUp(self):
         super(MongoctlTestBase, self).setUp()
+
         # _servers, _clusters are list of dicts
         # those will be passed as the --servers --clusters property
         self._servers = None
         self._clusters = None
 
-        # set the test dir env
-        test_dir = get_test_dbs_dir()
-        os.environ[MONGOCTL_TEST_DBS_DIR_ENV] = test_dir
-        # assure that the testing dir does not exist
-        print "--- Creating test db directory %s " % test_dir
-        if os.path.exists(test_dir):
-            print ("Warning: %s already exists. Deleting and creating"
-                   " again..." % test_dir)
-            shutil.rmtree(test_dir)
+        # set the config root to test conf root
+        config.set_config_root(get_testing_conf_root())
 
-        os.makedirs(test_dir)
+        # set the test dir env
+        test_db_dir = get_test_db_dir()
+        os.environ[MONGOCTL_TEST_DIR_ENV] = get_test_dir()
+        os.environ[MONGOCTL_TEST_DBS_DIR_ENV] = test_db_dir
+        # assure that the testing dir does not exist
+        print "--- Creating test db directory %s " % test_db_dir
+        if os.path.exists(test_db_dir):
+            print ("Warning: %s already exists. Deleting and creating"
+                   " again..." % test_db_dir)
+            shutil.rmtree(test_db_dir)
+
+        os.makedirs(test_db_dir)
 
         # cleanup pids before running
         self.cleanup_test_server_pids()
 
+        # install latest mongodb
+        print "Installing latest stable MongoDB for testing..."
+        # pass None to install latest version
+        install_mongodb(mongodb_version=None)
+
+
     ###########################################################################
     def tearDown(self):
-        test_dir = get_test_dbs_dir()
+        test_db_dir = get_test_db_dir()
         print "Tearing down: Cleaning up all used resources..."
         # delete the database dir when done
         self.cleanup_test_server_pids()
 
-        print "--- Deleting the test db directory %s " % test_dir
-        shutil.rmtree(test_dir)
+        print "--- Deleting the test db directory %s " % test_db_dir
+        shutil.rmtree(test_db_dir)
         # Clear repository cache: This is needed since we are deleting db dirs, we want to make sure that servers
         # objects are new after tear down
         repository.clear_repository_cache()
@@ -230,7 +250,7 @@ class MongoctlTestBase(unittest.TestCase):
             return mongoctl_main.do_main(cmd)
         except Exception, e:
             print("Error while executing test command '%s'. Cause: %s " %
-                  (cmd, e))
+                  (cmd_display_str(cmd), e))
             if isinstance(e, CalledProcessError):
                 print "#### Command output ####"
                 print e.output
@@ -249,7 +269,7 @@ class MongoctlTestBase(unittest.TestCase):
             return mongoctl_main.do_main(cmd.split(" ")[1:])
         except Exception, e:
             print("WARNING: failed to quiet execute command '%s'. Cause: %s " %
-                  (cmd, e))
+                  (cmd_display_str(cmd), e))
 
     ###########################################################################
     def to_mongoctl_test_command(self, cmd, mongoctl_options=None):

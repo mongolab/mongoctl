@@ -72,7 +72,7 @@ def list_versions_command(parsed_options):
 ###############################################################################
 # install_mongodb
 ###############################################################################
-def install_mongodb(mongodb_version, mongodb_edition=None, from_source=False,
+def install_mongodb(mongodb_version=None, mongodb_edition=None, from_source=False,
                     build_threads=1,
                     build_tmp_dir=None,
                     include_only=None):

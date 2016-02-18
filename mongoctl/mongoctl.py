@@ -136,9 +136,9 @@ def do_main(args):
 
     # set conf root if specified
     if parsed_args.configRoot is not None:
-        config._set_config_root(parsed_args.configRoot)
+        config.set_config_root(parsed_args.configRoot)
     elif os.getenv(CONF_ROOT_ENV_VAR) is not None:
-        config._set_config_root(os.getenv(CONF_ROOT_ENV_VAR))
+        config.set_config_root(os.getenv(CONF_ROOT_ENV_VAR))
 
     # set cmd arg servers/clusters
     if parsed_args.servers or parsed_args.clusters:

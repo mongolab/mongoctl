@@ -22,7 +22,7 @@ MONGOCTL_CONF_FILE_NAME = "mongoctl.config"
 ###############################################################################
 __config_root__ = mongoctl_globals.DEFAULT_CONF_ROOT
 
-def _set_config_root(root_path):
+def set_config_root(root_path):
     if not is_url(root_path) and not dir_exists(root_path):
         raise MongoctlException("Invalid config-root value: %s does not"
                                 " exist or is not a directory" % root_path)

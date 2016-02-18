@@ -34,7 +34,7 @@ SERVERS = [
         "address": "localhost:27667",
         "cmdOptions": {
             "port": 27667,
-            "dbpath": "$MONGOCTL_TEST_DIR/dbpaths/cmdln_arbiter_test_server",
+            "dbpath": "$MONGOCTL_TEST_DB_DIR/cmdln_arbiter_test_server",
             "auth": False,
             "journal": False,
             "quota": False,
@@ -47,7 +47,7 @@ SERVERS = [
         "address": "localhost:27668",
         "cmdOptions": {
             "port": 27668,
-            "dbpath": "$MONGOCTL_TEST_DIR/dbpaths/cmdln_node1_test_server",
+            "dbpath": "$MONGOCTL_TEST_DB_DIR/cmdln_node1_test_server",
             "auth": False,
             "journal": False,
             "quota": False,
@@ -61,7 +61,7 @@ SERVERS = [
         "address": "localhost:27669",
         "cmdOptions": {
             "port": 27669,
-            "dbpath": "$MONGOCTL_TEST_DIR/dbpaths/cmdln_node2_test_server",
+            "dbpath": "$MONGOCTL_TEST_DB_DIR/cmdln_node2_test_server",
             "auth": False,
             "journal": False,
             "quota": False,
