@@ -200,7 +200,7 @@ def do_open_mongo_shell_to(address,
         connect_cmd.extend(js_files)
 
     # ssl options
-    if ssl:
+    if ssl and "--ssl" not in connect_cmd:
         connect_cmd.append("--ssl")
 
     cmd_display = connect_cmd[:]
