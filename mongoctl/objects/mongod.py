@@ -140,7 +140,7 @@ class MongodServer(server.Server):
         # get status for super
         status = super(MongodServer, self).get_status(admin=admin)
 
-        if "error" not in status and admin and not self.is_arbiter_server():
+        if "error" not in status and admin:
             rs_summary = self.get_rs_status_summary()
             if rs_summary:
                 status["selfReplicaSetStatusSummary"] = rs_summary

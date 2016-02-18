@@ -30,6 +30,9 @@ def parse_global_login_user_arg(username, password, server_id):
     __global_login_user__['username'] = username
     __global_login_user__['password'] = password
 
+    if username == "__system":
+        __global_login_user__["database"] = "local"
+
 ###############################################################################
 def get_global_login_user(server, dbname):
     global __global_login_user__
@@ -341,3 +344,5 @@ def _get_server_login_record(server, create_new=True):
     return login_record
 
 ###############################################################################
+def is_system_user(username):
+    return username == "__system"
