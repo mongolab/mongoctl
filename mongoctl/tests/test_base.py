@@ -75,6 +75,8 @@ MONGOCTL_TEST_DIR_ENV = "MONGOCTL_TEST_DIR"
 
 MONGOCTL_TEST_DBS_DIR_ENV = "MONGOCTL_TEST_DB_DIR"
 
+MONGOCTL_TEST_CONF_DIR_ENV = "MONGOCTL_TEST_CONF_DIR"
+
 MONGOCTL_TEST_OPTIONS = {
     "--verbose": True,
     "--noninteractive": True,
@@ -120,6 +122,7 @@ class MongoctlTestBase(unittest.TestCase):
         test_db_dir = get_test_db_dir()
         os.environ[MONGOCTL_TEST_DIR_ENV] = get_test_dir()
         os.environ[MONGOCTL_TEST_DBS_DIR_ENV] = test_db_dir
+        os.environ[MONGOCTL_TEST_CONF_DIR_ENV] = get_testing_conf_root()
         # assure that the testing dir does not exist
         print "--- Creating test db directory %s " % test_db_dir
         if os.path.exists(test_db_dir):
