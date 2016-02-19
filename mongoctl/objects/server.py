@@ -151,12 +151,12 @@ class Server(DocumentWrapper):
         log_debug("prefer_use_ssl() Checking if we prefer ssl for '%s'" %
                   self.id)
         try:
-            pymongo.MongoClient(self.get_mongo_uri(), ssl=True)
+            self.new_mongo_client(ssl=True).server_info()
             return True
         except Exception, e:
             if not "SSL handshake failed" in str(e):
                 log_exception(e)
-            return None
+            return False
 
 
 
@@ -749,11 +749,14 @@ class Server(DocumentWrapper):
     def get_mongo_client(self):
         if self._mongo_client is None:
             client_params = self.get_client_params()
-            self._mongo_client = pymongo.MongoClient(self.get_mongo_uri(),
-                                             **client_params)
+            self._mongo_client = self.new_mongo_client(**client_params)
+
         return self._mongo_client
 
-
+    ###########################################################################
+    def new_mongo_client(self, **kwargs):
+        address = self.get_connection_address()
+        return pymongo.MongoClient(address, **kwargs)
 
     ###########################################################################
     def get_client_params(self):
@@ -772,8 +775,33 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_client_ssl_params(self):
+
+        use_ssl = False
+
+        client_ssl_mode = self.get_client_ssl_mode()
+        if client_ssl_mode in [None, ClientSslMode.DISABLED]:
+            use_ssl = False
+        elif client_ssl_mode == ClientSslMode.REQUIRE:
+            use_ssl = True
+        elif client_ssl_mode == ClientSslMode.ALLOW:
+            try:
+                # attempt a plain connection
+                self.new_mongo_client().server_info()
+                use_ssl = False
+            except Exception, e:
+                use_ssl = True
+
+        else:
+            ## PREFER
+            try:
+                # attempt an ssl connection
+                self.new_mongo_client(ssl=True).server_info()
+                use_ssl = True
+            except Exception, e:
+                use_ssl = False
+
         ssl_params = {}
-        if self.use_ssl_client():
+        if use_ssl:
             ssl_params["ssl"] = True
 
         if self.ssl_cert_file():
@@ -781,10 +809,6 @@ class Server(DocumentWrapper):
             ssl_params["ssl_certfile"] = self.ssl_cert_file()
 
         return ssl_params
-
-    ###########################################################################
-    def get_mongo_uri(self, ):
-        return "mongodb://%s/admin" % self.get_connection_address()
 
     ###########################################################################
     def get_connection_address(self):
@@ -819,7 +843,7 @@ class Server(DocumentWrapper):
         try:
             log_verbose("Checking if server '%s' is accessible on "
                         "address '%s'" % (self.id, address))
-            pymongo.MongoClient("mongodb://%s" % address, **self.get_client_params())
+            pymongo.MongoClient(address).server_info()
             return True
         except Exception, e:
             log_exception(e)
