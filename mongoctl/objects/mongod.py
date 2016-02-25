@@ -219,21 +219,6 @@ class MongodServer(server.Server):
         return "mongodb://%s%s%s" % (creds, self.get_address_display(), db)
 
     ###########################################################################
-    def get_rs_config(self):
-        try:
-            return self.get_db('local')['system.replset'].find_one()
-        except (Exception,RuntimeError), e:
-            log_debug("Error whille trying to read rs config from "
-                      "server '%s': %s" % (self.id, e))
-            log_exception(e)
-            if type(e) == MongoctlException:
-                raise e
-            else:
-                log_verbose("Cannot get rs config from server '%s'. "
-                            "cause: %s" % (self.id, e))
-                return None
-
-    ###########################################################################
     def get_rs_status(self):
         try:
             rs_status_cmd = SON([('replSetGetStatus', 1)])
