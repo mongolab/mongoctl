@@ -60,7 +60,10 @@ def get_mongoctl_database():
     log_verbose("Connecting to mongoctl db...")
     try:
 
-        __mongoctl_db__ = _db_repo_connect()
+        client = _db_repo_connect()
+        # issue a call to server to ensure it connects
+        client.server_info()
+        __mongoctl_db__ = client.get_default_database()
         return __mongoctl_db__
     except Exception, e:
         log_exception(e)
@@ -99,9 +102,15 @@ def is_db_repository_online():
 def _db_repo_connect():
     db_conf = config.get_database_repository_conf()
     uri = db_conf["databaseURI"]
-    client = pymongo.MongoClient(uri, read_preference=
-    pymongo.read_preferences.ReadPreference.PRIMARY_PREFERRED)
-    return client.get_default_database()
+    client_args = {"read_preference": pymongo.read_preferences.ReadPreference.PRIMARY_PREFERRED}
+
+    if pymongo.get_version_string().startswith("3.2"):
+        ## TODO XXX MAYBE? This makes things much slower
+        client_args["serverSelectionTimeoutMS"] = 1
+
+    client = pymongo.MongoClient(uri, **client_args)
+
+    return client
 
 
 

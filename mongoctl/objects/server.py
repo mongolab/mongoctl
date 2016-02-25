@@ -61,6 +61,16 @@ VERSION_2_6 = make_version_info("2.6.0")
 VERSION_3_0 = make_version_info("3.0.0")
 
 ###############################################################################
+DEFAULT_CLIENT_OPTIONS = {
+    "socketTimeoutMS": CONN_TIMEOUT,
+    "connectTimeoutMS": CONN_TIMEOUT
+}
+
+if pymongo.get_version_string().startswith("3.2"):
+    ## TODO XXX MAYBE? This makes things much slower
+    DEFAULT_CLIENT_OPTIONS["serverSelectionTimeoutMS"] = 1
+
+###############################################################################
 class ClientSslMode(object):
     DISABLED = "disabled"
     ALLOW = "allow"
@@ -760,15 +770,8 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_client_params(self):
-        params = {
-            "socketTimeoutMS": CONN_TIMEOUT,
-            "connectTimeoutMS": CONN_TIMEOUT
-        }
-
-        if pymongo.get_version_string().startswith("3.2"):
-            ## TODO XXX MAYBE? This makes things much slower
-            params["serverSelectionTimeoutMS"] = CONN_TIMEOUT
-
+        params = {}
+        params.update(DEFAULT_CLIENT_OPTIONS)
         params.update(self.get_client_ssl_params())
 
         return params
@@ -843,7 +846,7 @@ class Server(DocumentWrapper):
         try:
             log_verbose("Checking if server '%s' is accessible on "
                         "address '%s'" % (self.id, address))
-            pymongo.MongoClient(address).server_info()
+            pymongo.MongoClient(address, DEFAULT_CLIENT_OPTIONS).server_info()
             return True
         except Exception, e:
             log_exception(e)
