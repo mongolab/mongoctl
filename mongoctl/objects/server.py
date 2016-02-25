@@ -857,7 +857,7 @@ class Server(DocumentWrapper):
     ###########################################################################
     def get_rs_config(self):
         try:
-            return self.get_db('local')['system.replset'].find_one()
+            return self.db_command(SON([('replSetGetConfig', 1)]), "admin")
         except (Exception,RuntimeError), e:
             log_debug("Error whille trying to read rs config from "
                       "server '%s': %s" % (self.id, e))
