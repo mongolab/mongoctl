@@ -155,7 +155,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def prefer_use_ssl(self):
-        if False and self.get_client_ssl_mode() != ClientSslMode.PREFER:
+        if self.get_client_ssl_mode() != ClientSslMode.PREFER:
             return False
 
         log_debug("prefer_use_ssl() Checking if we prefer ssl for '%s'" %
