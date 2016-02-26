@@ -155,18 +155,21 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def prefer_use_ssl(self):
-        if self.get_client_ssl_mode() != ClientSslMode.PREFER:
+        if False and self.get_client_ssl_mode() != ClientSslMode.PREFER:
             return False
 
         log_debug("prefer_use_ssl() Checking if we prefer ssl for '%s'" %
                   self.id)
         try:
-            self.new_mongo_client(ssl=True).server_info()
+            self.new_mongo_client(ssl=True, **DEFAULT_CLIENT_OPTIONS).server_info()
             return True
-        except Exception, e:
-            if not "SSL handshake failed" in str(e):
-                log_exception(e)
-            return False
+        except (OperationFailure, AutoReconnect), ofe:
+            log_exception(ofe)
+            return True
+
+        except ConnectionFailure, ce:
+            if "SSL handshake failed" in str(ce):
+                return False
 
 
 
@@ -646,12 +649,12 @@ class Server(DocumentWrapper):
         try:
             self.get_mongo_client().server_info()
             return True
+        except (OperationFailure, AutoReconnect), ofe:
+            log_exception(ofe)
+            return True
         except ConnectionFailure, cfe:
             log_exception(cfe)
             return False
-        except OperationFailure, ofe:
-            log_exception(ofe)
-            return True
 
     ###########################################################################
     def can_function(self):
