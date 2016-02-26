@@ -651,7 +651,7 @@ class Server(DocumentWrapper):
             return True
         except (OperationFailure, AutoReconnect), ofe:
             log_exception(ofe)
-            return True
+            return "refused" not in str(ofe)
         except ConnectionFailure, cfe:
             log_exception(cfe)
             return False
