@@ -161,7 +161,7 @@ class Server(DocumentWrapper):
         log_debug("prefer_use_ssl() Checking if we prefer ssl for '%s'" %
                   self.id)
         try:
-            self.new_mongo_client(ssl=True, **DEFAULT_CLIENT_OPTIONS).server_info()
+            ping(self.new_mongo_client(ssl=True, **DEFAULT_CLIENT_OPTIONS))
             return True
         except (OperationFailure, AutoReconnect), ofe:
             log_exception(ofe)
@@ -647,7 +647,7 @@ class Server(DocumentWrapper):
     ###########################################################################
     def is_online(self):
         try:
-            self.get_mongo_client().server_info()
+            ping(self.get_mongo_client())
             return True
         except (OperationFailure, AutoReconnect), ofe:
             log_exception(ofe)
@@ -715,7 +715,7 @@ class Server(DocumentWrapper):
         status = {}
         ## check if the server is online
         try:
-            self.get_mongo_client().server_info()
+            ping(self.get_mongo_client())
             status['connection'] = True
 
             # grab status summary if it was specified + if i am not an arbiter
@@ -792,7 +792,7 @@ class Server(DocumentWrapper):
         elif client_ssl_mode == ClientSslMode.ALLOW:
             try:
                 # attempt a plain connection
-                self.new_mongo_client().server_info()
+                ping(self.new_mongo_client())
                 use_ssl = False
             except Exception, e:
                 use_ssl = True
@@ -801,7 +801,7 @@ class Server(DocumentWrapper):
             ## PREFER
             try:
                 # attempt an ssl connection
-                self.new_mongo_client(ssl=True).server_info()
+                ping(self.new_mongo_client(ssl=True))
                 use_ssl = True
             except Exception, e:
                 use_ssl = False
@@ -849,7 +849,7 @@ class Server(DocumentWrapper):
         try:
             log_verbose("Checking if server '%s' is accessible on "
                         "address '%s'" % (self.id, address))
-            pymongo.MongoClient(address, DEFAULT_CLIENT_OPTIONS).server_info()
+            ping(pymongo.MongoClient(address, DEFAULT_CLIENT_OPTIONS))
             return True
         except Exception, e:
             log_exception(e)
@@ -1001,3 +1001,7 @@ def set_client_ssl_mode(mode):
 def set_server_connection_timeout(timeout):
     global CONN_TIMEOUT
     CONN_TIMEOUT = timeout
+
+###############################################################################
+def ping(mongo_client):
+    return mongo_client.get_database("admin").command({"ping": 1})

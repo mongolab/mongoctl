@@ -62,7 +62,7 @@ def get_mongoctl_database():
 
         client = _db_repo_connect()
         # issue a call to server to ensure it connects
-        client.server_info()
+        client.get_database("admin").command({"ping": 1})
         __mongoctl_db__ = client.get_default_database()
         return __mongoctl_db__
     except Exception, e:
