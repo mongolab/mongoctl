@@ -860,7 +860,10 @@ class Server(DocumentWrapper):
     ###########################################################################
     def get_rs_config(self):
         try:
-            return self.db_command(SON([('replSetGetConfig', 1)]), "admin")["config"]
+            if self.version_greater_than_3_0():
+                return self.db_command(SON([('replSetGetConfig', 1)]), "admin")["config"]
+            else:
+                return self.get_db('local')['system.replset'].find_one()
         except (Exception,RuntimeError), e:
             log_debug("Error whille trying to read rs config from "
                       "server '%s': %s" % (self.id, e))
@@ -961,6 +964,10 @@ class Server(DocumentWrapper):
 
     ###############################################################################
     def try_on_auth_failures(self):
+        return self.version_greater_than_3_0()
+
+    ###############################################################################
+    def version_greater_than_3_0(self):
         version = self.get_mongo_version_info()
         return version and version >= VERSION_3_0
 
