@@ -849,7 +849,7 @@ class Server(DocumentWrapper):
         try:
             log_verbose("Checking if server '%s' is accessible on "
                         "address '%s'" % (self.id, address))
-            ping(pymongo.MongoClient(address, DEFAULT_CLIENT_OPTIONS))
+            ping(pymongo.MongoClient(address, **DEFAULT_CLIENT_OPTIONS))
             return True
         except Exception, e:
             log_exception(e)
