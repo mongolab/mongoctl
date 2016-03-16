@@ -55,7 +55,7 @@ PROCESS_LIMITS = [
 START_CONN_TIMEOUT = 10 * 60 * 1000
 
 # Max time to wait for server to be online (i.e running and accepting connection) after start
-SERVER_ONLINE_TIMEOUT = 15 * 60
+SERVER_ONLINE_TIMEOUT = 20 * 60
 
 ###############################################################################
 # start command
