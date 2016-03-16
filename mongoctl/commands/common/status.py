@@ -19,6 +19,7 @@ def status_command(parsed_options):
     if server:
         log_info("Status for server '%s':" % id)
         if isinstance(server, MongodServer) and server.is_arbiter_server():
+            # XXX? TODO we use to pass admin=False to arbiters but maybe this should be fine now
             status = server.get_status(admin=False)
         else:
             status = server.get_status(admin=True)
