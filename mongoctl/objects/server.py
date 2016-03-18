@@ -533,8 +533,16 @@ class Server(DocumentWrapper):
 
         login_user = self.get_login_user(dbname)
 
+        # auth with local ?
+        local_user = self.get_login_user("local")
+
+        # if we have the system user then always auth with it
+        if local_user and users.is_system_user(local_user["username"]) and dbname != "local":
+            local_db = self.get_db("local", retry=retry)
+            return local_db.connection[dbname]
+
         is_system_user = (login_user and
-                          login_user.get("username") == "__system")
+                          users.is_system_user(login_user.get("username")))
         # if there is no login user for this database then use admin db unless
         # it was specified not to
         # ALSO use admin if this is 'local' db for mongodb >= 2.6.0
