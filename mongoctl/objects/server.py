@@ -280,9 +280,14 @@ class Server(DocumentWrapper):
         if self._mongo_version:
             return self._mongo_version
 
+        mongo_version = None
         if self.is_online():
-            mongo_version = self.get_mongo_client().server_info()['version']
-        else:
+            try:
+                mongo_version = self.get_mongo_client().server_info()['version']
+            except Exception, e:
+                log_exception(e)
+
+        if not mongo_version:
             mongo_version = self.get_property("mongoVersion")
 
         self._mongo_version = mongo_version
@@ -662,7 +667,7 @@ class Server(DocumentWrapper):
             return "refused" not in str(ofe)
         except ConnectionFailure, cfe:
             log_exception(cfe)
-            return False
+            return "connection closed" in str(cfe)
 
     ###########################################################################
     def can_function(self):

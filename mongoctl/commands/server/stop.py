@@ -60,6 +60,10 @@ def do_stop_server(server, force=False):
                      "currently running with SSL (SSL handshake failed). "
                      "Try running mongoctl with --ssl-off." % server.id)
             can_stop_mongoly = False
+        elif "error" in status and "connection closed" in status["error"]:
+            log_info("Unable to issue 'shutdown' command to server '%s'. "
+                     "The server appears to have reached  max # of connections." % server.id)
+            can_stop_mongoly = False
         else:
             log_info("Server '%s' is not running." %
                      server.id)
