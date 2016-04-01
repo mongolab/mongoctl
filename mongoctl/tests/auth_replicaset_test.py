@@ -35,7 +35,7 @@ class AuthReplicasetTest(MongoctlTestBase):
         self.assert_server_stopped("auth_node2_test_server")
         # start all servers and make sure they started...
         self.assert_start_server("auth_arbiter_test_server")
-        self.assert_server_running("auth_arbiter_test_server")
+        self.assert_server_online("auth_arbiter_test_server")
 
         self.assert_start_server("auth_node1_test_server")
         self.assert_server_online("auth_node1_test_server")
