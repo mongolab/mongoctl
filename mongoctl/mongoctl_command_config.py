@@ -306,7 +306,16 @@ MONGOCTL_PARSER_DEF = {
                         "-p"
                     ],
                     "nargs": "?"
-                }
+                },
+                {
+                    "name": "port",
+                    "type": "optional",
+                    "help": "port override",
+                    "cmd_arg": [
+                        "--port"
+                    ],
+                    "nargs": 1
+                },
             ]
         },
         #### restart ####

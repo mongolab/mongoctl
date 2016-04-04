@@ -23,16 +23,23 @@ MAX_SHUTDOWN_WAIT = 45
 # stop command
 ###############################################################################
 def stop_command(parsed_options):
-    stop_server(parsed_options.server, force=parsed_options.forceStop)
+    stop_server(parsed_options.server, force=parsed_options.forceStop,
+                port=parsed_options.port)
 
 
 
 ###############################################################################
 # stop server
 ###############################################################################
-def stop_server(server_id, force=False):
-    do_stop_server(mongoctl.repository.lookup_and_validate_server(server_id),
-                   force)
+def stop_server(server_id, force=False, port=None):
+    server = mongoctl.repository.lookup_and_validate_server(server_id)
+
+    # apply overrides to server's cmd options (in memory only)
+    if port:
+        options_override = {"port": port}
+        server.apply_cmd_options_overrides(options_override)
+
+    do_stop_server(server, force)
 
 ###############################################################################
 def do_stop_server(server, force=False):
