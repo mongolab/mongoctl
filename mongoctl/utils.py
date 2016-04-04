@@ -14,6 +14,7 @@ from mongoctl_logging import *
 from errors import MongoctlException
 
 
+import signal
 ###############################################################################
 def namespace_get_property(namespace, name):
     if hasattr(namespace, name):
@@ -186,9 +187,9 @@ def is_pid_alive(pid):
 
 ###############################################################################
 def kill_process(pid, force=False):
-    signal = 9 if force else 1
+    sig = signal.SIGKILL if force else signal.SIGTERM
     try:
-        os.kill(pid, signal)
+        os.kill(pid, sig)
         return True
     except OSError:
         return False
