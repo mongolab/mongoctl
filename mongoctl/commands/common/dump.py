@@ -10,8 +10,7 @@ from mongoctl.mongoctl_logging import log_info , log_warning
 
 from mongoctl.commands.command_utils import (
     is_db_address, is_dbpath, extract_mongo_exe_options, get_mongo_executable,
-    options_to_command_args,
-    VERSION_PREF_EXACT_OR_MINOR
+    options_to_command_args, VersionPreference
     )
 from mongoctl.errors import MongoctlException
 
@@ -319,7 +318,7 @@ def get_mongo_dump_executable(version_info):
     dump_exe = get_mongo_executable(version_info,
                                     'mongodump',
                                     version_check_pref=
-                                    VERSION_PREF_EXACT_OR_MINOR)
+                                    VersionPreference.EXACT_OR_MINOR)
     # Warn the user if it is not an exact match (minor match)
     if version_info and version_info != dump_exe.version:
         log_warning("Using mongodump '%s' that does not exactly match "

@@ -20,11 +20,12 @@ MONGO_HOME_ENV_VAR = "MONGO_HOME"
 MONGO_VERSIONS_ENV_VAR = "MONGO_VERSIONS"
 
 # VERSION CHECK PREFERENCE CONSTS
-VERSION_PREF_EXACT = 0
-VERSION_PREF_GREATER = 1
-VERSION_PREF_MAJOR_GE = 2
-VERSION_PREF_LATEST_STABLE = 3
-VERSION_PREF_EXACT_OR_MINOR = 4
+class VersionPreference(object):
+    EXACT = 0
+    GREATER = 1
+    MAJOR_GE = 2
+    LATEST_STABLE = 3
+    EXACT_OR_MINOR = 4
 
 def extract_mongo_exe_options(parsed_args, supported_options):
     options_extract = {}
@@ -45,7 +46,7 @@ def extract_mongo_exe_options(parsed_args, supported_options):
 ###############################################################################
 def get_mongo_executable(version_info,
                          executable_name,
-                         version_check_pref=VERSION_PREF_EXACT):
+                         version_check_pref=VersionPreference.EXACT):
 
     mongo_home = os.getenv(MONGO_HOME_ENV_VAR)
     mongo_installs_dir = config.get_mongodb_installs_dir()
@@ -134,7 +135,7 @@ def add_to_executables_found(executables_found, executable):
 def best_executable_match(executable_name,
                           exe_version_tuples,
                           version_object,
-                          version_check_pref=VERSION_PREF_EXACT):
+                          version_check_pref=VersionPreference.EXACT):
 
     match_func = exact_exe_version_match
 
@@ -148,11 +149,11 @@ def best_executable_match(executable_name,
         log_verbose("mongoVersion is null. "
                     "Selecting default %s" % executable_name)
         match_func = default_match
-    elif version_check_pref == VERSION_PREF_LATEST_STABLE:
+    elif version_check_pref == VersionPreference.LATEST_STABLE:
         match_func = latest_stable_exe
-    elif version_check_pref == VERSION_PREF_MAJOR_GE:
+    elif version_check_pref == VersionPreference.MAJOR_GE:
         match_func = major_ge_exe_version_match
-    elif version_check_pref == VERSION_PREF_EXACT_OR_MINOR:
+    elif version_check_pref == VersionPreference.EXACT_OR_MINOR:
         match_func = exact_or_minor_exe_version_match
 
     return match_func(executable_name, exe_version_tuples, version_object)

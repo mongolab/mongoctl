@@ -27,7 +27,7 @@ from mongoctl.utils import (
 )
 from tail_log import tail_server_log, stop_tailing
 from mongoctl.commands.command_utils import (
-    get_mongo_executable, VERSION_PREF_EXACT
+    get_mongo_executable, VersionPreference
     )
 
 from mongoctl.prompt import prompt_confirm
@@ -625,14 +625,14 @@ def get_server_executable(server):
 def get_mongod_executable(server):
     mongod_exe = get_mongo_executable(server.get_mongo_version_info(),
                                       'mongod',
-                                      version_check_pref=VERSION_PREF_EXACT)
+                                      version_check_pref=VersionPreference.EXACT)
     return mongod_exe.path
 
 ###############################################################################
 def get_mongos_executable(server):
     mongos_exe = get_mongo_executable(server.get_mongo_version_info(),
                                       'mongos',
-                                      version_check_pref=VERSION_PREF_EXACT)
+                                      version_check_pref=VersionPreference.EXACT)
     return mongos_exe.path
 
 
