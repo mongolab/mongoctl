@@ -21,11 +21,12 @@ MONGO_VERSIONS_ENV_VAR = "MONGO_VERSIONS"
 
 # VERSION CHECK PREFERENCE CONSTS
 class VersionPreference(object):
-    EXACT = 0
-    GREATER = 1
-    MAJOR_GE = 2
-    LATEST_STABLE = 3
-    EXACT_OR_MINOR = 4
+    EXACT = "EXACT"
+    MAJOR_GE = "MAJOR_GE"
+    LATEST_STABLE = "LATEST_STABLE"
+    EXACT_OR_MINOR = "EXACT_OR_MINOR"
+    LATEST_MINOR = "LATEST_MINOR"
+    DEFAULT = "DEFAULT"
 
 def extract_mongo_exe_options(parsed_args, supported_options):
     options_extract = {}
@@ -137,7 +138,7 @@ def best_executable_match(executable_name,
                           version_object,
                           version_check_pref=VersionPreference.EXACT):
 
-    match_func = exact_exe_version_match
+
 
     exe_versions_str = exe_version_tuples_to_strs(exe_version_tuples)
 
@@ -148,13 +149,18 @@ def best_executable_match(executable_name,
     if version_object is None:
         log_verbose("mongoVersion is null. "
                     "Selecting default %s" % executable_name)
-        match_func = default_match
-    elif version_check_pref == VersionPreference.LATEST_STABLE:
-        match_func = latest_stable_exe
-    elif version_check_pref == VersionPreference.MAJOR_GE:
-        match_func = major_ge_exe_version_match
-    elif version_check_pref == VersionPreference.EXACT_OR_MINOR:
-        match_func = exact_or_minor_exe_version_match
+        version_check_pref = VersionPreference.DEFAULT
+
+    mapping = {
+        VersionPreference.EXACT: exact_exe_version_match,
+        VersionPreference.MAJOR_GE: major_ge_exe_version_match,
+        VersionPreference.LATEST_STABLE: latest_stable_exe,
+        VersionPreference.EXACT_OR_MINOR: exact_or_minor_exe_version_match,
+        VersionPreference.LATEST_MINOR: minor_exe_version_match,
+        VersionPreference.DEFAULT: default_match,
+    }
+
+    match_func = mapping[version_check_pref]
 
     return match_func(executable_name, exe_version_tuples, version_object)
 
