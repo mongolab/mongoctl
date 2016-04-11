@@ -318,7 +318,7 @@ def get_mongo_dump_executable(version_info):
     dump_exe = get_mongo_executable(version_info,
                                     'mongodump',
                                     version_check_pref=
-                                    VersionPreference.EXACT_OR_MINOR)
+                                    VersionPreference.LATEST_MINOR)
     # Warn the user if it is not an exact match (minor match)
     if version_info and version_info != dump_exe.version:
         log_warning("Using mongodump '%s' that does not exactly match "
