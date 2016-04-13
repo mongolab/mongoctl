@@ -874,11 +874,13 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_rs_config(self):
+        rs_conf = None
         try:
             if self.version_greater_than_3_0():
-                return self.db_command(SON([('replSetGetConfig', 1)]), "admin")["config"]
+                rs_conf = self.db_command(SON([('replSetGetConfig', 1)]), "admin")["config"]
             else:
-                return self.get_db('local')['system.replset'].find_one()
+                rs_conf = self.get_db('local')['system.replset'].find_one()
+
         except (Exception,RuntimeError), e:
             log_debug("Error whille trying to read rs config from "
                       "server '%s': %s" % (self.id, e))
@@ -888,7 +890,10 @@ class Server(DocumentWrapper):
             else:
                 log_verbose("Cannot get rs config from server '%s'. "
                             "cause: %s" % (self.id, e))
-                return None
+
+        log_verbose("get_rs_config() for server '%s': Returning: %s" % (self.id, document_pretty_string(rs_conf)))
+
+        return rs_conf
 
     ###########################################################################
     def validate_local_op(self, op):
