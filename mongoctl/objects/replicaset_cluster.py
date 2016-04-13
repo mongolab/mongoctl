@@ -122,11 +122,14 @@ class ReplicaSetClusterMember(DocumentWrapper):
 
     ###########################################################################
     def read_rs_config(self):
-        if self.is_valid():
+        try:
             server = self.get_server()
-            if server.can_function():
-                return server.get_rs_config()
-        return None
+            return server.get_rs_config()
+        except Exception, ex:
+            log_exception(ex)
+
+            return None
+
 
     ###########################################################################
     def is_valid(self):

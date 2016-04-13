@@ -501,6 +501,8 @@ class Server(DocumentWrapper):
             need_auth = False
         else:
             need_auth = self.command_needs_auth(dbname, cmd)
+        log_verbose("Server '%s': DB Command requested on db %s, need auth ? %s, command: %s" %
+                    (self.id, dbname, need_auth, document_pretty_string(cmd)))
         db = self.get_db(dbname, no_auth=not need_auth)
         try:
             return db.command(cmd)
