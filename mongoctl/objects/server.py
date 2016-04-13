@@ -546,7 +546,7 @@ class Server(DocumentWrapper):
         # if we have the system user then always auth with it
         if local_user and users.is_system_user(local_user["username"]) and dbname != "local":
             local_db = self.get_db("local", retry=retry)
-            return local_db.connection[dbname]
+            return local_db.client.get_database(dbname)
 
         is_system_user = (login_user and
                           users.is_system_user(login_user.get("username")))
@@ -562,7 +562,7 @@ class Server(DocumentWrapper):
              not self.supports_local_users())):
             # if this passes then we are authed!
             admin_db = self.get_db("admin", retry=retry)
-            return admin_db.connection[dbname]
+            return admin_db.client.get_database(dbname)
 
         # no retries on local db, so if we fail to auth to local we always
         # attempt to use admin
@@ -575,7 +575,7 @@ class Server(DocumentWrapper):
                 not auth_success
             and dbname != "admin"):
             admin_db = self.get_db("admin", retry=retry)
-            return admin_db.connection[dbname]
+            return admin_db.client.get_database(dbname)
 
         if auth_success:
             return db
