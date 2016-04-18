@@ -509,7 +509,7 @@ def lookup_cluster_by_shard(shard):
 def validate_server(server):
     errors = []
 
-    version = server.get_mongo_version()
+    version = server.get_configured_mongo_version()
     # None versions are ok
     if version is not None:
         if not is_valid_version(version):

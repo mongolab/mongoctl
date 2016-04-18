@@ -280,19 +280,28 @@ class Server(DocumentWrapper):
         if self._mongo_version:
             return self._mongo_version
 
-        mongo_version = None
+        mongo_version = self.read_current_mongo_version()
+
+        if not mongo_version:
+            mongo_version = self.get_configured_mongo_version()
+
+        self._mongo_version = mongo_version
+
+        return self._mongo_version
+
+    ###########################################################################
+    def get_configured_mongo_version(self):
+        return self.get_property("mongoVersion")
+
+    ###########################################################################
+    def read_current_mongo_version(self):
         if self.is_online():
             try:
-                mongo_version = self.get_mongo_client().server_info()['version']
+                return self.get_mongo_client().server_info()['version']
             except Exception, e:
                 log_exception(e)
 
-        if not mongo_version:
-            mongo_version = self.get_property("mongoVersion")
-
-        self._mongo_version = mongo_version
-        return self._mongo_version
-
+        return None
 
     ###########################################################################
     def get_mongodb_edition(self):
@@ -360,6 +369,7 @@ class Server(DocumentWrapper):
         # connection address
         if "port" in options_overrides:
             self._connection_address = None
+
 
     ###########################################################################
     def export_cmd_options(self, options_override=None):
