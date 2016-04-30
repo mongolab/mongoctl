@@ -156,7 +156,7 @@ def kill_stop_server(server, pid):
                   server.get_pid_file_path())
         return False
 
-    log_info("Forcibly stopping server '%s'...\n" % server.id)
+    log_info("Gracefully killing the process for server '%s'...\n" % server.id)
     log_info("Sending kill -15 (SIGTERM) signal to server '%s' (pid=%s)..." %
              (server.id, pid))
 
@@ -167,7 +167,7 @@ def kill_stop_server(server, pid):
     wait_for(pid_dead_predicate(pid), timeout=MAX_SHUTDOWN_WAIT)
 
     if is_pid_alive(pid):
-        log_error("Failed to kill server process with -1 (HUP).")
+        log_error("Failed to kill server process with -15 (SIGTERM).")
         log_info("Sending kill -9 (SIGKILL) signal to server"
                  "'%s' (pid=%s)..." % (server.id, pid))
         kill_process(pid, force=True)
@@ -198,7 +198,7 @@ def prompt_or_force_stop_server(server, pid,
         result = prompt_execute_task("Issue the shutdown with force command?",
                                      stop_func)
     else:
-        result = prompt_execute_task("Forcefully stop the server process?",
+        result = prompt_execute_task("Kill the server process?",
                                      stop_func)
 
     return result[1]
