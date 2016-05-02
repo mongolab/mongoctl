@@ -163,7 +163,7 @@ class Server(DocumentWrapper):
         log_debug("prefer_use_ssl() Checking if we prefer ssl for '%s'" %
                   self.id)
         try:
-            ping(self.new_mongo_client(ssl=True, **DEFAULT_CLIENT_OPTIONS))
+            ping(self.new_ssl_test_mongo_client())
             return True
         except (OperationFailure, AutoReconnect), ofe:
             log_exception(ofe)
@@ -799,6 +799,16 @@ class Server(DocumentWrapper):
         return pymongo.MongoClient(address, **kwargs)
 
     ###########################################################################
+    def new_ssl_test_mongo_client(self):
+        options = {"ssl": True}
+        options.update(DEFAULT_CLIENT_OPTIONS)
+
+        if pymongo.get_version_string().startswith("3.2"):
+            options["ssl_cert_reqs"] = ssl.CERT_NONE
+
+        return self.new_mongo_client(**options)
+
+    ###########################################################################
     def get_client_params(self):
         params = {}
         params.update(DEFAULT_CLIENT_OPTIONS)
@@ -819,7 +829,7 @@ class Server(DocumentWrapper):
         elif client_ssl_mode == ClientSslMode.ALLOW:
             try:
                 # attempt a plain connection
-                ping(self.new_mongo_client())
+                ping(self.new_mongo_client(**DEFAULT_CLIENT_OPTIONS))
                 use_ssl = False
             except Exception, e:
                 use_ssl = True
@@ -828,7 +838,7 @@ class Server(DocumentWrapper):
             ## PREFER
             try:
                 # attempt an ssl connection
-                ping(self.new_mongo_client(ssl=True))
+                ping(self.new_ssl_test_mongo_client())
                 use_ssl = True
             except Exception, e:
                 use_ssl = False
@@ -842,7 +852,7 @@ class Server(DocumentWrapper):
             ssl_params["ssl_certfile"] = self.ssl_cert_file()
         # deal with https://github.com/10gen/mongo-orchestration/issues/188 for pymongo3
         elif pymongo.get_version_string().startswith("3.2"):
-            ssl_params["ssl_cert_reqs"]= ssl.CERT_NONE
+            ssl_params["ssl_cert_reqs"] = ssl.CERT_NONE
 
         return ssl_params
 
