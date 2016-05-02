@@ -27,6 +27,8 @@ from mongoctl import config
 from mongoctl import users
 from mongoctl.mongodb_version import MongoDBEdition, make_version_info
 
+import ssl
+
 ###############################################################################
 # CONSTANTS
 ###############################################################################
@@ -838,6 +840,9 @@ class Server(DocumentWrapper):
         if self.ssl_cert_file():
             ssl_params["ssl_keyfile"] = self.ssl_key_file()
             ssl_params["ssl_certfile"] = self.ssl_cert_file()
+        # deal with https://github.com/10gen/mongo-orchestration/issues/188 for pymongo3
+        elif pymongo.get_version_string().startswith("3.2"):
+            ssl_params["ssl_cert_reqs"]= ssl.CERT_NONE
 
         return ssl_params
 
