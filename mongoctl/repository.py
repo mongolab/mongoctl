@@ -59,7 +59,6 @@ def get_mongoctl_database():
 
     log_verbose("Connecting to mongoctl db...")
     try:
-
         client = _db_repo_connect()
         # issue a call to server to ensure it connects
         client.get_database("admin").command({"ping": 1})
