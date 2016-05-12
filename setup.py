@@ -120,7 +120,7 @@ install_requires = [
 try:
     version_info = sys.version_info
     if version_info[0] == 2 and version_info[2] < 10:
-        install_requires.append('certifi=2016.2.28')
+        install_requires.append('certifi==2016.2.28')
 except:
     pass
 
