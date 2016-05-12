@@ -173,18 +173,6 @@ class Server(DocumentWrapper):
             if "SSL handshake failed" in str(ce):
                 return False
 
-
-
-
-
-    ###########################################################################
-    def ssl_key_file(self):
-        return self.get_cmd_option("sslKeyFile") is not None
-
-    ###########################################################################
-    def ssl_cert_file(self):
-        return self.get_cmd_option("sslCertFile") is not None
-
     ###########################################################################
     def get_default_key_file_path(self):
         return self.get_server_file_path("keyFile", KEY_FILE_NAME)
@@ -803,9 +791,6 @@ class Server(DocumentWrapper):
         options = {"ssl": True}
         options.update(DEFAULT_CLIENT_OPTIONS)
 
-        if pymongo.get_version_string().startswith("3.2"):
-            options["ssl_cert_reqs"] = ssl.CERT_NONE
-
         return self.new_mongo_client(**options)
 
     ###########################################################################
@@ -846,13 +831,6 @@ class Server(DocumentWrapper):
         ssl_params = {}
         if use_ssl:
             ssl_params["ssl"] = True
-
-        if self.ssl_cert_file():
-            ssl_params["ssl_keyfile"] = self.ssl_key_file()
-            ssl_params["ssl_certfile"] = self.ssl_cert_file()
-        # deal with https://github.com/10gen/mongo-orchestration/issues/188 for pymongo3
-        elif pymongo.get_version_string().startswith("3.2"):
-            ssl_params["ssl_cert_reqs"] = ssl.CERT_NONE
 
         return ssl_params
 
