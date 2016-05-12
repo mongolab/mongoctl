@@ -107,6 +107,24 @@ def mongoctl_post_install():
         install_latest_mongodb()
 
 ###############################################################################
+install_requires = [
+    'dargparse>=0.2.5',
+    'pymongo==3.2.2',
+    'verlib==0.1',
+    "boto==2.37.0",
+    "psutil==1.2.1"
+]
+
+###############################################################################
+#TODO XXX and force python version to be 2.7.10+ ?
+try:
+    version_info = sys.version_info
+    if version_info[0] == 2 and version_info[2] < 10:
+        install_requires.append('certifi=2016.2.28')
+except:
+    pass
+
+###############################################################################
 # Setup
 ###############################################################################
 setup(
@@ -130,12 +148,7 @@ setup(
     scripts=['bin/mongoctl'],
     url='https://github.com/mongolab/mongoctl',
     license='MIT',
-    install_requires=[
-        'dargparse>=0.2.5',
-        'pymongo==3.2.2',
-        'verlib==0.1',
-        "boto==2.37.0",
-        "psutil==1.2.1"]
+    install_requires=install_requires
 
 
 
