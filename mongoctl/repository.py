@@ -17,6 +17,7 @@ from utils import (
 
 from mongodb_version import is_supported_mongo_version, is_valid_version
 from mongo_uri_tools import is_cluster_mongo_uri, mask_mongo_uri
+import mongo_utils
 
 DEFAULT_SERVERS_FILE = "servers.config"
 
@@ -103,11 +104,7 @@ def _db_repo_connect():
     uri = db_conf["databaseURI"]
     client_args = {"read_preference": pymongo.read_preferences.ReadPreference.PRIMARY_PREFERRED}
 
-    if pymongo.get_version_string().startswith("3.2"):
-        ## TODO XXX MAYBE? This makes things much slower
-        client_args["serverSelectionTimeoutMS"] = 1
-
-    client = pymongo.MongoClient(uri, **client_args)
+    client = mongo_utils.mongo_client(uri, **client_args)
 
     return client
 
