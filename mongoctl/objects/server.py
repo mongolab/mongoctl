@@ -151,7 +151,7 @@ class Server(DocumentWrapper):
         log_debug("prefer_use_ssl() Checking if we prefer ssl for '%s'" %
                   self.id)
         try:
-            ping(self.new_ssl_test_mongo_client())
+            self.new_ssl_test_mongo_client()
             return True
         except (OperationFailure, AutoReconnect), ofe:
             log_exception(ofe)
