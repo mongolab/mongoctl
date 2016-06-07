@@ -136,7 +136,8 @@ def do_start_server(server, options_override=None, rs_add=False, no_init=False, 
                  server.id)
         # always call post server start if the server is already started
         # the post server start steps should be idempotent
-        _post_server_start(server, server.get_pid(), rs_add=rs_add, no_init=no_init)
+        _post_server_start(server, server.get_pid(), rs_add=rs_add, no_init=no_init,
+                           standalone=standalone)
         return
     elif "timedOut" in status:
         raise MongoctlException("Unable to start server: Server '%s' seems to"
@@ -233,8 +234,10 @@ def _post_mongod_server_start(server, server_pid, **kwargs):
         # sleep for a couple of seconds for the server to catch
         time.sleep(2)
 
-        maybe_config_server_repl_set(server, rs_add=kwargs.get("rs_add"),
-                                     no_init=kwargs.get("no_init"))
+        # skip repl init if running in standalone mode
+        if not kwargs.get("standalone"):
+            maybe_config_server_repl_set(server, rs_add=kwargs.get("rs_add"),
+                                         no_init=kwargs.get("no_init"))
 
         # prepare the server
         prepare_mongod_server(server)
