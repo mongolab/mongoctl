@@ -24,7 +24,7 @@ def mongo_client(*args, **kwargs):
         fail_fast_if_connection_refused(*args)
         if kwargs and kwargs.get("serverSelectionTimeoutMS") is None:
             kwargs["connect"] = True
-            kwargs["serverSelectionTimeoutMS"] = 1
+            kwargs["serverSelectionTimeoutMS"] = CONN_TIMEOUT
 
     client = pymongo.MongoClient(*args, **kwargs)
     ping(client)
