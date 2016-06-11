@@ -1,3 +1,3 @@
 __author__ = 'abdul'
 
-MONGOCTL_VERSION = '1.0.9'
+MONGOCTL_VERSION = '1.1.0'
