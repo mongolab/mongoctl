@@ -51,7 +51,7 @@ PROCESS_LIMITS = [
 ]
 
 # mongo connection timeout for the start operation.
-START_CONN_TIMEOUT = 10 * 60 * 1000
+START_CONN_TIMEOUT_MS = 10 * 60 * 1000
 
 # Max time to wait for server to be online (i.e running and accepting connection) after start
 SERVER_ONLINE_TIMEOUT = 20 * 60
@@ -110,7 +110,7 @@ def dry_run_start_server_cmd(server, options_override=None, standalone=False):
 ###############################################################################
 def start_server(server, options_override=None, rs_add=False, no_init=False, standalone=False):
     # set the timeout to 10 minutes for this server
-    server.connection_timeout_ms = START_CONN_TIMEOUT
+    server.connection_timeout_ms = START_CONN_TIMEOUT_MS
 
     do_start_server(server,
                     options_override=options_override,
