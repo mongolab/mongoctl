@@ -34,7 +34,6 @@ from mongoctl.prompt import prompt_confirm
 
 from mongoctl.objects.mongod import MongodServer
 from mongoctl.objects.mongos import MongosServer
-from mongoctl.objects.server import set_server_connection_timeout
 
 import mongoctl.mongoctl_command_config
 from mongoctl.mongoctl_signal import register_mongoctl_signal_handler, exit_mongoctl
@@ -111,7 +110,7 @@ def dry_run_start_server_cmd(server, options_override=None, standalone=False):
 ###############################################################################
 def start_server(server, options_override=None, rs_add=False, no_init=False, standalone=False):
     # set the timeout to 10 minutes for this server
-    set_server_connection_timeout(START_CONN_TIMEOUT)
+    server.connection_timeout_ms = START_CONN_TIMEOUT
 
     do_start_server(server,
                     options_override=options_override,

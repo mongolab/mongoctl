@@ -84,6 +84,9 @@ class Server(DocumentWrapper):
         self._mongodb_edition = None
         self._cluster = None
         self._connection_address = None
+        # default connection timeout
+
+        self._connection_timeout_ms = None
 
     ###########################################################################
     # Properties
@@ -776,6 +779,10 @@ class Server(DocumentWrapper):
     ###########################################################################
     def new_mongo_client(self, **kwargs):
         address = self.get_connection_address()
+        kwargs = kwargs or {}
+        if self.connection_timeout_ms:
+            kwargs["connectTimeoutMS"] = self.connection_timeout_ms
+
         return mongo_utils.mongo_client(address, **kwargs)
 
     ###########################################################################
@@ -787,7 +794,6 @@ class Server(DocumentWrapper):
     def get_client_params(self):
         params = {}
         params.update(self.get_client_ssl_params())
-
         return params
 
     ###########################################################################
@@ -822,6 +828,16 @@ class Server(DocumentWrapper):
             ssl_params["ssl"] = True
 
         return ssl_params
+
+
+    ###########################################################################
+    @property
+    def connection_timeout_ms(self):
+        return self._connection_timeout_ms
+
+    @connection_timeout_ms.setter
+    def connection_timeout_ms(self, val):
+        self._connection_timeout_ms = val
 
     ###########################################################################
     def get_connection_address(self):
@@ -1014,8 +1030,3 @@ def set_client_ssl_mode(mode):
 
     global CLIENT_SSL_MODE
     CLIENT_SSL_MODE = mode
-
-
-###############################################################################
-def set_server_connection_timeout(timeout):
-    mongo_utils.CONN_TIMEOUT = timeout

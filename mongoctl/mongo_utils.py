@@ -2,8 +2,9 @@ __author__ = 'abdul'
 
 import pymongo
 import pymongo.uri_parser
+import pymongo.errors
 import socket
-
+import mongoctl_logging
 ###############################################################################
 # db connection timeout, 10 seconds
 CONN_TIMEOUT = 10000
@@ -16,20 +17,20 @@ def mongo_client(*args, **kwargs):
     :param kwargs:
     :return:
     """
+
     kwargs = kwargs or {}
+    connection_timeout_ms = kwargs.get("connectTimeoutMS") or CONN_TIMEOUT
+
     kwargs.update({
-        "socketTimeoutMS": CONN_TIMEOUT,
-        "connectTimeoutMS": CONN_TIMEOUT,
+        "socketTimeoutMS": connection_timeout_ms,
+        "connectTimeoutMS": connection_timeout_ms,
         "maxPoolSize": 1
     })
     if pymongo.get_version_string().startswith("3.2"):
-        # parse uri
-        uri = args[0]
-        address, port = pymongo.uri_parser.parse_uri(uri)["nodelist"][0]
-        fail_fast_if_connection_refused(address, port)
+        fail_fast_if_connection_refused(*args, **kwargs)
         if kwargs and kwargs.get("serverSelectionTimeoutMS") is None:
             kwargs["connect"] = True
-            kwargs["serverSelectionTimeoutMS"] = CONN_TIMEOUT
+            kwargs["serverSelectionTimeoutMS"] = connection_timeout_ms
 
     client = pymongo.MongoClient(*args, **kwargs)
     ping(client)
@@ -40,12 +41,23 @@ def ping(mongo_client):
     return mongo_client.get_database("admin").command({"ping": 1})
 
 ###############################################################################
-def fail_fast_if_connection_refused(address, port):
+def fail_fast_if_connection_refused(*args, **kwargs):
     try:
+        # parse uri
+        uri = args[0]
+        if uri.startswith("mongodb://"):
+            address, port = pymongo.uri_parser.parse_uri(uri)["nodelist"][0]
+        else: # assume its address:port
+            address, port = uri.split(":")
+            port = int(port)
 
+        mongoctl_logging.log_verbose("fail_fast_if_connection_refused for %s:%s" % (address, port))
         socket.create_connection((address, port), CONN_TIMEOUT)
     except Exception, ex:
+        mongoctl_logging.log_verbose("FINISHED fail_fast_if_connection_refused: %s" % ex)
         if "refused" in str(ex):
-            raise
+            raise pymongo.errors.ConnectionFailure(str(ex))
+        else:
+            pass
 
 
