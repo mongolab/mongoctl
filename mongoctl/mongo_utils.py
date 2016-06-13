@@ -7,7 +7,7 @@ import socket
 import mongoctl_logging
 ###############################################################################
 # db connection timeout, 10 seconds
-CONN_TIMEOUT = 10000
+CONN_TIMEOUT_MS = 10000
 
 ###############################################################################
 def mongo_client(*args, **kwargs):
@@ -19,7 +19,7 @@ def mongo_client(*args, **kwargs):
     """
 
     kwargs = kwargs or {}
-    connection_timeout_ms = kwargs.get("connectTimeoutMS") or CONN_TIMEOUT
+    connection_timeout_ms = kwargs.get("connectTimeoutMS") or CONN_TIMEOUT_MS
 
     kwargs.update({
         "socketTimeoutMS": connection_timeout_ms,
@@ -52,7 +52,7 @@ def fail_fast_if_connection_refused(*args, **kwargs):
             port = int(port)
 
         mongoctl_logging.log_verbose("fail_fast_if_connection_refused for %s:%s" % (address, port))
-        socket.create_connection((address, port), CONN_TIMEOUT)
+        socket.create_connection((address, port), CONN_TIMEOUT_MS/1000)
     except Exception, ex:
         mongoctl_logging.log_verbose("FINISHED fail_fast_if_connection_refused: %s" % ex)
         if "refused" in str(ex):
