@@ -52,7 +52,9 @@ def fail_fast_if_connection_refused(*args, **kwargs):
             port = int(port)
 
         mongoctl_logging.log_verbose("fail_fast_if_connection_refused for %s:%s" % (address, port))
-        socket.create_connection((address, port), CONN_TIMEOUT_MS/1000)
+        s = socket.create_connection((address, port), CONN_TIMEOUT_MS/1000)
+        s.close()
+        mongoctl_logging.log_verbose("PASSED fail_fast_if_connection_refused !")
     except Exception, ex:
         mongoctl_logging.log_verbose("FINISHED fail_fast_if_connection_refused: %s" % ex)
         if "refused" in str(ex):
