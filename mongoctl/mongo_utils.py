@@ -1,6 +1,8 @@
 __author__ = 'abdul'
 
 import pymongo
+import pymongo.uri_parser
+import socket
 
 ###############################################################################
 # db connection timeout, 10 seconds
@@ -21,7 +23,10 @@ def mongo_client(*args, **kwargs):
         "maxPoolSize": 1
     })
     if pymongo.get_version_string().startswith("3.2"):
-        fail_fast_if_connection_refused(*args)
+        # parse uri
+        uri = args[0]
+        address, port = pymongo.uri_parser.parse_uri(uri)["nodelist"][0]
+        fail_fast_if_connection_refused(address, port)
         if kwargs and kwargs.get("serverSelectionTimeoutMS") is None:
             kwargs["connect"] = True
             kwargs["serverSelectionTimeoutMS"] = CONN_TIMEOUT
@@ -35,12 +40,10 @@ def ping(mongo_client):
     return mongo_client.get_database("admin").command({"ping": 1})
 
 ###############################################################################
-def fail_fast_if_connection_refused(*args):
+def fail_fast_if_connection_refused(address, port):
     try:
-        c = pymongo.MongoClient(*args, connect=True, connectTimeoutMS=1,
-                                maxPoolSize=1, socketTimeoutMS=1,
-                                serverSelectionTimeoutMS=1)
-        ping(c)
+
+        socket.create_connection((address, port), CONN_TIMEOUT)
     except Exception, ex:
         if "refused" in str(ex):
             raise
