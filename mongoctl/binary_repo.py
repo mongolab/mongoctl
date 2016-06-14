@@ -134,7 +134,7 @@ class DefaultMongoDBBinaryRepository(MongoDBBinaryRepository):
             archive_name = "mongodb-%s-%s.tgz" % (platform_spec,
                                                   mongodb_version)
             domain = "fastdl.mongodb.org"
-        # community ssl from mongodb.org are supported only for version >= 3.9
+        # community ssl from mongodb.org are supported only for version >= 3.0
         elif mongodb_edition == MongoDBEdition.COMMUNITY_SSL:
             if version_info >= VERSION_3_0 and os_dist_name is not None:
                 archive_name = "mongodb-%s-%s%s-%s.tgz" % (platform_spec, os_dist_name,
@@ -159,7 +159,11 @@ class DefaultMongoDBBinaryRepository(MongoDBBinaryRepository):
             raise MongoctlException("Unsupported edition '%s'" %
                                     mongodb_edition)
 
-        return "http://%s/%s/%s" % (domain, os_name, archive_name)
+        url = "http://%s/%s/%s" % (domain, os_name, archive_name)
+        log_verbose("Download url for MongoDB %s (%s edition) OS %s, dist '%s': %s" %
+                    (mongodb_version, mongodb_edition, os_name, os_dist_name, url))
+
+        return url
 
 ###############################################################################
 # S3MongoDBBinaryRepository
