@@ -32,13 +32,22 @@ def mongo_client(*args, **kwargs):
             kwargs["connect"] = True
             kwargs["serverSelectionTimeoutMS"] = connection_timeout_ms
 
+    mongoctl_logging.log_debug("(BEGIN) create MongoClient %s" % args[0])
+
     client = pymongo.MongoClient(*args, **kwargs)
+
+    mongoctl_logging.log_debug("(END) create MongoClient %s" % args[0])
+
     ping(client)
+
     return client
 
 ###############################################################################
 def ping(mongo_client):
-    return mongo_client.get_database("admin").command({"ping": 1})
+    mongoctl_logging.log_debug("(BEGIN) ping %s" % mongo_client.address)
+    result = mongo_client.get_database("admin").command({"ping": 1})
+    mongoctl_logging.log_debug("(END) ping %s (finished in)" % mongo_client.address)
+    return result
 
 ###############################################################################
 def fail_fast_if_connection_refused(*args, **kwargs):
@@ -51,12 +60,12 @@ def fail_fast_if_connection_refused(*args, **kwargs):
             address, port = uri.split(":")
             port = int(port)
 
-        mongoctl_logging.log_verbose("fail_fast_if_connection_refused for %s:%s" % (address, port))
+        mongoctl_logging.log_debug("fail_fast_if_connection_refused for %s:%s" % (address, port))
         s = socket.create_connection((address, port), CONN_TIMEOUT_MS/1000)
         s.close()
-        mongoctl_logging.log_verbose("PASSED fail_fast_if_connection_refused !")
+        mongoctl_logging.log_debug("PASSED fail_fast_if_connection_refused !")
     except Exception, ex:
-        mongoctl_logging.log_verbose("FINISHED fail_fast_if_connection_refused: %s" % ex)
+        mongoctl_logging.log_debug("FINISHED fail_fast_if_connection_refused: %s" % ex)
         if "refused" in str(ex):
             raise pymongo.errors.ConnectionFailure(str(ex))
         else:
