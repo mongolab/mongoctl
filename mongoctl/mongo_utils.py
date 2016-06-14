@@ -5,6 +5,8 @@ import pymongo.uri_parser
 import pymongo.errors
 import socket
 import mongoctl_logging
+from datetime import datetime
+import utils
 ###############################################################################
 # db connection timeout, 10 seconds
 CONN_TIMEOUT_MS = 10000
@@ -44,9 +46,13 @@ def mongo_client(*args, **kwargs):
 
 ###############################################################################
 def ping(mongo_client):
-    mongoctl_logging.log_debug("(BEGIN) ping %s" % mongo_client.address)
+
+    mongoctl_logging.log_debug("(BEGIN) ping %s:%s" % (mongo_client.address[0], mongo_client.address[1]))
+    start_date = datetime.now()
     result = mongo_client.get_database("admin").command({"ping": 1})
-    mongoctl_logging.log_debug("(END) ping %s (finished in)" % mongo_client.address)
+    duration = utils.timedelta_total_seconds(datetime.now() - start_date)
+    mongoctl_logging.log_debug("(END) ping %s:%s (finished in %s seconds)" % (mongo_client.address[0],
+                                                                              mongo_client.address[1], duration))
     return result
 
 ###############################################################################
