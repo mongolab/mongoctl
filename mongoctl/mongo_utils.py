@@ -7,6 +7,7 @@ import socket
 import mongoctl_logging
 from datetime import datetime
 import utils
+import traceback
 ###############################################################################
 # db connection timeout, 10 seconds
 CONN_TIMEOUT_MS = 10000
@@ -53,6 +54,10 @@ def ping(mongo_client):
     duration = utils.timedelta_total_seconds(datetime.now() - start_date)
     mongoctl_logging.log_debug("(END) ping %s:%s (finished in %s seconds)" % (mongo_client.address[0],
                                                                               mongo_client.address[1], duration))
+
+    # DEBUGGING
+    if duration > 1:
+        mongoctl_logging.log_debug("**** Ping took more than 1 second. STACK:\n %s\n " % "\n".join(traceback.format_stack()))
     return result
 
 ###############################################################################
