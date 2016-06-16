@@ -5,7 +5,7 @@ import os
 import mongoctl.repository as repository
 
 from base import DocumentWrapper
-from mongoctl.utils import resolve_path, document_pretty_string, is_host_local
+from mongoctl.utils import resolve_path, document_pretty_string, is_host_local, timedelta_total_seconds
 import pymongo
 
 from pymongo.errors import AutoReconnect, OperationFailure, ConnectionFailure
@@ -652,15 +652,22 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def is_online(self):
+        log_debug("(BEGIN) is_online() for %s" % self.id)
+        start_date = datetime.datetime.now()
+        result = False
         try:
             self.new_default_mongo_client()
-            return True
+            result = True
         except (OperationFailure, AutoReconnect), ofe:
             log_exception(ofe)
-            return "refused" not in str(ofe)
+            result = "refused" not in str(ofe)
         except ConnectionFailure, cfe:
             log_exception(cfe)
-            return "connection closed" in str(cfe)
+            result = "connection closed" in str(cfe)
+
+        duration = timedelta_total_seconds(datetime.datetime.now() - start_date)
+        log_debug("(BEGIN) is_online() for %s finished in %s seconds" % (self.id, duration))
+        return result
 
     ###########################################################################
     def can_function(self):
