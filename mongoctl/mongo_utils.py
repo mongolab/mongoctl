@@ -50,17 +50,25 @@ def mongo_client(*args, **kwargs):
 ###############################################################################
 def test_client(mongo_client, host, port):
     start_date = datetime.now()
-    mongoctl_logging.log_debug("(BEGIN) test_client ping %s:%s" % (host, port))
+    try:
+        mongoctl_logging.log_debug("(BEGIN) test_client ping %s:%s" % (host, port))
 
-    result = mongo_client.get_database("admin").command({"ping": 1})
-    duration = utils.timedelta_total_seconds(datetime.now() - start_date)
-    mongoctl_logging.log_debug("(END) test_client ping %s:%s (finished in %s seconds)" % (host, port, duration))
+        result = mongo_client.get_database("admin").command({"ping": 1})
 
-    # DEBUGGING
-    if duration > 1:
-        mongoctl_logging.log_debug("**** Ping took more than 1 second. "
-                                   "STACK:\n %s\n " % "\n".join(traceback.format_stack()))
-    return result
+        return result
+    except Exception, ex:
+        mongoctl_logging.log_debug("(ERROR) test_client ping %s:%s: %s" % (host, port, ex))
+        mongoctl_logging.log_exception(ex)
+    finally:
+        duration = utils.timedelta_total_seconds(datetime.now() - start_date)
+
+        mongoctl_logging.log_debug("(END) test_client ping %s:%s (finished in %s seconds)" % (host, port, duration))
+
+        # DEBUGGING
+        if duration > 1:
+            mongoctl_logging.log_debug("**** Ping took more than 1 second. "
+                                       "STACK:\n %s\n " % "\n".join(traceback.format_stack()))
+
 
 ###############################################################################
 def fail_fast_if_connection_refused(host, port):
