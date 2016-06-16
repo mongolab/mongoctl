@@ -29,6 +29,8 @@ def mongo_client(*args, **kwargs):
         "connectTimeoutMS": connection_timeout_ms,
         "maxPoolSize": 1
     })
+
+    host, port = parse_client_host_port(*args)
     if pymongo.get_version_string().startswith("3.2"):
         fail_fast_if_connection_refused(*args, **kwargs)
         if kwargs and kwargs.get("serverSelectionTimeoutMS") is None:
@@ -41,38 +43,31 @@ def mongo_client(*args, **kwargs):
 
     mongoctl_logging.log_debug("(END) create MongoClient %s" % args[0])
 
-    ping(client)
+    test_client(client, host, port)
 
     return client
 
 ###############################################################################
-def ping(mongo_client):
-
-    mongoctl_logging.log_debug("(BEGIN) ping %s:%s" % (mongo_client.address[0], mongo_client.address[1]))
+def test_client(mongo_client, host, port):
     start_date = datetime.now()
+    mongoctl_logging.log_debug("(BEGIN) test_client ping %s:%s" % (host, port))
+
     result = mongo_client.get_database("admin").command({"ping": 1})
     duration = utils.timedelta_total_seconds(datetime.now() - start_date)
-    mongoctl_logging.log_debug("(END) ping %s:%s (finished in %s seconds)" % (mongo_client.address[0],
-                                                                              mongo_client.address[1], duration))
+    mongoctl_logging.log_debug("(END) test_client ping %s:%s (finished in %s seconds)" % (host, port, duration))
 
     # DEBUGGING
     if duration > 1:
-        mongoctl_logging.log_debug("**** Ping took more than 1 second. STACK:\n %s\n " % "\n".join(traceback.format_stack()))
+        mongoctl_logging.log_debug("**** Ping took more than 1 second. "
+                                   "STACK:\n %s\n " % "\n".join(traceback.format_stack()))
     return result
 
 ###############################################################################
-def fail_fast_if_connection_refused(*args, **kwargs):
+def fail_fast_if_connection_refused(host, port):
     try:
-        # parse uri
-        uri = args[0]
-        if uri.startswith("mongodb://"):
-            address, port = pymongo.uri_parser.parse_uri(uri)["nodelist"][0]
-        else: # assume its address:port
-            address, port = uri.split(":")
-            port = int(port)
 
-        mongoctl_logging.log_debug("fail_fast_if_connection_refused for %s:%s" % (address, port))
-        s = socket.create_connection((address, port), CONN_TIMEOUT_MS/1000)
+        mongoctl_logging.log_debug("fail_fast_if_connection_refused for %s:%s" % (host, port))
+        s = socket.create_connection((host, port), CONN_TIMEOUT_MS/1000)
         s.close()
         mongoctl_logging.log_debug("PASSED fail_fast_if_connection_refused !")
     except Exception, ex:
@@ -82,4 +77,14 @@ def fail_fast_if_connection_refused(*args, **kwargs):
         else:
             pass
 
+###############################################################################
 
+def parse_client_host_port(*args):
+    uri = args[0]
+    if uri.startswith("mongodb://"):
+        host, port = pymongo.uri_parser.parse_uri(uri)["nodelist"][0]
+    else: # assume its address:port
+        host, port = uri.split(":")
+        port = int(port)
+
+    return host, port
