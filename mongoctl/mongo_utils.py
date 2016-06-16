@@ -32,7 +32,7 @@ def mongo_client(*args, **kwargs):
 
     host, port = parse_client_host_port(*args)
     if pymongo.get_version_string().startswith("3.2"):
-        fail_fast_if_connection_refused(*args, **kwargs)
+        fail_fast_if_connection_refused(host, port)
         if kwargs and kwargs.get("serverSelectionTimeoutMS") is None:
             kwargs["connect"] = True
             kwargs["serverSelectionTimeoutMS"] = connection_timeout_ms
