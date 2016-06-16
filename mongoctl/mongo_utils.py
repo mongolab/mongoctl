@@ -59,6 +59,7 @@ def test_client(mongo_client, host, port):
     except Exception, ex:
         mongoctl_logging.log_debug("(ERROR) test_client ping %s:%s: %s" % (host, port, ex))
         mongoctl_logging.log_exception(ex)
+        raise
     finally:
         duration = utils.timedelta_total_seconds(datetime.now() - start_date)
 
