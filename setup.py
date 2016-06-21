@@ -91,7 +91,7 @@ def copy_sample_configs():
                "This is not harmful. The error happened while trying to "
                "determine owner/mode of sample config files: %s" % e)
 
-
+###############################################################################
 def install_latest_mongodb():
     try:
         from mongoctl.commands.misc.install import install_mongodb
@@ -99,6 +99,7 @@ def install_latest_mongodb():
     except Exception, e:
         #print "Unable to install latest mongodb. Cause: '%s' " % e
         pass
+
 ###############################################################################
 # mongoct post install
 def mongoctl_post_install():
@@ -112,7 +113,8 @@ install_requires = [
     'pymongo==3.2.2',
     'verlib==0.1',
     "boto==2.37.0",
-    "psutil==1.2.1"
+    "psutil==1.2.1",
+    #"pymo==0.1.0"
 ]
 
 ###############################################################################
@@ -148,7 +150,10 @@ setup(
     scripts=['bin/mongoctl'],
     url='https://github.com/mongolab/mongoctl',
     license='MIT',
-    install_requires=install_requires
+    install_requires=install_requires,
+    dependency_links=[
+        #"git+git://github.com/mlab/pymo.git#egg=pymo-0.1.0"
+    ]
 
 
 
