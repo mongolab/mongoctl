@@ -114,7 +114,7 @@ install_requires = [
     'verlib==0.1',
     "boto==2.37.0",
     "psutil==1.2.1",
-    #"pymo==0.1.0"
+    "pymo==0.1.0"
 ]
 
 ###############################################################################
@@ -152,7 +152,7 @@ setup(
     license='MIT',
     install_requires=install_requires,
     dependency_links=[
-        #"git+git://github.com/mlab/pymo.git#egg=pymo-0.1.0"
+        "git+git://github.com/mlab/pymo.git#egg=pymo-0.1.0"
     ]
 
 
