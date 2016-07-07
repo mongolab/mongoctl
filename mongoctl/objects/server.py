@@ -296,8 +296,8 @@ class Server(DocumentWrapper):
                     ("subscription" in server_info["gitVersion"] or
                      "enterprise" in server_info["gitVersion"])):
                 edition = MongoDBEdition.ENTERPRISE
-            elif ("OpenSSLVersion" in server_info and
-                    server_info["OpenSSLVersion"]):
+            elif (("OpenSSLVersion" in server_info and
+                    server_info["OpenSSLVersion"]) or server_info.get("openssl")):
                 edition = MongoDBEdition.COMMUNITY_SSL
             else:
                 edition = MongoDBEdition.COMMUNITY
