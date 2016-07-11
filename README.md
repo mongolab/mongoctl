@@ -1,18 +1,18 @@
 Overview
 --------
 
-```mongoctl``` is a lightweight command line utility that simplifies the
+`mongoctl` is a lightweight command line utility that simplifies the
 installation of MongoDB and management of MongoDB servers and replica set clusters. It is
 particularly useful if you maintain many MongoDB environments with
 lots of configurations to manage.
 
-The core philosophy behind ```mongoctl``` is that all server and
+The core philosophy behind `mongoctl` is that all server and
 cluster configuration be defined declaratively as data, rather than
 procedurally as code or scripts. So, instead of typing shell commands
 with lots of options that you can never remember, or
 writing a bunch of shell scripts hard-coded with hosts, port numbers,
 and file-system paths, you simply define the universe of servers and
-clusters with JSON objects and pass them to ```mongoctl``` commands.
+clusters with JSON objects and pass them to `mongoctl` commands.
 Server and cluster definitions can reside in flat-files, behind a web-server 
 (like Github for instance), or in a MongoDB database. 
 
@@ -69,16 +69,17 @@ Installation
 
 #### Requirements
 
-* Linux or MacOSX (```mongoctl``` does not currently support Windows) 
+* Linux or MacOSX (`mongoctl` does not currently support Windows) 
 * Python >= 2.6
 * pip >= 1.0.2 ([instructions on installing pip](docs/installing-pip.md))
 
 #### Supported MongoDB versions
-```mongoctl``` supports MongoDB versions >= 1.8.
+
+`mongoctl` supports MongoDB versions >= 1.8.
 
 #### Installing mongoctl
 
-```mongoctl``` is registered in the Python package index pypi.
+`mongoctl` is registered in the Python package index pypi.
 
 
 ```
