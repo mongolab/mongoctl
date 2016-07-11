@@ -79,23 +79,33 @@ Installation
 
 #### Installing mongoctl
 
-`mongoctl` is registered in the Python package index pypi.
+`mongoctl` is registered in the [Python package
+index](https://pypi.python.org/pypi/mongoctl) (PyPI).
 
+.. note::
+    You may need to prefix these commands with ``sudo`` if you're using a
+    system-level Python install (i.e. if running ``pip`` by itself results in
+    permissions errors.)
+
+    For example, ``sudo pip install mongoctl`` will install ``mongoctl`` to
+    your system Python.
+
+To install:
 
 ```
-% sudo pip install mongoctl
+% pip install mongoctl
 ```
 
 To update:
 
 ```
-% sudo pip install --upgrade mongoctl
+% pip install --upgrade mongoctl
 ```
 
 To uninstall:
 
 ```
-% sudo pip uninstall mongoctl
+% pip uninstall mongoctl
 ```
 
 #### Running mongoctl's test suite
