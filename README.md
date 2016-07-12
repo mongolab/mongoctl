@@ -116,6 +116,10 @@ To run mongoctl's test suite, execute the following command:
 % python -m mongoctl.tests.test_suite
 ```
 
+.. note::
+    Executing the test suite will download and install a temporary copy of
+    MongoDB (cached in a subfolder of `mongoctl/tests`) for use while testing.
+
 Documentation
 ----------
 
