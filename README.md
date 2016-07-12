@@ -2,18 +2,17 @@ Overview
 --------
 
 `mongoctl` is a lightweight command line utility that simplifies the
-installation of MongoDB and management of MongoDB servers and replica set clusters. It is
-particularly useful if you maintain many MongoDB environments with
-lots of configurations to manage.
+installation of MongoDB and management of MongoDB servers and replica set
+clusters. It is particularly useful if you maintain many MongoDB environments
+with lots of configurations to manage.
 
-The core philosophy behind `mongoctl` is that all server and
-cluster configuration be defined declaratively as data, rather than
-procedurally as code or scripts. So, instead of typing shell commands
-with lots of options that you can never remember, or
-writing a bunch of shell scripts hard-coded with hosts, port numbers,
-and file-system paths, you simply define the universe of servers and
-clusters with JSON objects and pass them to `mongoctl` commands.
-Server and cluster definitions can reside in flat-files, behind a web-server 
+The core philosophy behind `mongoctl` is that all server and cluster
+configuration be defined declaratively as data, rather than procedurally as
+code or scripts. So, instead of typing shell commands with lots of options that
+you can never remember, or writing a bunch of shell scripts hard-coded with
+hosts, port numbers, and file-system paths, you simply define the universe of
+servers and clusters with JSON objects and pass them to `mongoctl` commands.
+Server and cluster definitions can reside in flat-files, behind a web-server
 (like Github for instance), or in a MongoDB database. 
 
 #### Usage
