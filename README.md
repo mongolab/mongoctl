@@ -81,13 +81,10 @@ Installation
 `mongoctl` is registered in the [Python package
 index](https://pypi.python.org/pypi/mongoctl) (PyPI).
 
-.. note::
-    You may need to prefix these commands with ``sudo`` if you're using a
-    system-level Python install (i.e. if running ``pip`` by itself results in
-    permissions errors.)
-
-    For example, ``sudo pip install mongoctl`` will install ``mongoctl`` to
-    your system Python.
+Note: you may need to prefix these commands with ``sudo`` if you're using a
+system-level Python install (i.e. if running ``pip`` by itself results in
+permissions errors.) For example, ``sudo pip install mongoctl`` will install
+``mongoctl`` to your system Python.
 
 To install:
 
@@ -115,9 +112,8 @@ To run mongoctl's test suite, execute the following command:
 % python -m mongoctl.tests.test_suite
 ```
 
-.. note::
-    Executing the test suite will download and install a temporary copy of
-    MongoDB (cached in a subfolder of `mongoctl/tests`) for use while testing.
+Note: executing the test suite will download and install a temporary copy of
+MongoDB (cached in a subfolder of `mongoctl/tests`) for use while testing.
 
 Documentation
 ----------
