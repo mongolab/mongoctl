@@ -69,7 +69,7 @@ Installation
 #### Requirements
 
 * Linux or MacOSX (`mongoctl` does not currently support Windows) 
-* Python >= 2.6
+* Python 2.6 or 2.7 (3.x not yet supported)
 * pip >= 1.0.2 ([instructions on installing pip](docs/installing-pip.md))
 
 #### Supported MongoDB versions
