@@ -59,6 +59,7 @@ USE_ALT_ADDRESS = None
 ###############################################################################
 VERSION_2_6 = make_version_info("2.6.0")
 VERSION_3_0 = make_version_info("3.0.0")
+VERSION_3_2 = make_version_info("3.2.0")
 
 ###############################################################################
 class ClientSslMode(object):
@@ -341,6 +342,10 @@ class Server(DocumentWrapper):
     ###########################################################################
     def set_cmd_options(self, cmd_options):
         return self.set_property('cmdOptions' , cmd_options)
+
+    ###########################################################################
+    def get_server_executable_env_vars(self):
+        return {}
 
     ###########################################################################
     def apply_cmd_options_overrides(self, options_overrides):

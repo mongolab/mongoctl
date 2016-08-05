@@ -411,6 +411,7 @@ def get_forked_mongod_pid(parent_mongod):
 ###############################################################################
 def start_server_process(server, options_override=None, standalone=False):
 
+    set_server_executable_env_vars(server)
     mongod_pid = _start_server_process_4real(server, options_override=options_override,
                                              standalone=standalone)
 
@@ -448,6 +449,13 @@ def start_server_process(server, options_override=None, standalone=False):
              (server.id, mongod_pid))
 
     return mongod_pid
+
+###############################################################################
+def set_server_executable_env_vars(server):
+    exe_env = server.get_server_executable_env_vars()
+    if exe_env:
+        log_info("Passing env vars: %s" % exe_env)
+        os.environ.update(exe_env)
 
 ###############################################################################
 def server_process_preexec():

@@ -12,6 +12,7 @@ from bson.son import SON
 from mongoctl.errors import MongoctlException
 from replicaset_cluster import ReplicaSetCluster, get_member_repl_lag
 from sharded_cluster import ShardedCluster
+from mongoctl.mongodb_version import make_version_info
 ###############################################################################
 # CONSTANTS
 ###############################################################################
@@ -293,5 +294,25 @@ class MongodServer(server.Server):
                                     self.id)
 
         return get_member_repl_lag(member_status, master_status)
+
+    ###########################################################################
+    def get_server_executable_env_vars(self):
+        env_vars = {}
+        # Workaround for mongod SERVER-24303 issue
+        if self.is_wired_tiger():
+            env_vars["TCMALLOC_AGGRESSIVE_DECOMMIT"] = "y"
+
+    ###########################################################################
+    def is_wired_tiger(self):
+        version = self.get_mongo_version_info()
+        storage_engine = self.get_cmd_option("storageEngine")
+
+        if version >= make_version_info("3.4.0"):
+            #TODO XXX when we figure out 3.4.x is out. See SERVER-24303
+            raise Exception("is_wired_tiger() not supported >= 3.4.x yet.")
+        elif version >= make_version_info("3.2.0"):
+            return not storage_engine or storage_engine == "wiredTiger"
+        elif version >= make_version_info("3.0.0"):
+            return storage_engine == "wiredTiger"
 
 
