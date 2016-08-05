@@ -302,6 +302,8 @@ class MongodServer(server.Server):
         if self.is_wired_tiger():
             env_vars["TCMALLOC_AGGRESSIVE_DECOMMIT"] = "y"
 
+        return env_vars
+
     ###########################################################################
     def is_wired_tiger(self):
         version = self.get_mongo_version_info()
