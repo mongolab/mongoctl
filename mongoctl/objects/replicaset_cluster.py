@@ -728,7 +728,9 @@ class ReplicaSetCluster(Cluster):
         }
 
         if self.repl_set_config_settings:
-            cmd["settings"] = self.repl_set_config_settings
+            settings = (current_rs_conf and current_rs_conf.get("settings")) or {}
+            settings.update(self.repl_set_config_settings)
+            cmd["settings"] = settings
 
         return cmd
 
