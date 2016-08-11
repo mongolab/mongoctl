@@ -280,6 +280,11 @@ class ReplicaSetCluster(Cluster):
         return members
 
     ###########################################################################
+    @property
+    def repl_set_config_settings(self):
+        return self.get_property("replSetConfigSettings")
+
+    ###########################################################################
     # Interface Methods
     ###########################################################################
 
@@ -717,8 +722,15 @@ class ReplicaSetCluster(Cluster):
         # populate member ids when needed
         self.populate_member_conf_ids(member_confs, current_rs_conf)
 
-        return {"_id" : self.id,
-                "members": member_confs}
+        cmd = {
+            "_id": self.id,
+            "members": member_confs
+        }
+
+        if self.repl_set_config_settings:
+            cmd["settings"] = self.repl_set_config_settings
+
+        return cmd
 
     ###########################################################################
     def populate_member_conf_ids(self, member_confs, current_rs_conf=None):
