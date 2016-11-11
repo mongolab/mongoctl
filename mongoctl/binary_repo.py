@@ -138,12 +138,10 @@ class DefaultMongoDBBinaryRepository(MongoDBBinaryRepository):
         elif mongodb_edition == MongoDBEdition.COMMUNITY_SSL:
             if version_info >= VERSION_3_0:
                 # Platforms that lack OS dist data (eg OS X) apparently don't
-                # need it, i.e. 'mongodb-osx-x86_64-3.2.9.tgz'
-                # TODO: still some confusion about whether there should be an
-                # '-ssl-' in the middle here...
+                # need it
                 dist_bits = ""
                 # Ones that have it, need it injected, i.e.
-                # 'mongodb-linux-x86_64-ubuntu1404-3.2.9.tgz
+                # 'mongodb-linux-x86_64-debian71-3.2.9.tgz
                 if os_dist_name is not None:
                     dist_bits = "-{0}{1}".format(
                         os_dist_name,
@@ -406,7 +404,7 @@ def get_template_args(mongodb_version, mongodb_edition):
     bits = platform.architecture()[0].replace("bit", "")
     os_name = get_os_name()
 
-    platform_spec = get_validate_platform_spec(os_name, bits)
+    platform_spec = get_validate_platform_spec(os_name, bits, mongodb_edition)
 
     os_dist_name, os_dist_version = get_os_dist_info()
     os_dist_version_no_dots = (os_dist_version and
@@ -422,12 +420,15 @@ def get_template_args(mongodb_version, mongodb_edition):
     }
 
 ###############################################################################
-def get_validate_platform_spec(os_name, bits):
+def get_validate_platform_spec(os_name, bits, edition):
 
     if os_name not in ["linux", "osx", "win32", "sunos5"]:
         raise Exception("Unsupported OS %s" % os_name)
 
     if bits == "64":
+        # OS X + SSL has distinct download tgz names with -ssl- in them
+        if os_name == "osx" and edition == MongoDBEdition.COMMUNITY_SSL:
+            return "osx-ssl-x86_64"
         return "%s-x86_64" % os_name
     else:
         if os_name == "linux":
