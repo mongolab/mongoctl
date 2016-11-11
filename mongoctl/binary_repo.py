@@ -136,9 +136,21 @@ class DefaultMongoDBBinaryRepository(MongoDBBinaryRepository):
             domain = "fastdl.mongodb.org"
         # community ssl from mongodb.org are supported only for version >= 3.0
         elif mongodb_edition == MongoDBEdition.COMMUNITY_SSL:
-            if version_info >= VERSION_3_0 and os_dist_name is not None:
-                archive_name = "mongodb-%s-%s%s-%s.tgz" % (platform_spec, os_dist_name,
-                                                           os_dist_version_no_dots, mongodb_version)
+            if version_info >= VERSION_3_0:
+                # Platforms that lack OS dist data (eg OS X) apparently don't
+                # need it...
+                dist_bits = ""
+                # Ones that have it, need it injected
+                if os_dist_name is not None:
+                    dist_bits = "-{0}{1}".format(
+                        os_dist_name,
+                        os_dist_version_no_dots
+                    )
+                archive_name = "mongodb-{0}{1}-{2}.tgz".format(
+                    platform_spec,
+                    dist_bits,
+                    mongodb_version
+                )
                 domain = "fastdl.mongodb.org"
             else:
                 return None
