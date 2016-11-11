@@ -138,9 +138,12 @@ class DefaultMongoDBBinaryRepository(MongoDBBinaryRepository):
         elif mongodb_edition == MongoDBEdition.COMMUNITY_SSL:
             if version_info >= VERSION_3_0:
                 # Platforms that lack OS dist data (eg OS X) apparently don't
-                # need it...
+                # need it, i.e. 'mongodb-osx-x86_64-3.2.9.tgz'
+                # TODO: still some confusion about whether there should be an
+                # '-ssl-' in the middle here...
                 dist_bits = ""
-                # Ones that have it, need it injected
+                # Ones that have it, need it injected, i.e.
+                # 'mongodb-linux-x86_64-ubuntu1404-3.2.9.tgz
                 if os_dist_name is not None:
                     dist_bits = "-{0}{1}".format(
                         os_dist_name,
