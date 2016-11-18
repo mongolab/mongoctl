@@ -335,7 +335,7 @@ class MongodServer(server.Server):
 
     ###########################################################################
     def verify_runtime_parameters(self):
-        log_info("verifying runtime params")
+        log_info("Verifying runtime params...")
         wtcs_gb = self.get_cmd_option("wiredTigerCacheSizeGB")
         if wtcs_gb is not None:
             wtcs_bytes = int(wtcs_gb * 1024 * 1024 * 1024)
@@ -359,7 +359,7 @@ class MongodServer(server.Server):
 
     ###########################################################################
     def set_runtime_parameter_cmd(self, name, value):
-        log_info("Setting runtime parameter '%s' to '%s', for server '%s'" %
+        log_info("Setting runtime parameter '%s' to '%s', for server '%s'..." %
                  (name, value, self.id))
         cmd = {
             "setParameter": 1,
