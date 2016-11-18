@@ -752,7 +752,7 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def get_server_status_summary(self):
-        server_status = self.db_command(SON([('serverStatus', 1)]), "admin")
+        server_status = self.server_status()
         connections = server_status['connections']
         # remove totalCreated if it exists
         if "totalCreated" in connections:
@@ -765,6 +765,9 @@ class Server(DocumentWrapper):
         }
         return server_summary
 
+    ###########################################################################
+    def server_status(self):
+        return self.db_command(SON([('serverStatus', 1)]), "admin")
 
     ###########################################################################
     def get_uptime(self):

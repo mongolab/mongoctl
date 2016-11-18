@@ -6,7 +6,7 @@ import server
 
 from mongoctl.utils import resolve_path
 from mongoctl.mongoctl_logging import log_verbose, log_debug, log_exception, \
-    log_warning
+    log_warning, log_info
 
 from bson.son import SON
 from mongoctl.errors import MongoctlException
@@ -95,6 +95,11 @@ class MongodServer(server.Server):
         # add shardsvr as needed
         if self.is_shard_server():
             cmd_options["shardsvr"] = True
+
+        # remove wiredTigerCacheSizeGB if specified since we set it in runtime parameter wiredTigerEngineRuntimeConfig
+        # if it was specified
+        if "wiredTigerCacheSizeGB" in cmd_options:
+            del cmd_options["wiredTigerCacheSizeGB"]
 
         return cmd_options
 
@@ -316,5 +321,51 @@ class MongodServer(server.Server):
             return not storage_engine or storage_engine == "wiredTiger"
         elif version >= make_version_info("3.0.0"):
             return storage_engine == "wiredTiger"
+
+    ###########################################################################
+    def set_runtime_parameters(self):
+        params = self.generate_runtime_parameters()
+
+        if params:
+            for name, val in params.items():
+                self.set_runtime_parameter_cmd(name, val)
+
+            # verify that params were applied properly
+            self.verify_runtime_parameters()
+
+    ###########################################################################
+    def verify_runtime_parameters(self):
+        log_info("verifying runtime params")
+        wtcs_gb = self.get_cmd_option("wiredTigerCacheSizeGB")
+        if wtcs_gb is not None:
+            wtcs_bytes = int(wtcs_gb * 1024 * 1024 * 1024)
+            server_status = self.server_status()
+            if not(server_status and "wiredTiger" in server_status and "cache" in server_status["wiredTiger"] and
+                           "maximum bytes configured" in server_status["wiredTiger"]["cache"] and
+                           server_status["wiredTiger"]["cache"]["maximum bytes configured"] == wtcs_bytes):
+                raise MongoctlException("CONFIG ERROR: wiredTigerCacheSizeGB was not applied")
+
+        log_info("Runtime params verification passed!")
+
+    ###########################################################################
+    def generate_runtime_parameters(self):
+        parameters = {}
+        wtcs_gb = self.get_cmd_option("wiredTigerCacheSizeGB")
+        if wtcs_gb is not None:
+            wtcs_mb = int(wtcs_gb * 1024)
+            parameters["wiredTigerEngineRuntimeConfig"] = "cache_size=%sM" % wtcs_mb
+
+        return parameters
+
+    ###########################################################################
+    def set_runtime_parameter_cmd(self, name, value):
+        log_info("Setting runtime parameter '%s' to '%s', for server '%s'" %
+                 (name, value, self.id))
+        cmd = {
+            "setParameter": 1,
+            name: value
+        }
+        self.db_command(cmd, "admin")
+
 
 

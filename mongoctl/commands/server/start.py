@@ -241,6 +241,8 @@ def _post_mongod_server_start(server, server_pid, **kwargs):
         # prepare the server
         prepare_mongod_server(server)
 
+        # set runtime parameters
+        server.set_runtime_parameters()
     except Exception, e:
         log_exception(e)
         log_error("Unable to fully prepare server '%s'. Cause: %s \n"
