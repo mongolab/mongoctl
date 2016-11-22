@@ -315,7 +315,7 @@ def maybe_config_server_repl_set(server, rs_add=False, no_init=False):
             if not cluster.is_member_configured_for(server):
                 if server.has_joined_replica():
                     ## wait for server to finish joining replica
-                    log_info("Waiting for server to finish joining replica")
+                    log_info("Waiting for server to finish joining replica set...")
                     wait_for(lambda: cluster.is_member_configured_for(server), timeout=10*60)
 
                 elif rs_add:
