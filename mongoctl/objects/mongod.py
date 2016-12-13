@@ -98,7 +98,7 @@ class MongodServer(server.Server):
 
         # remove wiredTigerCacheSizeGB if specified since we set it in runtime parameter wiredTigerEngineRuntimeConfig
         # if it was specified
-        if "wiredTigerCacheSizeGB" in cmd_options:
+        if "wiredTigerCacheSizeGB" in cmd_options and self.get_cmd_option("wiredTigerCacheSizeGB") < 1:
             del cmd_options["wiredTigerCacheSizeGB"]
 
         return cmd_options
@@ -337,7 +337,7 @@ class MongodServer(server.Server):
     def verify_runtime_parameters(self):
         log_info("Verifying runtime params...")
         wtcs_gb = self.get_cmd_option("wiredTigerCacheSizeGB")
-        if wtcs_gb is not None:
+        if wtcs_gb is not None and wtcs_gb < 1:
             wtcs_bytes = int(wtcs_gb * 1024 * 1024 * 1024)
             server_status = self.server_status()
             if not(server_status and "wiredTiger" in server_status and "cache" in server_status["wiredTiger"] and
@@ -350,12 +350,15 @@ class MongodServer(server.Server):
     ###########################################################################
     def generate_runtime_parameters(self):
         parameters = {}
+        return parameters
+        """ TODO Enable later
         wtcs_gb = self.get_cmd_option("wiredTigerCacheSizeGB")
-        if wtcs_gb is not None:
+        if wtcs_gb is not None and wtcs_gb < 1:
             wtcs_mb = int(wtcs_gb * 1024)
             parameters["wiredTigerEngineRuntimeConfig"] = "cache_size=%sM" % wtcs_mb
 
         return parameters
+        """
 
     ###########################################################################
     def set_runtime_parameter_cmd(self, name, value):
