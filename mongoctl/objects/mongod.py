@@ -96,9 +96,9 @@ class MongodServer(server.Server):
         if self.is_shard_server():
             cmd_options["shardsvr"] = True
 
-        # remove wiredTigerCacheSizeGB if specified since we set it in runtime parameter wiredTigerEngineRuntimeConfig
-        # if it was specified
-        if "wiredTigerCacheSizeGB" in cmd_options and self.get_cmd_option("wiredTigerCacheSizeGB") < 1:
+        # remove wiredTigerCacheSizeGB if its not an int since we set it in runtime parameter
+        #  wiredTigerEngineRuntimeConfig in this case
+        if "wiredTigerCacheSizeGB" in cmd_options and not isinstance(self.get_cmd_option("wiredTigerCacheSizeGB"), int):
             del cmd_options["wiredTigerCacheSizeGB"]
 
         return cmd_options
@@ -337,7 +337,7 @@ class MongodServer(server.Server):
     def verify_runtime_parameters(self):
         log_info("Verifying runtime params...")
         wtcs_gb = self.get_cmd_option("wiredTigerCacheSizeGB")
-        if wtcs_gb is not None and wtcs_gb < 1:
+        if wtcs_gb is not None and isinstance(wtcs_gb, float):
             wtcs_bytes = int(wtcs_gb * 1024 * 1024 * 1024)
             server_status = self.server_status()
             if not(server_status and "wiredTiger" in server_status and "cache" in server_status["wiredTiger"] and
