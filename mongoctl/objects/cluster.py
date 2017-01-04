@@ -108,7 +108,7 @@ class Cluster(DocumentWrapper):
         auth = self.is_auth()
         if not db:
             if auth:
-                db = "[/<dbname>]"
+                db = "/<dbname>"
             else:
                 db = ""
         else:
@@ -119,5 +119,5 @@ class Cluster(DocumentWrapper):
             if server.is_cluster_connection_member():
                 server_uri_templates.append(server.get_address_display())
 
-        creds = "[<dbuser>:<dbpass>@]" if auth else ""
+        creds = "<dbuser>:<dbpass>@" if auth else ""
         return "mongodb://%s%s%s?replicaSet=%s" % (creds, ",".join(server_uri_templates), db, self.id)
