@@ -746,7 +746,7 @@ class Server(DocumentWrapper):
             log_exception(e)
             status['connection'] = False
             status['error'] = "%s" % e
-            if "timed out" in status['error']:
+            if "timed out" in status['error'].lower():
                 status['timedOut'] = True
         return status
 
