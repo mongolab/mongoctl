@@ -68,7 +68,7 @@ def main(args):
     try:
         do_main(args)
     except MongoctlException,e:
-        log_error(e)
+        log_error("mongoctl error: %s" % e)
         log_exception(e)
         exit(1)
     except Exception, e:

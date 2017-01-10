@@ -73,8 +73,8 @@ def get_mongo_executable(version_info,
                       selected_exe.version))
             return selected_exe
 
-    ## ok nothing found at all. wtf case
-    msg = ("Unable to find a compatible '%s' executable "
+    ## ok nothing found at all
+    log_error("Unable to find a compatible '%s' executable "
            "for version %s (edition %s). You may need to run 'mongoctl "
            "install-mongodb %s %s' to install it.\n\n"
            "Here is your enviroment:\n\n"
@@ -88,7 +88,7 @@ def get_mongo_executable(version_info,
             mongo_home,
             mongo_installs_dir))
 
-    raise MongoctlException(msg)
+    raise MongoctlException("Unable to find a compatible '%s' executable." % executable_name)
 
 ###############################################################################
 def find_all_executables(executable_name):
