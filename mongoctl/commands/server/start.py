@@ -145,6 +145,9 @@ def do_start_server(server, options_override=None, rs_add=False, no_init=False, 
                                 " Or there might some server running on the"
                                 " same port %s" %
                                 (server.id, server.get_port()))
+    elif server.is_server_pid_alive():
+        raise MongoctlException("Unable to start server: Server '%s' seems to be already started but is "
+                                "not responding." % server.id)
     # check if there is another process running on the same port
     elif "error" in status and ("closed" in status["error"] or
                                         "reset" in status["error"] or

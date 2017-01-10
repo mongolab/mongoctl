@@ -5,7 +5,7 @@ import os
 import mongoctl.repository as repository
 
 from base import DocumentWrapper
-from mongoctl.utils import resolve_path, document_pretty_string, is_host_local, timedelta_total_seconds
+from mongoctl.utils import resolve_path, document_pretty_string, is_host_local, timedelta_total_seconds, is_pid_alive
 import pymongo
 
 from pymongo.errors import AutoReconnect, OperationFailure, ConnectionFailure
@@ -1000,6 +1000,11 @@ class Server(DocumentWrapper):
                         (self.id, pid_file_path))
 
         return None
+
+    ###########################################################################
+    def is_server_pid_alive(self):
+        pid = self.get_pid()
+        return pid and is_pid_alive(pid)
 
     ###############################################################################
     def supports_local_users(self):

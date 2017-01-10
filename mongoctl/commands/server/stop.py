@@ -71,6 +71,9 @@ def do_stop_server(server, force=False):
             log_info("Unable to issue 'shutdown' command to server '%s'. "
                      "The server appears to have reached  max # of connections." % server.id)
             can_stop_mongoly = False
+        elif server.is_server_pid_alive():
+            log_info("Unable to issue 'shutdown' command to server '%s'. The server is not responding." % server.id)
+            can_stop_mongoly = False
         else:
             log_info("Server '%s' is not running." %
                      server.id)
