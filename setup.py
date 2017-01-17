@@ -112,7 +112,7 @@ install_requires = [
     'dargparse>=0.2.5',
     'pymongo==3.2.2',
     'verlib==0.1',
-    "boto==2.43.0",
+    "boto==2.45.0",
     "psutil==1.2.1",
     "pymo==0.1.0"
 ]
