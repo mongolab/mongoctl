@@ -280,8 +280,7 @@ class MongodServer(server.Server):
     def has_joined_replica(self):
         master_result = self.is_master_command()
         if master_result:
-            return (master_result.get("setName") is not None or
-                    master_result.get("ismaster") or
+            return (master_result.get("ismaster") or
                     master_result.get("arbiterOnly") or
                     master_result.get("secondary"))
 
