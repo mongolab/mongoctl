@@ -313,10 +313,7 @@ class MongodServer(server.Server):
         version = self.get_mongo_version_info()
         storage_engine = self.get_cmd_option("storageEngine")
 
-        if version >= make_version_info("3.4.0"):
-            #TODO XXX when we figure out 3.4.x is out. See SERVER-24303
-            raise Exception("is_wired_tiger() not supported >= 3.4.x yet.")
-        elif version >= make_version_info("3.2.0"):
+        if version >= make_version_info("3.2.0"):
             return not storage_engine or storage_engine == "wiredTiger"
         elif version >= make_version_info("3.0.0"):
             return storage_engine == "wiredTiger"
