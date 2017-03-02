@@ -109,12 +109,12 @@ def mongoctl_post_install():
 
 ###############################################################################
 install_requires = [
-    'dargparse>=0.2.5',
-    'pymongo==3.2.2',
-    'verlib==0.1',
     "boto==2.45.0",
+    "dargparse>=0.2.5",
     "psutil==1.2.1",
-    "pymo==0.1.0"
+    "pymo==0.2.0",
+    "pymongo==3.2.2",
+    "verlib==0.1",
 ]
 
 ###############################################################################
@@ -151,12 +151,6 @@ setup(
     url='https://github.com/mongolab/mongoctl',
     license='MIT',
     install_requires=install_requires,
-    dependency_links=[
-        "git+https://github.com/mlab/pymo.git#egg=pymo-0.1.0"
-    ]
-
-
-
 )
 
 ### execute this block after setup "install" command is complete
