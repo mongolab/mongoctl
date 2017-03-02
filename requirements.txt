@@ -1,0 +1,21 @@
+# Public dependencies
+boto==2.45.0
+# certifi originally added in 861eabd7f4f35b1b5e099ea54b0129792d5bfed1 to
+# support Python<2.7.10; but no note of why exactly.
+certifi==2016.2.28
+dargparse>=0.2.5
+psutil==1.2.1
+pymongo==3.2.2
+verlib==0.1
+
+# Semi-public dependencies
+# TODO:
+# - publish pymo to PyPI
+# - move this back to setup.py so it can be installed w/o using
+# requirements.txt
+# - if can't do those, then update the README noting installation requires
+# source + pip install -r requirements.txt
+-e git+https://github.com/mlab/pymo.git@0.2.0#egg=pymo
+
+# Self
+-e .
