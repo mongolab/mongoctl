@@ -107,6 +107,24 @@ def mongoctl_post_install():
     if not configs_exists:
         install_latest_mongodb()
 
+###############################################################################
+install_requires = [
+    "boto==2.45.0",
+    "dargparse>=0.2.5",
+    "psutil==1.2.1",
+    "pymo>=0.1.0"
+    "pymongo==3.2.2",
+    "verlib==0.1",
+]
+
+###############################################################################
+#TODO XXX and force python version to be 2.7.10+ ?
+try:
+    version_info = sys.version_info
+    if version_info[0] == 2 and version_info[2] < 10:
+        install_requires.append('certifi==2016.2.28')
+except:
+    pass
 
 ###############################################################################
 # Setup
@@ -132,7 +150,13 @@ setup(
     scripts=['bin/mongoctl'],
     url='https://github.com/mongolab/mongoctl',
     license='MIT',
-    # NOTE: install deps now in requirements.txt
+    install_requires=install_requires,
+    dependency_links=[
+        "git+https://github.com/mlab/pymo.git#egg=pymo-0.1.0"
+    ]
+
+
+
 )
 
 ### execute this block after setup "install" command is complete
