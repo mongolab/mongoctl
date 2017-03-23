@@ -150,7 +150,7 @@ class MongodServer(server.Server):
             rs_summary = self.get_rs_status_summary()
             if rs_summary:
                 status["selfReplicaSetStatusSummary"] = rs_summary
-
+                status["oplogLength"] = self.get_log_length_summary()
         return status
 
     ###########################################################################
@@ -365,6 +365,30 @@ class MongodServer(server.Server):
             name: value
         }
         self.db_command(cmd, "admin")
+
+
+    ###########################################################################
+    def get_replication_info(self):
+        try:
+            ol = self.get_db("local")["oplog.rs"]
+            first_op = ol.find(sort=[("$natural", 1)], limit=1).next()
+            last_op = ol.find(sort=[("$natural", -1)], limit=1).next()
+            first_ts = first_op["ts"]
+            last_ts = last_op["ts"]
+            return {
+                "timeDiff": last_ts.time - first_ts.time,
+                "timeDiffHours": (last_ts.time - first_ts.time) / 3600
+            }
+        except Exception, ex:
+            log_exception("Error during get_replication_info()")
+
+    ###########################################################################
+    def get_log_length_summary(self):
+        repl_info = self.get_replication_info()
+        if repl_info:
+            return "%s secs (%s hours)" % (repl_info["timeDiff"], repl_info["timeDiffHours"])
+        else:
+            return ""
 
 
 
