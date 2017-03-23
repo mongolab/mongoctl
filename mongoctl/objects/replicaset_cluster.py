@@ -366,7 +366,8 @@ class ReplicaSetCluster(Cluster):
             "primary": {
                 "address": primary_server_address,
                 "stateStr": "PRIMARY",
-                "serverStatusSummary": primary_server.get_server_status_summary()
+                "serverStatusSummary": primary_server.get_server_status_summary(),
+                "oplogLength": primary_server.get_log_length_summary()
                 #"uptime": utils.time_string(master_status.get("uptime"))
             },
             "otherMembers": other_members
