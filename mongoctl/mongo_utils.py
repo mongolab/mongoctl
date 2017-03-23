@@ -34,8 +34,6 @@ def mongo_client(*args, **kwargs):
             kwargs["connect"] = True
             kwargs["serverSelectionTimeoutMS"] = connection_timeout_ms
 
-    mongoctl_logging.log_debug("(BEGIN) create MongoClient %s" % args[0])
-
     return _mongo_client(*args, **kwargs)
 
 
