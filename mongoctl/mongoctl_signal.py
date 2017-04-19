@@ -52,3 +52,4 @@ def init_mongoctl_signal_handler():
     # IMPORTANT: this must be called in order for signals to be handled
     # Register the global mongoctl signal handler
     signal.signal(signal.SIGINT, mongoctl_global_signal_handler)
+    signal.signal(signal.SIGTERM, mongoctl_global_signal_handler)
