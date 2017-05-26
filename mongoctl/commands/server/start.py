@@ -717,3 +717,5 @@ SUPPORTED_MONGOS_OPTIONS = [
     "chunkSize",
     "noscripting"
 ]
+
+SUPPORTED_MONGOS_OPTIONS.extend(mongoctl.mongoctl_command_config.SSL_OPTION_NAMES)

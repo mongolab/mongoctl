@@ -1929,7 +1929,11 @@ MONGOD_OPTIONS = [
         "cmd_arg":  "--setParameter",
         "nargs": 1,
         "help": "Set a configurable parameter"
-    },
+    }
+
+]
+
+SSL_OPTIONS = [
     ########### SSL OPTIONS
     {
         "name": "sslOnNormalPorts",
@@ -2018,13 +2022,13 @@ MONGOD_OPTIONS = [
         "nargs": 0,
         "help": "activate FIPS 140-2 mode at startup"
     }
-
-
 ]
 
-
 ###############################################################################
+MONGOD_OPTIONS.extend(SSL_OPTIONS)
+
 MONGOD_OPTION_NAMES = map(lambda option: option["name"], MONGOD_OPTIONS)
+SSL_OPTION_NAMES = map(lambda option: option["name"], SSL_OPTIONS)
 
 ###############################################################################
 
