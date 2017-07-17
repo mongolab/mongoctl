@@ -818,11 +818,17 @@ class ReplicaSetCluster(Cluster):
 
     ###########################################################################
     def get_sharded_cluster(self):
-        return repository.lookup_cluster_by_shard(self)
+        return repository.lookup_cluster_by_shard(self) or repository.lookup_sharded_cluster_by_config_replica(self)
 
     ###########################################################################
-    def is_shard_member(self):
-        return self.get_sharded_cluster() is not None
+    def is_shard(self):
+        sharded_cluster = self.get_sharded_cluster()
+        return sharded_cluster is not None and sharded_cluster.has_shard(self)
+
+    ###########################################################################
+    def is_config_replica(self):
+        sharded_cluster = self.get_sharded_cluster()
+        return sharded_cluster is not None and sharded_cluster.has_config_replica(self)
 
 ###############################################################################
 def get_member_repl_lag(member_status, master_status):

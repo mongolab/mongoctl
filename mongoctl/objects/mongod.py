@@ -188,9 +188,13 @@ class MongodServer(server.Server):
     def is_config_server(self):
         cluster = self.get_cluster()
 
-        return ((isinstance(cluster, ShardedCluster) and
-                 cluster.has_config_server(self)) or
-                self.get_cmd_option("configsvr"))
+        if self.get_cmd_option("configsvr"):
+            return True
+        elif isinstance(cluster, ShardedCluster):
+            return cluster.has_config_server(self)
+        elif isinstance(cluster, ReplicaSetCluster):
+            return cluster.is_config_replica()
+
 
     ###########################################################################
     def is_shard_server(self):
@@ -198,7 +202,7 @@ class MongodServer(server.Server):
         if isinstance(cluster, ShardedCluster):
             return cluster.has_shard(self)
         elif isinstance(cluster, ReplicaSetCluster):
-            return cluster.is_shard_member()
+            return cluster.is_shard()
 
     ###########################################################################
     def command_needs_auth(self, dbname, cmd):

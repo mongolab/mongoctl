@@ -313,6 +313,20 @@ def db_lookup_cluster_by_shard(shard):
         return None
 
 
+###############################################################################
+def db_lookup_sharded_cluster_by_config_replica(cluster):
+    cluster_collection = get_mongoctl_cluster_db_collection()
+
+    query = {
+        "configServers.cluster.$id": cluster.id
+    }
+
+    cluster_doc = cluster_collection.find_one(query)
+
+    if cluster_doc is not None:
+        return new_cluster(cluster_doc)
+    else:
+        return None
 
 ###############################################################################
 def config_lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_ANY):
@@ -342,12 +356,20 @@ def config_lookup_cluster_by_shard(shard):
         return result[0]
 
 ###############################################################################
+def config_lookup_sharded_cluster_by_config_replica(cluster):
+    clusters = get_configured_clusters()
+
+    result = filter(lambda c: cluster_has_config_replica(c, cluster), clusters.values())
+    if result:
+        return result[0]
+
+###############################################################################
 def cluster_has_config_server(cluster, server):
     config_servers = cluster.get_property("configServers")
     if config_servers:
         for server_doc in config_servers:
-            server_ref = server_doc["server"]
-            if isinstance(server_ref, DBRef) and server_ref.id == server.id:
+            server_ref = server_doc.get("server")
+            if server_ref and isinstance(server_ref, DBRef) and server_ref.id == server.id:
                 return cluster
 
 ###############################################################################
@@ -362,6 +384,14 @@ def cluster_has_shard(cluster, shard):
                 ref = shard_doc.get("cluster")
             if isinstance(ref, DBRef) and ref.id == shard.id:
                 return cluster
+
+###############################################################################
+def cluster_has_config_replica(cluster, conf_replica):
+    conf_server_refs = cluster.get_property("configServers")
+    if conf_server_refs:
+        for conf_server_ref in conf_server_refs:
+            if isinstance(conf_server_ref, DBRef) and conf_server_ref.id == conf_replica.id:
+                return True
 
 ###############################################################################
 # Global variable: lazy loaded map that holds servers read from config file
@@ -480,7 +510,6 @@ def lookup_cluster_by_server(server, lookup_type=LOOKUP_TYPE_ANY):
         cluster = db_lookup_cluster_by_server(server, lookup_type=lookup_type)
 
     ## If nothing is found then look in file repo
-    ## If nothing is found then look in file repo
     if cluster is None:
         cluster = config_lookup_cluster_by_server(server, lookup_type=lookup_type)
     return cluster
@@ -500,6 +529,22 @@ def lookup_cluster_by_shard(shard):
         cluster = config_lookup_cluster_by_shard(shard)
 
     return cluster
+
+
+###############################################################################
+def lookup_sharded_cluster_by_config_replica(cluster):
+    validate_repositories()
+    sharded_cluster = None
+
+    ## Look for the cluster in db repo
+    if consulting_db_repository():
+        sharded_cluster = db_lookup_sharded_cluster_by_config_replica(cluster)
+
+    ## If nothing is found then look in file repo
+    if sharded_cluster is None:
+        sharded_cluster = config_lookup_sharded_cluster_by_config_replica(cluster)
+
+    return sharded_cluster
 
 ###############################################################################
 def validate_server(server):

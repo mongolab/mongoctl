@@ -33,7 +33,7 @@ class ShardedCluster(Cluster):
         # if members are not set then return
         if member_documents:
             for mem_doc in member_documents:
-                member = ShardMember(mem_doc)
+                member = ShardedClusterMember(mem_doc)
                 members.append(member)
 
         return members
@@ -46,8 +46,8 @@ class ShardedCluster(Cluster):
     ###########################################################################
     def has_config_server(self, server):
         for member in self.config_members:
-            if member.get_server().id == server.id:
-                return True
+            if member.get_server():
+                return member.get_server().id == server.id
 
     ###########################################################################
     @property
@@ -56,7 +56,13 @@ class ShardedCluster(Cluster):
 
     ###########################################################################
     def has_shard(self, shard):
-        return self.get_shard_member(shard) is not None
+        shard_member = self.get_shard_member(shard)
+        return  shard_member is not None and shard_member.get_cluster() is not None
+
+    ###########################################################################
+    def has_config_replica(self, cluster):
+        config_member = self.get_config_member(cluster)
+        return config_member is not None and config_member.get_cluster() is not None
 
     ###########################################################################
     def get_shard_member(self, shard):
@@ -69,6 +75,18 @@ class ShardedCluster(Cluster):
                  shard_member.get_cluster() and
                  shard_member.get_cluster().id == shard.id)):
                 return shard_member
+
+    ###########################################################################
+    def get_config_member(self, cluster_or_server):
+        for config_member in self.config_members:
+            if ((isinstance(cluster_or_server, Server) and
+                     cluster_or_server.get_server() and
+                         config_member.get_server().id == config_member.id)
+                or
+                    (isinstance(cluster_or_server, Cluster) and
+                         config_member.get_cluster() and
+                             config_member.get_cluster().id == cluster_or_server.id)):
+                return config_member
 
     ###########################################################################
     def get_shard_member_by_shard_id(self, shard_id):
@@ -116,7 +134,7 @@ class ShardedCluster(Cluster):
                      " new shards as needed...")
 
         for shard_member in self.shards:
-            self.add_shard(shard_member.get_shard())
+            self.add_shard(shard_member.get_member_cluster_or_server())
 
     ###########################################################################
     def add_shard(self, shard):
@@ -186,7 +204,7 @@ class ShardedCluster(Cluster):
                 raise Exception("No such shard '%s' in ShardedCluster '%s' " %
                                 (unsharded_data_dest_id, self.id))
 
-            dest_shard = dest_shard_member.get_shard()
+            dest_shard = dest_shard_member.get_member_cluster_or_server()
             self.move_dbs_primary(result["dbsToMove"], dest_shard)
 
 
@@ -209,7 +227,7 @@ class ShardedCluster(Cluster):
         shard_member = self.get_shard_member(shard)
 
         return {
-            "removeShard": shard_member.get_shard_id()
+            "removeShard": shard_member.get_member_cluster_or_server().id
         }
 
     ###########################################################################
@@ -269,12 +287,12 @@ class ShardedCluster(Cluster):
 
     ###########################################################################
     def get_member_type(self):
-        return ShardMember
+        return ShardedClusterMember
 
 ###############################################################################
-# ShardMember Class
+# ShardedClusterMember Class
 ###############################################################################
-class ShardMember(DocumentWrapper):
+class ShardedClusterMember(DocumentWrapper):
     ###########################################################################
     # Constructor
     ###########################################################################
@@ -310,11 +328,7 @@ class ShardMember(DocumentWrapper):
         return self._cluster
 
     ###########################################################################
-    def get_shard_id(self):
-        return self.get_shard().id
-
-    ###########################################################################
-    def get_shard(self):
+    def get_member_cluster_or_server(self):
 
         if self.get_server():
             return self.get_server()
