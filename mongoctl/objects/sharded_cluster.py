@@ -46,8 +46,10 @@ class ShardedCluster(Cluster):
     ###########################################################################
     def has_config_server(self, server):
         for member in self.config_members:
-            if member.get_server():
-                return member.get_server().id == server.id
+            if member.get_server() and member.get_server().id == server.id:
+                return True
+
+        return False
 
     ###########################################################################
     @property
