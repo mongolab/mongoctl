@@ -830,6 +830,12 @@ class ReplicaSetCluster(Cluster):
         sharded_cluster = self.get_sharded_cluster()
         return sharded_cluster is not None and sharded_cluster.has_config_replica(self)
 
+    ###########################################################################
+    def get_replica_address(self):
+        server_addresses = map(lambda s: s.get_address(), self.get_servers())
+        return "%s/%s" % (self.id, ",".join(server_addresses))
+
+
 ###############################################################################
 def get_member_repl_lag(member_status, master_status):
 

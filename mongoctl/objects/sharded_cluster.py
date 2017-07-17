@@ -97,12 +97,15 @@ class ShardedCluster(Cluster):
                             shard_member.get_cluster().id == shard_id)):
                 return shard_member
     ###########################################################################
-    def get_config_member_addresses(self):
+    def get_config_db_address(self):
         addresses = []
         for member in self.config_members:
-            addresses.append(member.get_server().get_address())
+            if member.get_server():
+                addresses.append(member.get_server().get_address())
+            elif member.get_cluster():
+                addresses.append(member.get_cluster().get_replica_address())
 
-        return addresses
+        return ",".join(addresses)
 
     ###########################################################################
     def get_member_addresses(self):

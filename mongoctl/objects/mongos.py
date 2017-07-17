@@ -30,8 +30,8 @@ class MongosServer(Server):
 
         # Add configServers arg
         cluster = self.get_validate_cluster()
-        config_addresses = ",".join(cluster.get_config_member_addresses())
-        cmd_options["configdb"] = config_addresses
+
+        cmd_options["configdb"] = cluster.get_config_db_address()
 
         return cmd_options
 
