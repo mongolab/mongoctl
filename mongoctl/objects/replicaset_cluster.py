@@ -733,6 +733,10 @@ class ReplicaSetCluster(Cluster):
             settings.update(self.repl_set_config_settings)
             cmd["settings"] = settings
 
+        # set configsvr: true for config replicas
+        if self.is_config_replica():
+            cmd["configsvr"] = True
+
         return cmd
 
     ###########################################################################
