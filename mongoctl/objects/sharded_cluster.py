@@ -4,7 +4,7 @@ import mongoctl.repository as repository
 
 from cluster import Cluster
 from server import Server
-
+from replicaset_cluster import ReplicaSetCluster
 from base import DocumentWrapper
 from bson import DBRef
 
@@ -22,8 +22,24 @@ class ShardedCluster(Cluster):
     ###########################################################################
     def __init__(self, cluster_document):
         Cluster.__init__(self, cluster_document)
-        self._config_members = self._resolve_members("configServers")
+        self._config_servers = self._resolve_config_servers()
         self._shards = self._resolve_shard_members()
+
+    #############################################################################
+    def _resolve_config_servers(self):
+        config_refs = self.get_property("configServers")
+
+        if isinstance(config_refs, dict) and "cluster" in config_refs:
+            config_cluster_id = config_refs["cluster"].id
+            return repository.lookup_cluster(config_cluster_id)
+        elif isinstance(config_refs, list):
+            config_servers = []
+            for ref in config_refs:
+                config_servers.append(repository.lookup_server(ref["server"].id))
+
+            return config_servers
+        else:
+            raise Exception("Invalid configServers value")
 
     ###########################################################################
     def _resolve_shard_members(self):
@@ -40,16 +56,19 @@ class ShardedCluster(Cluster):
 
     ###########################################################################
     @property
-    def config_members(self):
-        return self._config_members
+    def config_servers(self):
+        return self._config_servers
 
     ###########################################################################
     def has_config_server(self, server):
-        for member in self.config_members:
-            if member.get_server() and member.get_server().id == server.id:
-                return True
+        if isinstance(self.config_servers, list):
+            for s in self.config_servers:
+                if s.id == server.id:
+                    return True
 
-        return False
+            return False
+        elif isinstance(self.config_servers, ReplicaSetCluster):
+            return self.config_servers.has_member_server(server)
 
     ###########################################################################
     @property
@@ -59,12 +78,11 @@ class ShardedCluster(Cluster):
     ###########################################################################
     def has_shard(self, shard):
         shard_member = self.get_shard_member(shard)
-        return  shard_member is not None and shard_member.get_cluster() is not None
+        return shard_member is not None and shard_member.get_cluster() is not None
 
     ###########################################################################
     def has_config_replica(self, cluster):
-        config_member = self.get_config_member(cluster)
-        return config_member is not None and config_member.get_cluster() is not None
+        return isinstance(self.config_servers, ReplicaSetCluster) and self.config_servers.id == cluster.id
 
     ###########################################################################
     def get_shard_member(self, shard):
@@ -79,18 +97,6 @@ class ShardedCluster(Cluster):
                 return shard_member
 
     ###########################################################################
-    def get_config_member(self, cluster_or_server):
-        for config_member in self.config_members:
-            if ((isinstance(cluster_or_server, Server) and
-                     cluster_or_server.get_server() and
-                         config_member.get_server().id == config_member.id)
-                or
-                    (isinstance(cluster_or_server, Cluster) and
-                         config_member.get_cluster() and
-                             config_member.get_cluster().id == cluster_or_server.id)):
-                return config_member
-
-    ###########################################################################
     def get_shard_member_by_shard_id(self, shard_id):
         for shard_member in self.shards:
             if ((shard_member.get_server() and
@@ -100,22 +106,11 @@ class ShardedCluster(Cluster):
                 return shard_member
     ###########################################################################
     def get_config_db_address(self):
-        addresses = []
-        for member in self.config_members:
-            if member.get_server():
-                addresses.append(member.get_server().get_address())
-            elif member.get_cluster():
-                addresses.append(member.get_cluster().get_replica_address())
-
-        return ",".join(addresses)
-
-    ###########################################################################
-    def get_member_addresses(self):
-        addresses = []
-        for member in self.config_members:
-            addresses.append(member.get_server().get_address())
-
-        return addresses
+        if isinstance(self.config_servers, list):
+            addresses = map(lambda s: s.get_address(), self.config_servers)
+            return ",".join(addresses)
+        elif isinstance(self.config_servers, ReplicaSetCluster):
+            return self.config_servers.get_replica_address()
 
     ###########################################################################
     def get_shard_member_address(self, shard_member):

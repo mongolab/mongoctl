@@ -366,7 +366,7 @@ def config_lookup_sharded_cluster_by_config_replica(cluster):
 ###############################################################################
 def cluster_has_config_server(cluster, server):
     config_servers = cluster.get_property("configServers")
-    if config_servers:
+    if config_servers and isinstance(config_servers, list):
         for server_doc in config_servers:
             server_ref = server_doc.get("server")
             if server_ref and isinstance(server_ref, DBRef) and server_ref.id == server.id:
@@ -486,7 +486,8 @@ def validate_replicaset_cluster(cluster):
 ###############################################################################
 def validate_sharded_cluster(cluster):
     errors = []
-    if not cluster.config_members or len(cluster.config_members) not in [1,3]:
+    if not cluster.config_servers or (isinstance(cluster.config_servers, list) and
+                                              len(cluster.config_servers) not in [1,3]):
         errors.append("Need 1 or 3 configServers configured in your cluster")
 
     return errors
