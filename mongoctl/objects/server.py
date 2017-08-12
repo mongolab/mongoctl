@@ -144,8 +144,9 @@ class Server(DocumentWrapper):
 
     ###########################################################################
     def use_ssl_client(self):
-        return (self.get_client_ssl_mode() == ClientSslMode.REQUIRE or
-                self.prefer_use_ssl())
+        #TODO XXX Temporarily disable ssl for local
+        return not self.is_use_local() and (self.get_client_ssl_mode() == ClientSslMode.REQUIRE or
+                                            self.prefer_use_ssl())
 
     ###########################################################################
     def prefer_use_ssl(self):
