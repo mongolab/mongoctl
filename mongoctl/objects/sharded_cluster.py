@@ -29,8 +29,9 @@ class ShardedCluster(Cluster):
     def _resolve_config_servers(self):
         config_refs = self.get_property("configServers")
 
-        if isinstance(config_refs, dict) and "cluster" in config_refs:
-            config_cluster_id = config_refs["cluster"].id
+        # check if its a config replica
+        if isinstance(config_refs, DBRef):
+            config_cluster_id = config_refs.id
             return repository.lookup_cluster(config_cluster_id)
         elif isinstance(config_refs, list):
             config_servers = []
