@@ -318,7 +318,7 @@ def db_lookup_sharded_cluster_by_config_replica(cluster):
     cluster_collection = get_mongoctl_cluster_db_collection()
 
     query = {
-        "configServers.cluster.$id": cluster.id
+        "configServers.$id": cluster.id
     }
 
     cluster_doc = cluster_collection.find_one(query)
@@ -389,9 +389,12 @@ def cluster_has_shard(cluster, shard):
 def cluster_has_config_replica(cluster, conf_replica):
     conf_server_refs = cluster.get_property("configServers")
     if conf_server_refs:
-        for conf_server_ref in conf_server_refs:
-            if isinstance(conf_server_ref, DBRef) and conf_server_ref.id == conf_replica.id:
-                return True
+        if isinstance(conf_server_refs, DBRef):
+            return conf_server_refs.id == conf_replica.id
+        else:
+            for conf_server_ref in conf_server_refs:
+                if isinstance(conf_server_ref, DBRef) and conf_server_ref.id == conf_replica.id:
+                    return True
 
 ###############################################################################
 # Global variable: lazy loaded map that holds servers read from config file
