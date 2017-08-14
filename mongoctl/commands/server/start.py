@@ -264,7 +264,7 @@ def prepare_mongod_server(server):
     if server.supports_local_users():
         users.setup_server_local_users(server)
 
-    if not server.is_cluster_member() or server.is_config_server():
+    if not server.is_cluster_member() or server.is_standalone_config_server():
         users.setup_server_users(server)
 
     if cluster and server.is_primary():

@@ -197,6 +197,12 @@ class MongodServer(server.Server):
 
 
     ###########################################################################
+    def is_standalone_config_server(self):
+        if self.is_config_server():
+            cluster = self.get_cluster()
+            return isinstance(cluster, ShardedCluster)
+
+    ###########################################################################
     def is_shard_server(self):
         cluster = self.get_cluster()
         if isinstance(cluster, ShardedCluster):
