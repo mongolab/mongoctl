@@ -4,7 +4,7 @@ import mongoctl.repository as repository
 
 from cluster import Cluster
 from server import Server
-
+from replicaset_cluster import ReplicaSetCluster
 from base import DocumentWrapper
 from bson import DBRef
 
@@ -22,8 +22,25 @@ class ShardedCluster(Cluster):
     ###########################################################################
     def __init__(self, cluster_document):
         Cluster.__init__(self, cluster_document)
-        self._config_members = self._resolve_members("configServers")
+        self._config_servers = self._resolve_config_servers()
         self._shards = self._resolve_shard_members()
+
+    #############################################################################
+    def _resolve_config_servers(self):
+        config_refs = self.get_property("configServers")
+
+        # check if its a config replica
+        if isinstance(config_refs, DBRef):
+            config_cluster_id = config_refs.id
+            return repository.lookup_cluster(config_cluster_id)
+        elif isinstance(config_refs, list):
+            config_servers = []
+            for ref in config_refs:
+                config_servers.append(repository.lookup_server(ref["server"].id))
+
+            return config_servers
+        else:
+            raise Exception("Invalid configServers value")
 
     ###########################################################################
     def _resolve_shard_members(self):
@@ -33,21 +50,26 @@ class ShardedCluster(Cluster):
         # if members are not set then return
         if member_documents:
             for mem_doc in member_documents:
-                member = ShardMember(mem_doc)
+                member = ShardedClusterMember(mem_doc)
                 members.append(member)
 
         return members
 
     ###########################################################################
     @property
-    def config_members(self):
-        return self._config_members
+    def config_servers(self):
+        return self._config_servers
 
     ###########################################################################
     def has_config_server(self, server):
-        for member in self.config_members:
-            if member.get_server().id == server.id:
-                return True
+        if isinstance(self.config_servers, list):
+            for s in self.config_servers:
+                if s.id == server.id:
+                    return True
+
+            return False
+        elif isinstance(self.config_servers, ReplicaSetCluster):
+            return self.config_servers.has_member_server(server)
 
     ###########################################################################
     @property
@@ -56,7 +78,12 @@ class ShardedCluster(Cluster):
 
     ###########################################################################
     def has_shard(self, shard):
-        return self.get_shard_member(shard) is not None
+        shard_member = self.get_shard_member(shard)
+        return shard_member is not None and shard_member.get_cluster() is not None
+
+    ###########################################################################
+    def has_config_replica(self, cluster):
+        return isinstance(self.config_servers, ReplicaSetCluster) and self.config_servers.id == cluster.id
 
     ###########################################################################
     def get_shard_member(self, shard):
@@ -79,20 +106,12 @@ class ShardedCluster(Cluster):
                             shard_member.get_cluster().id == shard_id)):
                 return shard_member
     ###########################################################################
-    def get_config_member_addresses(self):
-        addresses = []
-        for member in self.config_members:
-            addresses.append(member.get_server().get_address())
-
-        return addresses
-
-    ###########################################################################
-    def get_member_addresses(self):
-        addresses = []
-        for member in self.config_members:
-            addresses.append(member.get_server().get_address())
-
-        return addresses
+    def get_config_db_address(self):
+        if isinstance(self.config_servers, list):
+            addresses = map(lambda s: s.get_address(), self.config_servers)
+            return ",".join(addresses)
+        elif isinstance(self.config_servers, ReplicaSetCluster):
+            return self.config_servers.get_replica_address()
 
     ###########################################################################
     def get_shard_member_address(self, shard_member):
@@ -116,7 +135,7 @@ class ShardedCluster(Cluster):
                      " new shards as needed...")
 
         for shard_member in self.shards:
-            self.add_shard(shard_member.get_shard())
+            self.add_shard(shard_member.get_member_cluster_or_server())
 
     ###########################################################################
     def add_shard(self, shard):
@@ -186,7 +205,7 @@ class ShardedCluster(Cluster):
                 raise Exception("No such shard '%s' in ShardedCluster '%s' " %
                                 (unsharded_data_dest_id, self.id))
 
-            dest_shard = dest_shard_member.get_shard()
+            dest_shard = dest_shard_member.get_member_cluster_or_server()
             self.move_dbs_primary(result["dbsToMove"], dest_shard)
 
 
@@ -209,7 +228,7 @@ class ShardedCluster(Cluster):
         shard_member = self.get_shard_member(shard)
 
         return {
-            "removeShard": shard_member.get_shard_id()
+            "removeShard": shard_member.get_member_cluster_or_server().id
         }
 
     ###########################################################################
@@ -269,12 +288,12 @@ class ShardedCluster(Cluster):
 
     ###########################################################################
     def get_member_type(self):
-        return ShardMember
+        return ShardedClusterMember
 
 ###############################################################################
-# ShardMember Class
+# ShardedClusterMember Class
 ###############################################################################
-class ShardMember(DocumentWrapper):
+class ShardedClusterMember(DocumentWrapper):
     ###########################################################################
     # Constructor
     ###########################################################################
@@ -310,11 +329,7 @@ class ShardMember(DocumentWrapper):
         return self._cluster
 
     ###########################################################################
-    def get_shard_id(self):
-        return self.get_shard().id
-
-    ###########################################################################
-    def get_shard(self):
+    def get_member_cluster_or_server(self):
 
         if self.get_server():
             return self.get_server()

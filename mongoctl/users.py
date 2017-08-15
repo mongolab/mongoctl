@@ -7,7 +7,6 @@ from pymongo.errors import OperationFailure, AutoReconnect
 from errors import MongoctlException, is_auth_error
 from prompt import read_password
 
-import mongodb_version
 
 ###############################################################################
 __global_login_user__ = {
@@ -127,7 +126,12 @@ def setup_db_users(server, db, db_users):
 def _mongo_add_user(server, db, username, password, read_only=False,
                     num_tries=1):
     try:
-        db.add_user(username, password, read_only)
+        kwargs = {}
+        if server.is_config_server():
+            # majority is the only valid write concern when writing to config server replica sets
+            kwargs["writeConcern"] = {"w": "majority"}
+
+        db.add_user(username, password, read_only, **kwargs)
     except OperationFailure, ofe:
         # This is a workaround for PYTHON-407. i.e. catching a harmless
         # error that is raised after adding the first
