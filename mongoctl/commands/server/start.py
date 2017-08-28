@@ -167,7 +167,7 @@ def do_start_server(server, options_override=None, rs_add=False, no_init=False, 
 
     server_pid = start_server_process(server, options_override, standalone=standalone)
 
-    _post_server_start(server, server_pid, rs_add=rs_add, no_init=no_init)
+    _post_server_start(server, server_pid, rs_add=rs_add, no_init=no_init, standalone=standalone)
 
     # Note: The following block has to be the last block
     # because server_process.communicate() will not return unless you
