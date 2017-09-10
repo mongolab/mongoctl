@@ -22,8 +22,8 @@ class ShardedCluster(Cluster):
     ###########################################################################
     def __init__(self, cluster_document):
         Cluster.__init__(self, cluster_document)
-        self._config_servers = self._resolve_config_servers()
-        self._shards = self._resolve_shard_members()
+        self._config_servers = None
+        self._shards = None
 
     #############################################################################
     def _resolve_config_servers(self):
@@ -58,6 +58,8 @@ class ShardedCluster(Cluster):
     ###########################################################################
     @property
     def config_servers(self):
+        if not self._config_servers:
+            self._config_servers = self._resolve_config_servers()
         return self._config_servers
 
     ###########################################################################
@@ -74,6 +76,8 @@ class ShardedCluster(Cluster):
     ###########################################################################
     @property
     def shards(self):
+        if not self._shards:
+            self._shards = self._resolve_shard_members()
         return self._shards
 
     ###########################################################################
