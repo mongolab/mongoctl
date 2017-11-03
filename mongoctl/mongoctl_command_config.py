@@ -973,6 +973,13 @@ MONGOCTL_PARSER_DEF = {
                     "nargs": 1,
                     "help": "Available for MongoDB 3.0.x: write concern options e.g. --writeConcern majority, "
                             "--writeConcern '{w: 3,wtimeout: 500, fsync: true, j: true}' (mongoctl defaults to '{w:1}')"
+                },
+                {
+                    "name": "numParallelCollections",
+                    "type": "optional",
+                    "cmd_arg":  ["--numParallelCollections", "-j"],
+                    "nargs": 1,
+                    "help": "number of collections to restore in parallel (4 by default)"
                 }
             ]
         },

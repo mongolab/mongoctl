@@ -35,7 +35,8 @@ SUPPORTED_MONGO_RESTORE_OPTIONS = [
     "restoreDbUsersAndRoles",
     "noIndexRestore",
     "stopOnError",
-    "writeConcern"
+    "writeConcern",
+    "numParallelCollections"
 ]
 
 
