@@ -229,12 +229,11 @@ def _post_server_start(server, server_pid, **kwargs):
 ###############################################################################
 def _post_mongod_server_start(server, server_pid, **kwargs):
     try:
-
-        # sleep for a couple of seconds for the server to catch
-        time.sleep(2)
-
         # skip repl init if running in standalone mode
         if not kwargs.get("standalone"):
+            # sleep for a couple of seconds to allow server to load replicaset
+            # config first
+            time.sleep(2)
             maybe_config_server_repl_set(server, rs_add=kwargs.get("rs_add"),
                                          no_init=kwargs.get("no_init"))
 
