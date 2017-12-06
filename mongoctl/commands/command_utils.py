@@ -349,6 +349,11 @@ def options_to_command_args(args):
             continue
         elif arg_val is True:
             command_args.append("--%s" % arg_name)
+        elif isinstance(arg_val, list):
+            # expand multiple options per argument values
+            for arg_val_item in arg_val:
+                command_args.append("--%s" % arg_name)
+                command_args.append(str(arg_val_item))
         else:
             command_args.append("--%s" % arg_name)
             command_args.append(str(arg_val))
