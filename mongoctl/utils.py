@@ -279,7 +279,11 @@ def get_host_ips(host):
     try:
 
         ips = []
-        addr_info = socket.getaddrinfo(host, None)
+        try:
+            addr_info = socket.getaddrinfo(host, None)
+        # Can't resolve -> obviously has no IPs -> return default empty list
+        except socket.gaierror:
+            return ips
         for elem in addr_info:
             ip = elem[4]
             if ip not in ips:
