@@ -310,6 +310,17 @@ class MongodServer(server.Server):
         return get_member_repl_lag(member_status, master_status)
 
     ###########################################################################
+    def get_environment_variables(self):
+        env_vars = super(MongodServer, self).get_environment_variables() or {}
+
+        # default TCMALLOC_AGGRESSIVE_DECOMMIT for wiredTiger if not set
+        if self.is_wired_tiger() and "TCMALLOC_AGGRESSIVE_DECOMMIT" not in env_vars:
+            log_info("Server is wiredTiger. Defaulting TCMALLOC_AGGRESSIVE_DECOMMIT=y")
+            env_vars["TCMALLOC_AGGRESSIVE_DECOMMIT"] = "y"
+
+        return env_vars
+
+    ###########################################################################
     def get_allowed_environment_variables(self):
         return ["TCMALLOC_AGGRESSIVE_DECOMMIT"]
 
