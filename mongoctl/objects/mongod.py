@@ -310,13 +310,8 @@ class MongodServer(server.Server):
         return get_member_repl_lag(member_status, master_status)
 
     ###########################################################################
-    def get_server_executable_env_vars(self):
-        env_vars = {}
-        # Workaround for mongod SERVER-24303 issue
-        if self.is_wired_tiger():
-            env_vars["TCMALLOC_AGGRESSIVE_DECOMMIT"] = "y"
-
-        return env_vars
+    def get_allowed_environment_variables(self):
+        return ["TCMALLOC_AGGRESSIVE_DECOMMIT"]
 
     ###########################################################################
     def is_wired_tiger(self):
