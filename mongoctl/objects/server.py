@@ -345,8 +345,23 @@ class Server(DocumentWrapper):
         return self.set_property('cmdOptions' , cmd_options)
 
     ###########################################################################
-    def get_server_executable_env_vars(self):
-        return {}
+    def get_environment_variables(self):
+        env_vars = self.get_property('environmentVariables') or {}
+        allowed = self.get_allowed_environment_variables()
+
+        for v in env_vars.keys():
+            if v not in allowed:
+                raise MongoctlException("Unknown environment variable '%s'" % v)
+
+        return env_vars
+
+    ###########################################################################
+    def get_allowed_environment_variables(self):
+        """
+
+        :return: whitelist of allowed env vars
+        """
+        return []
 
     ###########################################################################
     def apply_cmd_options_overrides(self, options_overrides):

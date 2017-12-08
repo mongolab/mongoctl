@@ -453,7 +453,7 @@ def start_server_process(server, options_override=None, standalone=False):
 
 ###############################################################################
 def set_server_executable_env_vars(server):
-    exe_env = server.get_server_executable_env_vars()
+    exe_env = server.get_environment_variables()
     if exe_env:
         log_info("Passing env vars: %s" % exe_env)
         os.environ.update(exe_env)
