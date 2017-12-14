@@ -4,7 +4,7 @@ __author__ = 'abdul'
 
 import server
 
-from mongoctl.utils import resolve_path
+from mongoctl.utils import resolve_path, system_memory_size_gbs
 from mongoctl.mongoctl_logging import log_verbose, log_debug, log_exception, \
     log_warning, log_info
 
@@ -313,12 +313,18 @@ class MongodServer(server.Server):
     def get_environment_variables(self):
         env_vars = super(MongodServer, self).get_environment_variables() or {}
 
-        # default TCMALLOC_AGGRESSIVE_DECOMMIT for wiredTiger if not set
-        if self.is_wired_tiger() and "TCMALLOC_AGGRESSIVE_DECOMMIT" not in env_vars:
-            log_info("Server is wiredTiger. Defaulting TCMALLOC_AGGRESSIVE_DECOMMIT=y")
+        # default TCMALLOC_AGGRESSIVE_DECOMMIT as needed if not set
+        if "TCMALLOC_AGGRESSIVE_DECOMMIT" not in env_vars and self.needs_tcmalloc_aggressive_decommit():
+            log_info("Defaulting TCMALLOC_AGGRESSIVE_DECOMMIT=y")
             env_vars["TCMALLOC_AGGRESSIVE_DECOMMIT"] = "y"
 
         return env_vars
+
+
+    ###########################################################################
+    def needs_tcmalloc_aggressive_decommit(self):
+        version = self.get_mongo_version_info()
+        return self.is_wired_tiger() and version < make_version_info("3.2.10") and system_memory_size_gbs() < 30
 
     ###########################################################################
     def get_allowed_environment_variables(self):

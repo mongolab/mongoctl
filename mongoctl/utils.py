@@ -397,3 +397,13 @@ def time_string(time_seconds):
     return " ".join(result)
 
 
+###############################################################################
+def system_memory_size_gbs():
+    """
+    credit https://stackoverflow.com/questions/22102999/get-total-physical-memory-in-python
+    :return: total system memory size in gbs
+    """
+    mem_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')  # e.g. 4015976448
+    return mem_bytes/(1024.**3)
+
+
