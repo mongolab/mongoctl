@@ -255,13 +255,17 @@ def is_same_host(host1, host2):
     """
     Returns true if host1 == host2 OR map to the same host (using DNS)
     """
+    try:
 
-    if host1 == host2:
-        return True
-    else:
-        ips1 = get_host_ips(host1)
-        ips2 = get_host_ips(host2)
-        return len(set(ips1) & set(ips2)) > 0
+        if host1 == host2:
+            return True
+        else:
+            ips1 = get_host_ips(host1)
+            ips2 = get_host_ips(host2)
+            return len(set(ips1) & set(ips2)) > 0
+    except Exception, ex:
+        log_exception(ex)
+        return False
 
 ###############################################################################
 def is_same_address(addr1, addr2):
