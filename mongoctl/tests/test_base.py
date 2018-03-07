@@ -33,7 +33,7 @@ import mongoctl.mongoctl as mongoctl_main
 from mongoctl import repository
 from mongoctl.utils import is_pid_alive, kill_process, document_pretty_string, execute_command
 from mongoctl.commands.command_utils import get_mongo_executable
-from mongoctl.minify_json import minify_json
+from json_minify import json_minify
 from subprocess import CalledProcessError
 from mongoctl import config
 
@@ -308,7 +308,7 @@ def _to_options_str(options):
 
 ########################################################################################################################
 def _dict_list_to_option_str(dict_list):
-    return minify_json.json_minify(document_pretty_string(dict_list))
+    return json_minify(document_pretty_string(dict_list))
 
 ########################################################################################################################
 def append_user_arg(cmd):

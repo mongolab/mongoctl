@@ -1,12 +1,10 @@
 __author__ = 'abdul'
 
-import json
 import urllib
-import mongoctl_globals
 
 from utils import *
 
-from minify_json import minify_json
+from json_minify import json_minify
 from errors import MongoctlException
 
 from bson import json_util
@@ -114,7 +112,7 @@ def read_config_json(name, path_or_url):
 
         json_str = read_json_string(path_or_url)
         # minify the json/remove comments and sh*t
-        json_str = minify_json.json_minify(json_str)
+        json_str = json_minify(json_str)
         json_val =json.loads(json_str,
                              object_hook=json_util.object_hook)
 
