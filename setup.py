@@ -113,7 +113,7 @@ install_requires = [
     "dargparse>=0.2.5",
     "psutil==1.2.1",
     "pymo==0.2.0",
-    "pymongo==3.2.2",
+    "pymongo==3.6.1",
     "verlib==0.1",
     "JSON-minify==0.3.0"
 ]

@@ -131,6 +131,7 @@ def _mongo_add_user(server, db, username, password, read_only=False,
             # majority is the only valid write concern when writing to config server replica sets
             kwargs["writeConcern"] = {"w": "majority"}
 
+        # TODO this method is deprecated and will be removed in 4.0. So we should change this when we upgrade to 4.0
         db.add_user(username, password, read_only, **kwargs)
     except OperationFailure, ofe:
         # This is a workaround for PYTHON-407. i.e. catching a harmless
