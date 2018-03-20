@@ -287,13 +287,33 @@ class Server(DocumentWrapper):
         return None
 
     ###########################################################################
+    def get_server_build_info(self):
+        """
+        issues a buildinfo command
+        """
+        if self.is_online():
+            try:
+                return self.get_mongo_client().server_info()
+            except OperationFailure, ofe:
+                log_exception(ofe)
+                if "there are no users authenticated" in str(ofe):
+                    # this is a pymongo 3.6.1 regression where the buildinfo command fails on non authenticated client
+                    # fall-back to an authenticated client
+                    admin_db = self.get_db("admin", no_auth=False)
+                    return admin_db.command("buildinfo")
+            except Exception, e:
+                log_exception(e)
+
+        return None
+
+    ###########################################################################
     def get_mongodb_edition(self):
 
         if self._mongodb_edition:
             return self._mongodb_edition
 
-        if self.is_online():
-            server_info = self.get_mongo_client().server_info()
+        server_info = self.get_server_build_info()
+        if server_info:
             if ("gitVersion" in server_info and
                     ("subscription" in server_info["gitVersion"] or
                      "enterprise" in server_info["gitVersion"])):
@@ -739,7 +759,8 @@ class Server(DocumentWrapper):
             result = False
         except (RuntimeError,Exception), e:
             log_exception(e)
-            result = "authorized" in str(e)
+            # updated for to handle auth failures from mongodb 3.6
+            result = "authorized" in str(e) or "there are no users authenticated" in str(e)
 
         log_debug("needs_to_auth check for server '%s'  on db '%s' : %s" %
                   (self.id, dbname, result))
