@@ -1820,6 +1820,14 @@ MONGOD_OPTIONS = [
     },
 
     {
+        "name": "noIndexBuildRetry",
+        "type": "optional",
+        "cmd_arg":  "--noIndexBuildRetry",
+        "nargs": 0,
+        "help": "don't retry any index builds that were interrupted by shutdown"
+    },
+
+    {
         "name": "upgrade",
         "type" : "optional",
         "cmd_arg":  "--upgrade",
