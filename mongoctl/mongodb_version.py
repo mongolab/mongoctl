@@ -1,6 +1,6 @@
 __author__ = 'abdul'
 
-from verlib import NormalizedVersion, suggest_normalized_version
+from distutils2.version import NormalizedVersion, suggest_normalized_version
 from errors import MongoctlException
 
 # Version support stuff
