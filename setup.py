@@ -111,7 +111,7 @@ def mongoctl_post_install():
 install_requires = [
     "boto==2.45.0",
     "dargparse>=0.2.5",
-    "psutil==1.2.1",
+    "psutil==5.6.6",
     "pymo==0.2.0",
     "pymongo==3.6.1",
     "distutils2==1.0a4",
